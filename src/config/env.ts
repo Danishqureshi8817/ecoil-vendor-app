@@ -25,3 +25,8 @@ export const VENDOR_API_BASE = __DEV__
 export const PUBLIC_API_BASE = __DEV__
   ? `${LOCAL_NEST_BASE}/api/public`
   : 'https://vendor-api.ecoil.in/api/public';
+
+/** Nest proxy → knparises vendor APIs (certificates, etc.) */
+export const VENDOR_PROXY_API_BASE = __DEV__
+  ? `${LOCAL_NEST_BASE}/api/vendor`
+  : 'https://vendor-api.ecoil.in/api/vendor';

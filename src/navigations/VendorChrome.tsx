@@ -88,6 +88,12 @@ export function VendorChrome({children}: Props) {
         icon: 'list-outline' as const,
         onPress: () => push(StackNav.CollectRequestList),
       },
+      {
+        key: StackNav.MyCertificates,
+        label: 'My Certificates',
+        icon: 'ribbon-outline' as const,
+        onPress: () => push(StackNav.MyCertificates),
+      },
     ],
     [],
   );

@@ -1,4 +1,5 @@
 import {validateVendorLogin} from '@/api/vendorApi';
+import {fetchCertificatesList} from '@/api/certificatesApi';
 import {
   fetchAllCollectionRequests,
   submitCollectionRequest,
@@ -9,6 +10,7 @@ class VendorService {
   queryKeys = {
     vendorLogin: 'vendorLogin',
     collectionRequests: 'collectionRequests',
+    certificates: 'certificates',
   };
 
   validateLogin = (mobile: string, password: string) =>
@@ -18,6 +20,8 @@ class VendorService {
 
   submitCollection = (input: SubmitCollectionRequestInput) =>
     submitCollectionRequest(input);
+
+  getCertificatesList = () => fetchCertificatesList();
 }
 
 export default new VendorService();

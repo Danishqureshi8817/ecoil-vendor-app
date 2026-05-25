@@ -60,6 +60,14 @@ export default function HomeScreen() {
       iconBg: Colors.purpleSoft,
       onPress: () => push(StackNav.CollectRequestList),
     },
+    {
+      title: 'My Certificates',
+      desc: 'Download CO₂ & RUCO PDFs',
+      icon: 'ribbon-outline',
+      iconColor: Colors.brand,
+      iconBg: Colors.brandSoft,
+      onPress: () => push(StackNav.MyCertificates),
+    },
   ];
 
   return (

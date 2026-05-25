@@ -4,6 +4,7 @@ import MainScreen from '@/navigations/MainScreen';
 import Splash from '@/screens/Splash';
 import Login from '@/screens/Login';
 import CollectRequestListScreen from '@/screens/CollectRequestListScreen';
+import MyCertificatesScreen from '@/screens/MyCertificatesScreen';
 import {navigationRef} from '@/utils/NavigationUtils';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -22,6 +23,10 @@ export default function AppNavigator() {
         <Stack.Screen
           name={StackNav.CollectRequestList}
           component={CollectRequestListScreen}
+        />
+        <Stack.Screen
+          name={StackNav.MyCertificates}
+          component={MyCertificatesScreen}
         />
       </Stack.Navigator>
       <CheckInternet />
