@@ -1,0 +1,245 @@
+import {Colors} from '@/constants/colors';
+import {Fonts} from '@/constants/fonts';
+import {theme} from '@/constants/theme';
+import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
+import {StyleSheet} from 'react-native';
+
+/** Shared styles matching vendor dashboard `external.css` */
+export const externalUi = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: moderateScale(20),
+    padding: moderateScale(20),
+    marginBottom: moderateScaleVertical(14),
+    borderWidth: 1,
+    borderColor: Colors.line,
+    ...theme.shadow,
+  },
+  cardTitle: {
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  muted: {
+    color: Colors.muted,
+    fontSize: moderateScale(14),
+    lineHeight: 20,
+  },
+  toolbar: {
+    gap: moderateScaleVertical(12),
+  },
+  toolbarActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: moderateScale(8),
+  },
+  btnSecondary: {
+    paddingVertical: moderateScaleVertical(11),
+    paddingHorizontal: moderateScale(16),
+    borderRadius: moderateScale(14),
+    borderWidth: 1.5,
+    borderColor: Colors.line,
+    backgroundColor: Colors.white,
+  },
+  btnSecondaryLink: {
+    backgroundColor: Colors.brandSoft,
+    borderColor: 'transparent',
+  },
+  btnSecondaryText: {
+    color: Colors.black,
+    fontFamily: Fonts.inter.bold,
+    fontSize: moderateScale(13),
+  },
+  btnSecondaryTextLink: {
+    color: Colors.brandDark,
+  },
+  listCard: {
+    backgroundColor: Colors.white,
+    borderRadius: moderateScale(20),
+    padding: moderateScale(18),
+    marginBottom: moderateScaleVertical(12),
+    borderWidth: 1,
+    borderColor: Colors.line,
+    ...theme.shadow,
+  },
+  listCardHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: moderateScale(10),
+    marginBottom: moderateScaleVertical(10),
+  },
+  listCardTitle: {
+    flex: 1,
+    fontSize: moderateScale(15),
+    letterSpacing: -0.2,
+  },
+  badge: {
+    paddingHorizontal: moderateScale(11),
+    paddingVertical: moderateScaleVertical(5),
+    borderRadius: 999,
+    backgroundColor: Colors.brandSoft,
+  },
+  badgeText: {
+    color: Colors.brandDark,
+    fontSize: moderateScale(11),
+    fontFamily: Fonts.inter.bold,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    marginBottom: moderateScaleVertical(4),
+    gap: moderateScale(12),
+  },
+  metaDt: {
+    color: Colors.muted,
+    fontFamily: Fonts.inter.semiBold,
+    fontSize: moderateScale(13),
+    minWidth: moderateScale(88),
+  },
+  metaDd: {
+    flex: 1,
+    color: Colors.black,
+    fontFamily: Fonts.inter.bold,
+    fontSize: moderateScale(13),
+  },
+  listNotes: {
+    marginTop: moderateScaleVertical(10),
+    paddingTop: moderateScaleVertical(10),
+    borderTopWidth: 1,
+    borderTopColor: Colors.line,
+    color: Colors.muted,
+    fontSize: moderateScale(13),
+    lineHeight: 20,
+  },
+  inlineLink: {
+    marginTop: moderateScaleVertical(10),
+    color: Colors.brandDark,
+    fontFamily: Fonts.inter.bold,
+    fontSize: moderateScale(14),
+  },
+  alertError: {
+    marginBottom: moderateScaleVertical(14),
+    paddingVertical: moderateScaleVertical(12),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(14),
+    backgroundColor: Colors.errorSoft,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  alertErrorText: {
+    color: Colors.error,
+    fontFamily: Fonts.inter.semiBold,
+    fontSize: moderateScale(13),
+  },
+  alertSuccess: {
+    marginBottom: moderateScaleVertical(14),
+    paddingVertical: moderateScaleVertical(12),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(14),
+    backgroundColor: Colors.brandSoft,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  alertSuccessText: {
+    color: Colors.brandDark,
+    fontFamily: Fonts.inter.semiBold,
+    fontSize: moderateScale(13),
+  },
+  field: {
+    marginBottom: moderateScaleVertical(16),
+  },
+  fieldLabel: {
+    color: Colors.black,
+    fontFamily: Fonts.inter.bold,
+    fontSize: moderateScale(12),
+    letterSpacing: 0.3,
+    marginBottom: moderateScaleVertical(7),
+    textTransform: 'uppercase',
+  },
+  formInput: {
+    backgroundColor: Colors.bg,
+    borderRadius: moderateScale(14),
+    borderWidth: 1.5,
+    borderColor: Colors.line,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScaleVertical(14),
+    fontSize: moderateScale(14),
+    color: Colors.black,
+    fontFamily: Fonts.inter.regular,
+  },
+  formInputFocused: {
+    borderColor: Colors.brand,
+    backgroundColor: Colors.white,
+  },
+  formTextarea: {
+    minHeight: moderateScaleVertical(88),
+    textAlignVertical: 'top',
+    paddingTop: moderateScaleVertical(14),
+  },
+  formFooter: {
+    marginTop: moderateScaleVertical(14),
+    alignItems: 'center',
+  },
+  formFooterLink: {
+    color: Colors.brandDark,
+    fontFamily: Fonts.inter.semiBold,
+    fontSize: moderateScale(13),
+  },
+  submitBtn: {
+    borderRadius: moderateScale(14),
+    overflow: 'hidden',
+    marginTop: moderateScaleVertical(4),
+    shadowColor: Colors.brand,
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  submitBtnInner: {
+    paddingVertical: moderateScaleVertical(15),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitBtnText: {
+    color: Colors.white,
+    fontFamily: Fonts.inter.bold,
+    fontSize: moderateScale(15),
+  },
+  detailBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'center',
+    padding: moderateScale(20),
+  },
+  detailPanel: {
+    backgroundColor: Colors.white,
+    borderRadius: moderateScale(20),
+    padding: moderateScale(24),
+    maxHeight: '80%',
+  },
+  detailTitle: {
+    letterSpacing: -0.3,
+    marginBottom: moderateScaleVertical(6),
+  },
+  detailRow: {
+    paddingVertical: moderateScaleVertical(12),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(14),
+    backgroundColor: Colors.bg,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    marginBottom: moderateScaleVertical(10),
+  },
+  detailLabel: {
+    fontSize: moderateScale(11),
+    fontFamily: Fonts.inter.bold,
+    color: Colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: moderateScale(14),
+    fontFamily: Fonts.inter.semiBold,
+    color: Colors.black,
+  },
+});
