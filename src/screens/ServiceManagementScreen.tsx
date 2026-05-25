@@ -22,17 +22,70 @@ import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import {useToastMessage} from '@/utils/useToastMessage';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import {useQuery} from '@tanstack/react-query';
-import React, {useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
+  ListRenderItem,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
+import {externalUi} from '@/styles/externalUi';
+
+function ServiceListItem({
+  service,
+  loading,
+  onPress,
+}: {
+  service: PublicService;
+  loading: boolean;
+  onPress: () => void;
+}) {
+  const letter = (service.name.trim()[0] || 'S').toUpperCase();
+
+  return (
+    <Pressable
+      style={({pressed}) => [
+        serviceUi.serviceCard,
+        pressed && serviceUi.serviceCardPressed,
+        loading && styles.serviceDisabled,
+      ]}
+      onPress={onPress}
+      disabled={loading}>
+      <View
+        style={[
+          serviceUi.serviceAvatar,
+          {backgroundColor: serviceAvatarColor(service.name)},
+        ]}>
+        <CustomText variant="h5" fontFamily={Fonts.inter.bold} style={{color: Colors.white}}>
+          {letter}
+        </CustomText>
+      </View>
+      <View style={styles.serviceBody}>
+        <CustomText variant="h6" fontFamily={Fonts.inter.bold} numberOfLine={1}>
+          {service.name}
+        </CustomText>
+        <CustomText variant="h7" style={serviceUi.serviceMeta}>
+          Fill application form
+        </CustomText>
+      </View>
+      <View style={serviceUi.serviceChevron}>
+        {loading ? (
+          <ActivityIndicator size="small" color={Colors.brand} />
+        ) : (
+          <Ionicons name="chevron-forward" size={18} color={Colors.brand} />
+        )}
+      </View>
+    </Pressable>
+  );
+}
 
 export default function ServiceManagementScreen() {
   const user = useAuthStore(s => s.user);
@@ -59,6 +112,32 @@ export default function ServiceManagementScreen() {
     }
     return services.filter(s => s.name.toLowerCase().includes(q));
   }, [services, search]);
+
+  const {height: windowHeight} = useWindowDimensions();
+  const listData = !isLoading ? filtered : [];
+  const isEmptyList = listData.length === 0;
+
+  const loadingServiceName = useMemo(() => {
+    if (!formLoadingId) {
+      return '';
+    }
+    return services.find(s => s.id === formLoadingId)?.name ?? '';
+  }, [formLoadingId, services]);
+
+  /** Space below step nav + search so empty state sits in the middle of the screen */
+  const emptyAreaMinHeight = Math.max(
+    windowHeight - moderateScaleVertical(300),
+    moderateScaleVertical(280),
+  );
+
+  const contentContainerStyle = useMemo(
+    () => [
+      screen.scroll,
+      styles.listContent,
+      isEmptyList && !isLoading && styles.listContentEmpty,
+    ],
+    [isEmptyList, isLoading],
+  );
 
   async function selectService(service: PublicService) {
     setError('');
@@ -122,122 +201,84 @@ export default function ServiceManagementScreen() {
     }
   }
 
-  return (
-    <ScrollView
-      contentContainerStyle={screen.scroll}
-      refreshControl={
-        step === 'list' ? (
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.brand} />
-        ) : undefined
-      }
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled">
-      <ServiceStepNav step={step} />
+  const keyExtractor = useCallback((item: PublicService) => item.id, []);
 
-      {error ? <ErrorBanner message={error} /> : null}
+  const renderItem: ListRenderItem<PublicService> = useCallback(
+    ({item}) => (
+      <ServiceListItem
+        service={item}
+        loading={formLoading && formLoadingId === item.id}
+        onPress={() => selectService(item)}
+      />
+    ),
+    [formLoading, formLoadingId],
+  );
 
-      {step === 'list' && (
-        <>
-          <View
-            style={[
-              serviceUi.searchRow,
-              searchFocused && serviceUi.searchRowFocused,
-            ]}>
-            <Ionicons
-              name="search-outline"
-              size={20}
-              color={searchFocused ? Colors.brand : Colors.muted}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={serviceUi.searchInput}
-              value={search}
-              onChangeText={setSearch}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              placeholder="Search services…"
-              placeholderTextColor={Colors.placeHolderColor}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
+  const ItemSeparator = useCallback(
+    () => <View style={styles.itemSeparator} />,
+    [],
+  );
 
-          {isLoading && (
-            <View style={styles.skeletonList}>
-              <View style={styles.skeleton} />
-              <View style={styles.skeleton} />
-              <View style={styles.skeleton} />
-            </View>
-          )}
-
-          {!isLoading && filtered.length === 0 && (
-            <EmptyState
-              icon="search-outline"
-              title="No services found"
-              subtitle="Try a different search or pull down to refresh"
-            />
-          )}
-
-          {!isLoading && filtered.length > 0 && (
-            <View style={serviceUi.serviceList}>
-              {filtered.map(s => {
-                const letter = (s.name.trim()[0] || 'S').toUpperCase();
-                const loadingThis = formLoading && formLoadingId === s.id;
-                return (
-                  <Pressable
-                    key={s.id}
-                    style={({pressed}) => [
-                      serviceUi.serviceCard,
-                      pressed && serviceUi.serviceCardPressed,
-                      loadingThis && styles.serviceDisabled,
-                    ]}
-                    onPress={() => selectService(s)}
-                    disabled={formLoading}>
-                    <View
-                      style={[
-                        serviceUi.serviceAvatar,
-                        {backgroundColor: serviceAvatarColor(s.name)},
-                      ]}>
-                      <CustomText
-                        variant="h5"
-                        fontFamily={Fonts.inter.bold}
-                        style={{color: Colors.white}}>
-                        {letter}
-                      </CustomText>
-                    </View>
-                    <View style={{flex: 1, minWidth: 0}}>
-                      <CustomText variant="h6" fontFamily={Fonts.inter.bold} numberOfLine={1}>
-                        {s.name}
-                      </CustomText>
-                      <CustomText variant="h7" style={serviceUi.serviceMeta}>
-                        Fill application form
-                      </CustomText>
-                    </View>
-                    <View style={serviceUi.serviceChevron}>
-                      {loadingThis ? (
-                        <ActivityIndicator size="small" color={Colors.brand} />
-                      ) : (
-                        <Ionicons name="chevron-forward" size={18} color={Colors.brand} />
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </>
-      )}
-
-      {formLoading && step === 'list' && (
-        <View style={styles.loadingBanner}>
-          <ActivityIndicator size="small" color={Colors.brand} />
-          <CustomText variant="h7" style={styles.muted}>
-            Checking application form…
-          </CustomText>
+  const listHeader = useCallback(
+    () => (
+      <View>
+        <ServiceStepNav step={step} />
+        {error ? <ErrorBanner message={error} /> : null}
+        <View
+          style={[serviceUi.searchRow, searchFocused && serviceUi.searchRowFocused]}>
+          <Ionicons
+            name="search-outline"
+            size={20}
+            color={searchFocused ? Colors.brand : Colors.muted}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={serviceUi.searchInput}
+            value={search}
+            onChangeText={setSearch}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            placeholder="Search services…"
+            placeholderTextColor={Colors.placeHolderColor}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
         </View>
-      )}
+        {isLoading && (
+          <View style={styles.skeletonList}>
+            <View style={styles.skeleton} />
+            <View style={styles.skeleton} />
+            <View style={styles.skeleton} />
+          </View>
+        )}
+      </View>
+    ),
+    [step, error, search, searchFocused, isLoading],
+  );
 
-      {step === 'form' && form && (
+  const listEmpty = useCallback(() => {
+    if (isLoading) {
+      return null;
+    }
+    return (
+      <View style={[styles.emptyFill, {minHeight: emptyAreaMinHeight}]}>
+        <EmptyState
+          icon="search-outline"
+          title="No services found"
+          subtitle="Try a different search or pull down to refresh"
+        />
+      </View>
+    );
+  }, [isLoading, emptyAreaMinHeight]);
+
+  if (step === 'form' && form) {
+    return (
+      <ScrollView
+        contentContainerStyle={screen.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
+        <ServiceStepNav step={step} />
+        {error ? <ErrorBanner message={error} /> : null}
         <ServiceDynamicForm
           form={form}
           user={user}
@@ -245,12 +286,84 @@ export default function ServiceManagementScreen() {
           onSubmit={handleSubmit}
           onBack={backToList}
         />
-      )}
-    </ScrollView>
+      </ScrollView>
+    );
+  }
+
+  return (
+    <>
+      <FlatList
+        style={styles.list}
+        data={listData}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ItemSeparatorComponent={ItemSeparator}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        contentContainerStyle={contentContainerStyle}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={Colors.brand}
+          />
+        }
+      />
+
+      <Modal
+        visible={formLoading}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => {}}>
+        <View style={externalUi.detailBackdrop}>
+          <Pressable style={styles.loadingModalCard} onPress={e => e.stopPropagation()}>
+            <ActivityIndicator size="large" color={Colors.brand} />
+            <CustomText
+              variant="h5"
+              fontFamily={Fonts.inter.bold}
+              style={styles.loadingModalTitle}>
+              Checking application form
+            </CustomText>
+            {loadingServiceName ? (
+              <CustomText variant="h7" style={styles.muted} numberOfLine={2}>
+                {loadingServiceName}
+              </CustomText>
+            ) : null}
+            <CustomText variant="h7" style={styles.loadingModalSub}>
+              Please wait…
+            </CustomText>
+          </Pressable>
+        </View>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    flexGrow: 1,
+  },
+  listContentEmpty: {
+    flexGrow: 1,
+  },
+  emptyFill: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemSeparator: {
+    height: moderateScaleVertical(10),
+  },
+  serviceBody: {
+    flex: 1,
+    minWidth: 0,
+  },
   muted: {color: Colors.muted},
   searchIcon: {marginRight: moderateScale(10)},
   serviceDisabled: {opacity: 0.65},
@@ -261,14 +374,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.line,
     opacity: 0.6,
   },
-  loadingBanner: {
-    flexDirection: 'row',
+  loadingModalCard: {
+    backgroundColor: Colors.white,
+    borderRadius: moderateScale(20),
+    paddingVertical: moderateScaleVertical(28),
+    paddingHorizontal: moderateScale(28),
     alignItems: 'center',
-    gap: moderateScale(10),
-    marginTop: moderateScaleVertical(8),
-    paddingVertical: moderateScaleVertical(12),
-    paddingHorizontal: moderateScale(14),
-    borderRadius: moderateScale(14),
-    backgroundColor: Colors.brandSoft,
+    minWidth: moderateScale(260),
+    maxWidth: '85%',
+    gap: moderateScaleVertical(10),
+  },
+  loadingModalTitle: {
+    color: Colors.black,
+    textAlign: 'center',
+    marginTop: moderateScaleVertical(4),
+  },
+  loadingModalSub: {
+    color: Colors.muted,
+    textAlign: 'center',
   },
 });

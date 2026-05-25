@@ -22,7 +22,6 @@ export const externalUi = StyleSheet.create({
   muted: {
     color: Colors.muted,
     fontSize: moderateScale(14),
-    lineHeight: 20,
   },
   toolbar: {
     gap: moderateScaleVertical(12),
@@ -208,6 +207,7 @@ export const externalUi = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
     justifyContent: 'center',
+    alignItems: 'center',
     padding: moderateScale(20),
   },
   detailPanel: {
