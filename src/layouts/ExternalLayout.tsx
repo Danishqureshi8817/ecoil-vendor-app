@@ -95,7 +95,10 @@ export function ExternalLayout({
             ) : null}
           </View>
 
-          <ScrollView style={styles.drawerNav} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.drawerNav}
+            contentContainerStyle={styles.drawerNavContent}
+            showsVerticalScrollIndicator={false}>
             <CustomText variant="h7" style={styles.navSection}>
               Menu
             </CustomText>
@@ -132,15 +135,17 @@ export function ExternalLayout({
             })}
           </ScrollView>
 
-          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-            <Ionicons name="log-out-outline" size={22} color={Colors.error} />
-            <CustomText
-              variant="h6"
-              fontFamily={Fonts.inter.semiBold}
-              style={styles.logoutText}>
-              Sign out
-            </CustomText>
-          </TouchableOpacity>
+          <View style={styles.drawerFooter}>
+            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+              <Ionicons name="log-out-outline" size={22} color={Colors.error} />
+              <CustomText
+                variant="h6"
+                fontFamily={Fonts.inter.semiBold}
+                style={styles.logoutText}>
+                Sign out
+              </CustomText>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>
@@ -205,6 +210,15 @@ const styles = StyleSheet.create({
   },
   drawerUserText: {color: Colors.white, flex: 1},
   drawerNav: {flex: 1, paddingHorizontal: moderateScale(12), paddingTop: moderateScaleVertical(12)},
+  drawerNavContent: {
+    paddingBottom: moderateScaleVertical(12),
+  },
+  drawerFooter: {
+    paddingTop: moderateScaleVertical(12),
+    paddingHorizontal: moderateScale(16),
+    borderTopWidth: 1,
+    borderTopColor: Colors.line,
+  },
   navSection: {
     color: Colors.muted,
     marginLeft: moderateScale(8),
@@ -240,8 +254,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: moderateScale(10),
-    marginHorizontal: moderateScale(16),
-    marginBottom: moderateScaleVertical(8),
     paddingVertical: moderateScaleVertical(14),
     borderRadius: moderateScale(14),
     backgroundColor: Colors.errorSoft,
