@@ -7,9 +7,10 @@ import {StackNav, TabNav} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
 import {card, screen} from '@/styles/ui';
 import {navigateToTab, push} from '@/utils/NavigationUtils';
+import {isPrimaryVendor} from '@/utils/vendorUser';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import React from 'react';
+import React, {useMemo} from 'react';
 import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
@@ -20,55 +21,78 @@ type QuickAction = {
   iconColor: string;
   iconBg: string;
   onPress: () => void;
+  primaryOnly?: boolean;
 };
 
 export default function HomeScreen() {
   const user = useAuthStore(s => s.user);
+  const primary = isPrimaryVendor(user);
   const {data: collections} = useCollectionRequests();
   const firstName = (user?.name || 'Partner').split(/\s+/)[0];
 
-  const quickActions: QuickAction[] = [
-    {
-      title: 'Our Services',
-      desc: 'Apply for a service',
-      icon: 'sunny-outline',
-      iconColor: Colors.brand,
-      iconBg: Colors.brandSoft,
-      onPress: () => navigateToTab(TabNav.Services),
-    },
-    {
-      title: 'My Requests',
-      desc: 'Track applications',
-      icon: 'chatbubble-outline',
-      iconColor: Colors.blue,
-      iconBg: Colors.blueSoft,
-      onPress: () => navigateToTab(TabNav.Requests),
-    },
-    {
-      title: 'Collect',
-      desc: 'New pickup request',
-      icon: 'basket-outline',
-      iconColor: Colors.accent,
-      iconBg: Colors.accentSoft,
-      onPress: () => navigateToTab(TabNav.Collect),
-    },
-    {
-      title: 'Collections',
-      desc: 'View all requests',
-      icon: 'list-outline',
-      iconColor: Colors.purple,
-      iconBg: Colors.purpleSoft,
-      onPress: () => push(StackNav.CollectRequestList),
-    },
-    {
-      title: 'My Certificates',
-      desc: 'Download CO₂ & RUCO PDFs',
-      icon: 'ribbon-outline',
-      iconColor: Colors.brand,
-      iconBg: Colors.brandSoft,
-      onPress: () => push(StackNav.MyCertificates),
-    },
-  ];
+  const quickActions: QuickAction[] = useMemo(() => {
+    const actions: QuickAction[] = [
+      {
+        title: 'Our Services',
+        desc: 'Apply for a service',
+        icon: 'sunny-outline',
+        iconColor: Colors.brand,
+        iconBg: Colors.brandSoft,
+        onPress: () => navigateToTab(TabNav.Services),
+      },
+      {
+        title: 'Service Request',
+        desc: 'Track service applications',
+        icon: 'chatbubble-outline',
+        iconColor: Colors.blue,
+        iconBg: Colors.blueSoft,
+        onPress: () => navigateToTab(TabNav.Requests),
+      },
+      {
+        title: 'Collection',
+        desc: 'New pickup request',
+        icon: 'basket-outline',
+        iconColor: Colors.accent,
+        iconBg: Colors.accentSoft,
+        onPress: () => navigateToTab(TabNav.Collect),
+      },
+      {
+        title: 'Collections',
+        desc: 'View all requests',
+        icon: 'list-outline',
+        iconColor: Colors.purple,
+        iconBg: Colors.purpleSoft,
+        onPress: () => push(StackNav.CollectRequestList),
+      },
+      {
+        title: 'My Certificates',
+        desc: 'Download CO₂ & RUCO PDFs',
+        icon: 'ribbon-outline',
+        iconColor: Colors.brand,
+        iconBg: Colors.brandSoft,
+        onPress: () => push(StackNav.MyCertificates),
+      },
+      {
+        title: 'Payment Details',
+        desc: 'View payment records',
+        icon: 'card-outline',
+        iconColor: Colors.blue,
+        iconBg: Colors.blueSoft,
+        onPress: () => push(StackNav.PaymentDetails),
+        primaryOnly: true,
+      },
+      {
+        title: 'Agreement',
+        desc: 'Review & accept',
+        icon: 'document-outline',
+        iconColor: Colors.purple,
+        iconBg: Colors.purpleSoft,
+        onPress: () => push(StackNav.Agreement),
+        primaryOnly: true,
+      },
+    ];
+    return actions.filter(a => !a.primaryOnly || primary);
+  }, [primary]);
 
   return (
     <ScrollView
@@ -199,10 +223,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(4, 120, 87, 0.12)',
   },
-  greet: {
-    color: Colors.muted,
-    fontWeight: '600',
-  },
+  greet: {color: Colors.muted, fontWeight: '600'},
   heroName: {
     color: Colors.black,
     marginTop: 4,
@@ -215,11 +236,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScaleVertical(18),
     lineHeight: 22,
   },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: moderateScale(12),
-  },
+  statsRow: {flexDirection: 'row', alignItems: 'center', gap: moderateScale(12)},
   statCard: {
     flex: 1,
     backgroundColor: Colors.white,
@@ -228,15 +245,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(16),
     ...theme.shadow,
   },
-  statNum: {
-    color: Colors.brand,
-    letterSpacing: -0.3,
-    fontSize: moderateScale(24),
-  },
-  statLabel: {
-    color: Colors.muted,
-    marginTop: 2,
-  },
+  statNum: {color: Colors.brand, letterSpacing: -0.3, fontSize: moderateScale(24)},
+  statLabel: {color: Colors.muted, marginTop: 2},
   ctaWrap: {
     flexShrink: 0,
     borderRadius: moderateScale(14),
@@ -255,13 +265,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(18),
     borderRadius: moderateScale(14),
   },
-  ctaText: {
-    color: Colors.white,
-  },
-  sectionTitle: {
-    marginBottom: moderateScaleVertical(12),
-    letterSpacing: -0.3,
-  },
+  ctaText: {color: Colors.white},
+  sectionTitle: {marginBottom: moderateScaleVertical(12), letterSpacing: -0.3},
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -286,26 +291,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: moderateScaleVertical(8),
   },
-  actionTitle: {
-    letterSpacing: -0.2,
-  },
+  actionTitle: {letterSpacing: -0.2},
   actionDesc: {
     color: Colors.muted,
     marginTop: moderateScaleVertical(6),
     lineHeight: 16,
     fontSize: moderateScale(11),
   },
-  pressed: {
-    opacity: 0.92,
-    transform: [{scale: 0.97}],
-  },
-  accountCard: {
-    marginBottom: moderateScaleVertical(8),
-  },
-  accountHeading: {
-    marginBottom: moderateScaleVertical(12),
-    letterSpacing: -0.3,
-  },
+  pressed: {opacity: 0.92, transform: [{scale: 0.97}]},
+  accountCard: {marginBottom: moderateScaleVertical(8)},
+  accountHeading: {marginBottom: moderateScaleVertical(12), letterSpacing: -0.3},
   accountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -316,18 +311,12 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(14),
     backgroundColor: Colors.bg,
   },
-  accountRowGap: {
-    marginTop: moderateScaleVertical(10),
-  },
+  accountRowGap: {marginTop: moderateScaleVertical(10)},
   accountLabel: {
     color: Colors.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     fontSize: moderateScale(12),
   },
-  accountValue: {
-    color: Colors.black,
-    flexShrink: 1,
-    textAlign: 'right',
-  },
+  accountValue: {color: Colors.black, flexShrink: 1, textAlign: 'right'},
 });

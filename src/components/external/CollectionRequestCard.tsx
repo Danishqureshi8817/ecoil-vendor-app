@@ -6,14 +6,18 @@ import {
   collectionRequestStatus,
 } from '@/api/collectionApi';
 import {externalUi} from '@/styles/externalUi';
+import {moderateScaleVertical} from '@/utils/responsiveSize';
 import React from 'react';
-import {View} from 'react-native';
+import {Pressable, StyleSheet, View} from 'react-native';
 
 function formatDate(value: unknown): string {
   if (value == null || value === '') {
     return '—';
   }
   const s = String(value);
+  if (/^\d{2}-[A-Za-z]{3}-\d{4}/.test(s)) {
+    return s;
+  }
   const d = new Date(s);
   if (!Number.isNaN(d.getTime())) {
     return d.toLocaleString(undefined, {
@@ -29,58 +33,86 @@ function formatDate(value: unknown): string {
 
 type MetaItem = {label: string; value: string};
 
+/** Same fields/labels as web `CollectRequestListPage` card. */
 function buildMeta(row: CollectionRequestRow): MetaItem[] {
-  const oilQty = row.oil_quantity ?? row.entered_volume ?? row.volume;
-  const transQty = row.trans_quantity;
-  const transStatus = row.trans_status;
-  const drums = row.entered_drums_qty ?? row.drums_qty ?? row.drums;
-  const emptyDrums = row.empty_drums_qty ?? row.empty_drums;
-  const date = row.created_at ?? row.request_date ?? row.date ?? row.submitted_at;
+  const pickupDate = row.request_date ?? row.created_at ?? row.date ?? '';
+  const filledToPickup =
+    row.actual_drums_qty_temp ?? row.actual_drums_qty ?? row.entered_drums_qty;
+  const oilWeightKg =
+    row.actual_volume_temp ??
+    row.actual_volume ??
+    row.entered_volume ??
+    row.oil_quantity;
+  const emptyDrumsToDrop = row.empty_drums_qty ?? row.empty_drums ?? null;
+  const status = row.request_status_name ?? collectionRequestStatus(row);
 
   const items: MetaItem[] = [];
-  if (oilQty != null) {
-    items.push({label: 'Oil qty', value: String(oilQty)});
+
+  if (pickupDate !== '') {
+    items.push({label: 'Pickup request date', value: formatDate(pickupDate)});
   }
-  if (transQty != null) {
-    items.push({label: 'Trans qty', value: String(transQty)});
+
+  if (filledToPickup != null) {
+    items.push({
+      label:
+        emptyDrumsToDrop != null ? 'Filled Drums To Pickup' : 'Filled Bottle To Pickup',
+      value: String(filledToPickup),
+    });
   }
-  if (transStatus != null) {
-    items.push({label: 'Trans status', value: String(transStatus)});
+
+  if (oilWeightKg != null && oilWeightKg !== '') {
+    items.push({label: 'Oil Weight (Kg)', value: String(oilWeightKg)});
   }
-  if (drums != null) {
-    items.push({label: 'Drums', value: String(drums)});
+
+  if (emptyDrumsToDrop != null && emptyDrumsToDrop !== '') {
+    items.push({label: 'Empty Drums To Drop', value: String(emptyDrumsToDrop)});
   }
-  if (emptyDrums != null) {
-    items.push({label: 'Empty drums', value: String(emptyDrums)});
+
+  if (status != null && String(status).trim() !== '') {
+    items.push({label: 'Status', value: String(status)});
   }
-  if (date != null && date !== '') {
-    items.push({label: 'Date', value: formatDate(date)});
-  }
+
   return items;
+}
+
+function cardTitle(row: CollectionRequestRow): string {
+  const requestType = row.request_type_name ?? row.request_type ?? '';
+  if (requestType != null && String(requestType).trim() !== '') {
+    return String(requestType);
+  }
+  return collectionRequestLabel(row);
 }
 
 type Props = {
   row: CollectionRequestRow;
+  onPress?: () => void;
 };
 
-export function CollectionRequestCard({row}: Props) {
+export function CollectionRequestCard({row, onPress}: Props) {
   const meta = buildMeta(row);
-  const notes = row.notes_for_team ?? row.notes;
-  const notesStr = notes != null ? String(notes).trim() : '';
+  const title = cardTitle(row);
+  const statusBadge = collectionRequestStatus(row);
 
   return (
-    <View style={externalUi.listCard}>
+    <Pressable
+      style={({pressed}) => [
+        externalUi.listCard,
+        onPress && styles.clickable,
+        pressed && onPress && styles.pressed,
+      ]}
+      onPress={onPress}
+      disabled={!onPress}>
       <View style={externalUi.listCardHead}>
         <CustomText
           variant="h6"
           fontFamily={Fonts.inter.bold}
           style={externalUi.listCardTitle}
           numberOfLine={2}>
-          {collectionRequestLabel(row)}
+          {title}
         </CustomText>
         <View style={externalUi.badge}>
           <CustomText variant="h7" style={externalUi.badgeText}>
-            {collectionRequestStatus(row)}
+            {statusBadge}
           </CustomText>
         </View>
       </View>
@@ -96,11 +128,25 @@ export function CollectionRequestCard({row}: Props) {
         </View>
       ))}
 
-      {notesStr ? (
-        <CustomText variant="h7" style={externalUi.listNotes}>
-          {notesStr}
+      {onPress ? (
+        <CustomText variant="h7" style={styles.footerLink}>
+          View details →
         </CustomText>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  clickable: {},
+  pressed: {opacity: 0.92, transform: [{scale: 0.99}]},
+  footerLink: {
+    marginTop: moderateScaleVertical(10),
+    paddingTop: moderateScaleVertical(10),
+    borderTopWidth: 1,
+    borderTopColor: '#e8ecf0',
+    color: '#065f46',
+    fontFamily: Fonts.inter.bold,
+    fontSize: 13,
+  },
+});

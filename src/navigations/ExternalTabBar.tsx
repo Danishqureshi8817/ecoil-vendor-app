@@ -50,7 +50,7 @@ export default function ExternalTabBar({onTabChange}: Props) {
       <Tab.Screen
         name={TabNav.Collect}
         component={CollectRequestScreen}
-        options={{tabBarLabel: 'Collect'}}
+        options={{tabBarLabel: 'Collection'}}
       />
     </Tab.Navigator>
   );

@@ -2,7 +2,8 @@ import {ExternalLayout} from '@/layouts/ExternalLayout';
 import {StackNav, TabNav} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
 import {clearSession} from '@/utils/sessionStorage';
-import {navigationRef, push, resetAndNavigate} from '@/utils/NavigationUtils';
+import {navigationRef, resetAndNavigate, navigateToTab} from '@/utils/NavigationUtils';
+import {buildVendorNavItems} from '@/utils/vendorNavItems';
 import {CommonActions, useNavigationState} from '@react-navigation/native';
 import React, {useMemo} from 'react';
 import {View} from 'react-native';
@@ -14,9 +15,9 @@ function getTitle(routeName: string): string {
     case TabNav.Services:
       return 'Our Services';
     case TabNav.Requests:
-      return 'My Requests';
+      return 'My Service Requests';
     case TabNav.Collect:
-      return 'New collect request';
+      return 'Collection Request';
     default:
       return 'Ecoil Vendor';
   }
@@ -56,47 +57,7 @@ export function VendorChrome({children}: Props) {
     resetAndNavigate(StackNav.Login, 0);
   }
 
-  const navItems = useMemo(
-    () => [
-      {
-        key: TabNav.Home,
-        label: 'Home',
-        icon: 'home-outline' as const,
-        onPress: () => goToTab(TabNav.Home),
-      },
-      {
-        key: TabNav.Services,
-        label: 'Our Services',
-        icon: 'grid-outline' as const,
-        onPress: () => goToTab(TabNav.Services),
-      },
-      {
-        key: TabNav.Requests,
-        label: 'My Service Requests',
-        icon: 'document-text-outline' as const,
-        onPress: () => goToTab(TabNav.Requests),
-      },
-      {
-        key: TabNav.Collect,
-        label: 'Collect Request',
-        icon: 'cube-outline' as const,
-        onPress: () => goToTab(TabNav.Collect),
-      },
-      {
-        key: StackNav.CollectRequestList,
-        label: 'Collect Request List',
-        icon: 'list-outline' as const,
-        onPress: () => push(StackNav.CollectRequestList),
-      },
-      {
-        key: StackNav.MyCertificates,
-        label: 'My Certificates',
-        icon: 'ribbon-outline' as const,
-        onPress: () => push(StackNav.MyCertificates),
-      },
-    ],
-    [],
-  );
+  const navItems = useMemo(() => buildVendorNavItems(activeTab), [activeTab]);
 
   return (
     <ExternalLayout

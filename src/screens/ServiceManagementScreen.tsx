@@ -1,15 +1,15 @@
 import CustomText from '@/components/global/CustomText';
+import {PartnerCard} from '@/components/partners/PartnerCard';
 import {ServiceDynamicForm} from '@/components/ServiceDynamicForm';
-import {ServiceStepNav} from '@/components/service/ServiceStepNav';
+import {ServiceStepNav, type ServiceStep} from '@/components/service/ServiceStepNav';
 import {EmptyState} from '@/components/ui/EmptyState';
 import {ErrorBanner} from '@/components/ui/ErrorBanner';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
 import {
   getPublicApiError,
   isServiceFormAvailable,
   serviceAvatarColor,
   type PublicService,
+  type PublicSupplierDirectoryRow,
   type ServiceFormPayload,
 } from '@/api/publicApi';
 import publicService from '@/services/public-service';
@@ -18,6 +18,7 @@ import {TabNav} from '@/navigations/NavigationKeys';
 import {screen} from '@/styles/ui';
 import {serviceUi} from '@/styles/serviceUi';
 import {navigateToTab} from '@/utils/NavigationUtils';
+import {vendorUserCity} from '@/utils/vendorUser';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import {useToastMessage} from '@/utils/useToastMessage';
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -38,6 +39,9 @@ import {
   View,
 } from 'react-native';
 import {externalUi} from '@/styles/externalUi';
+import {Colors} from '@/constants/colors';
+import {Fonts} from '@/constants/fonts';
+import LinearGradient from 'react-native-linear-gradient';
 
 function ServiceListItem({
   service,
@@ -73,7 +77,7 @@ function ServiceListItem({
           {service.name}
         </CustomText>
         <CustomText variant="h7" style={serviceUi.serviceMeta}>
-          Fill application form
+          View local partners
         </CustomText>
       </View>
       <View style={serviceUi.serviceChevron}>
@@ -89,11 +93,14 @@ function ServiceListItem({
 
 export default function ServiceManagementScreen() {
   const user = useAuthStore(s => s.user);
+  const vendorCity = useMemo(() => vendorUserCity(user), [user]);
   const {toastSuccess} = useToastMessage();
-  const [step, setStep] = useState<'list' | 'form'>('list');
+  const [step, setStep] = useState<ServiceStep>('list');
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [selected, setSelected] = useState<PublicService | null>(null);
+  const [suppliers, setSuppliers] = useState<PublicSupplierDirectoryRow[]>([]);
+  const [suppliersLoading, setSuppliersLoading] = useState(false);
   const [form, setForm] = useState<ServiceFormPayload | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formLoadingId, setFormLoadingId] = useState<string | null>(null);
@@ -124,41 +131,62 @@ export default function ServiceManagementScreen() {
     return services.find(s => s.id === formLoadingId)?.name ?? '';
   }, [formLoadingId, services]);
 
-  /** Space below step nav + search so empty state sits in the middle of the screen */
   const emptyAreaMinHeight = Math.max(
     windowHeight - moderateScaleVertical(300),
     moderateScaleVertical(280),
   );
 
-  const contentContainerStyle = useMemo(
-    () => [
-      screen.scroll,
-      styles.listContent,
-      isEmptyList && !isLoading && styles.listContentEmpty,
-    ],
-    [isEmptyList, isLoading],
-  );
+  const supplierCountLabel = suppliersLoading
+    ? 'Loading suppliers…'
+    : !vendorCity
+      ? 'Add city in your profile to see local partners'
+      : suppliers.length === 0
+        ? `No partners in ${vendorCity} for this service yet`
+        : `${suppliers.length} partner${suppliers.length > 1 ? 's' : ''} in ${vendorCity}`;
+
+  async function loadSuppliersForService(service: PublicService) {
+    setSuppliersLoading(true);
+    setError('');
+    try {
+      const rows = await publicService.getSuppliersByCity(vendorCity, service.id);
+      setSuppliers(rows);
+    } catch (err) {
+      setSuppliers([]);
+      setError(getPublicApiError(err, 'Could not load suppliers for your city.'));
+    } finally {
+      setSuppliersLoading(false);
+    }
+  }
 
   async function selectService(service: PublicService) {
+    setSelected(service);
+    setForm(null);
+    setStep('suppliers');
+    await loadSuppliersForService(service);
+  }
+
+  async function openEcoilForm() {
+    if (!selected) {
+      return;
+    }
     setError('');
     setFormLoading(true);
-    setFormLoadingId(service.id);
+    setFormLoadingId(selected.id);
     try {
-      const data = await publicService.getServiceForm(service.id);
+      const data = await publicService.getServiceForm(selected.id);
       if (!isServiceFormAvailable(data)) {
         Alert.alert(
           'Not available right now',
-          `Sorry, you cannot apply for ${service.name} right now. Please try again later.`,
+          `Sorry, you cannot apply for ${selected.name} right now. Please try again later.`,
         );
         return;
       }
-      setSelected(service);
       setForm(data);
       setStep('form');
     } catch {
       Alert.alert(
         'Not available right now',
-        `Sorry, you cannot apply for ${service.name} right now. Please try again later.`,
+        `Sorry, you cannot apply for ${selected.name} right now. Please try again later.`,
       );
     } finally {
       setFormLoading(false);
@@ -166,9 +194,16 @@ export default function ServiceManagementScreen() {
     }
   }
 
-  function backToList() {
+  function backToServices() {
     setStep('list');
     setSelected(null);
+    setForm(null);
+    setSuppliers([]);
+    setError('');
+  }
+
+  function backToSuppliers() {
+    setStep('suppliers');
     setForm(null);
     setError('');
   }
@@ -192,7 +227,7 @@ export default function ServiceManagementScreen() {
         answers,
       });
       toastSuccess('Application submitted successfully');
-      backToList();
+      backToServices();
       navigateToTab(TabNav.Requests);
     } catch (err) {
       setError(getPublicApiError(err, 'Could not submit application'));
@@ -207,11 +242,11 @@ export default function ServiceManagementScreen() {
     ({item}) => (
       <ServiceListItem
         service={item}
-        loading={formLoading && formLoadingId === item.id}
-        onPress={() => selectService(item)}
+        loading={suppliersLoading && selected?.id === item.id}
+        onPress={() => void selectService(item)}
       />
     ),
-    [formLoading, formLoadingId],
+    [suppliersLoading, selected?.id],
   );
 
   const ItemSeparator = useCallback(
@@ -284,8 +319,113 @@ export default function ServiceManagementScreen() {
           user={user}
           saving={saving}
           onSubmit={handleSubmit}
-          onBack={backToList}
+          onBack={backToSuppliers}
         />
+      </ScrollView>
+    );
+  }
+
+  if (step === 'suppliers' && selected) {
+    return (
+      <ScrollView
+        contentContainerStyle={screen.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
+        <ServiceStepNav step={step} />
+
+        <Pressable onPress={backToServices} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={18} color={Colors.brandDark} />
+          <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.backText}>
+            Back to services
+          </CustomText>
+        </Pressable>
+
+        {error ? <ErrorBanner message={error} /> : null}
+
+        <View style={styles.hero}>
+          <CustomText variant="h7" style={styles.eyebrow}>
+            SERVICE PARTNERS
+          </CustomText>
+          <CustomText variant="h4" fontFamily={Fonts.inter.bold}>
+            {selected.name}
+          </CustomText>
+          {vendorCity ? (
+            <View style={styles.cityPill}>
+              <Ionicons name="location-outline" size={14} color={Colors.accent} />
+              <CustomText variant="h7" fontFamily={Fonts.inter.bold}>
+                {vendorCity}
+              </CustomText>
+            </View>
+          ) : null}
+          <CustomText variant="h7" style={styles.muted}>
+            {supplierCountLabel}
+          </CustomText>
+        </View>
+
+        <View style={styles.ecoilBanner}>
+          <View style={styles.ecoilCopy}>
+            <View style={styles.officialTag}>
+              <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.officialText}>
+                OFFICIAL
+              </CustomText>
+            </View>
+            <CustomText variant="h6" fontFamily={Fonts.inter.bold}>
+              Apply through Ecoil
+            </CustomText>
+            <CustomText variant="h7" style={styles.muted}>
+              Submit your application with Ecoil support & tracking
+            </CustomText>
+          </View>
+          <Pressable
+            style={({pressed}) => [pressed && styles.pressed]}
+            disabled={formLoading}
+            onPress={() => void openEcoilForm()}>
+            <LinearGradient
+              colors={['#e6730f', Colors.accent]}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={styles.applyBtn}>
+              <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.applyText}>
+                {formLoading ? '…' : 'Apply'}
+              </CustomText>
+            </LinearGradient>
+          </Pressable>
+        </View>
+
+        {suppliersLoading ? (
+          <View style={styles.skeletonList}>
+            <View style={[styles.skeleton, {height: moderateScaleVertical(148)}]} />
+            <View style={[styles.skeleton, {height: moderateScaleVertical(148)}]} />
+          </View>
+        ) : null}
+
+        {!suppliersLoading && suppliers.length > 0 ? (
+          <>
+            <View style={styles.sectionHead}>
+              <CustomText variant="h6" fontFamily={Fonts.inter.bold}>
+                Local partners
+              </CustomText>
+              <View style={styles.countBadge}>
+                <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.countText}>
+                  {suppliers.length}
+                </CustomText>
+              </View>
+            </View>
+            {suppliers.map(row => (
+              <View key={row.id} style={styles.partnerGap}>
+                <PartnerCard row={row} />
+              </View>
+            ))}
+          </>
+        ) : null}
+
+        {!suppliersLoading && suppliers.length === 0 && vendorCity ? (
+          <EmptyState
+            icon="location-outline"
+            title="No local partners yet"
+            subtitle={`You can still apply through Ecoil above.`}
+          />
+        ) : null}
       </ScrollView>
     );
   }
@@ -300,7 +440,11 @@ export default function ServiceManagementScreen() {
         ItemSeparatorComponent={ItemSeparator}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={listEmpty}
-        contentContainerStyle={contentContainerStyle}
+        contentContainerStyle={[
+          screen.scroll,
+          styles.listContent,
+          isEmptyList && !isLoading && styles.listContentEmpty,
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -325,16 +469,13 @@ export default function ServiceManagementScreen() {
               variant="h5"
               fontFamily={Fonts.inter.bold}
               style={styles.loadingModalTitle}>
-              Checking application form
+              Opening application form
             </CustomText>
             {loadingServiceName ? (
               <CustomText variant="h7" style={styles.muted} numberOfLine={2}>
                 {loadingServiceName}
               </CustomText>
             ) : null}
-            <CustomText variant="h7" style={styles.loadingModalSub}>
-              Please wait…
-            </CustomText>
           </Pressable>
         </View>
       </Modal>
@@ -343,31 +484,16 @@ export default function ServiceManagementScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    flexGrow: 1,
-  },
-  listContentEmpty: {
-    flexGrow: 1,
-  },
-  emptyFill: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  itemSeparator: {
-    height: moderateScaleVertical(10),
-  },
-  serviceBody: {
-    flex: 1,
-    minWidth: 0,
-  },
+  list: {flex: 1},
+  listContent: {flexGrow: 1},
+  listContentEmpty: {flexGrow: 1},
+  emptyFill: {flexGrow: 1, justifyContent: 'center', alignItems: 'center'},
+  itemSeparator: {height: moderateScaleVertical(10)},
+  serviceBody: {flex: 1, minWidth: 0},
   muted: {color: Colors.muted},
   searchIcon: {marginRight: moderateScale(10)},
   serviceDisabled: {opacity: 0.65},
-  skeletonList: {gap: moderateScaleVertical(10)},
+  skeletonList: {gap: moderateScaleVertical(10), marginBottom: moderateScaleVertical(12)},
   skeleton: {
     height: moderateScaleVertical(76),
     borderRadius: moderateScale(14),
@@ -384,13 +510,73 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
     gap: moderateScaleVertical(10),
   },
-  loadingModalTitle: {
-    color: Colors.black,
-    textAlign: 'center',
-    marginTop: moderateScaleVertical(4),
-  },
-  loadingModalSub: {
+  loadingModalTitle: {color: Colors.black, textAlign: 'center'},
+  backBtn: {flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: moderateScaleVertical(12)},
+  backText: {color: Colors.brandDark},
+  hero: {marginBottom: moderateScaleVertical(14)},
+  eyebrow: {
     color: Colors.muted,
-    textAlign: 'center',
+    letterSpacing: 0.8,
+    fontSize: moderateScale(11),
+    marginBottom: 4,
   },
+  cityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: moderateScaleVertical(8),
+    marginBottom: moderateScaleVertical(8),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScaleVertical(6),
+    borderRadius: 999,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  ecoilBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(12),
+    padding: moderateScale(16),
+    borderRadius: moderateScale(20),
+    backgroundColor: Colors.accentSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(252,128,25,0.28)',
+    marginBottom: moderateScaleVertical(16),
+  },
+  ecoilCopy: {flex: 1, minWidth: 0},
+  officialTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.accent,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScaleVertical(3),
+    borderRadius: moderateScale(6),
+    marginBottom: moderateScaleVertical(6),
+  },
+  officialText: {color: Colors.white, fontSize: moderateScale(10)},
+  applyBtn: {
+    paddingVertical: moderateScaleVertical(12),
+    paddingHorizontal: moderateScale(18),
+    borderRadius: moderateScale(14),
+  },
+  applyText: {color: Colors.white},
+  pressed: {opacity: 0.92, transform: [{scale: 0.97}]},
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(8),
+    marginBottom: moderateScaleVertical(12),
+  },
+  countBadge: {
+    minWidth: moderateScale(22),
+    height: moderateScale(22),
+    borderRadius: 999,
+    backgroundColor: Colors.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: moderateScale(7),
+  },
+  countText: {color: Colors.brandDark, fontSize: moderateScale(12)},
+  partnerGap: {marginBottom: moderateScaleVertical(14)},
 });

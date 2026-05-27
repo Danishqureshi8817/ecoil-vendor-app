@@ -121,7 +121,7 @@ export default function CollectRequestScreen() {
       keyboardShouldPersistTaps="handled">
       <View style={externalUi.card}>
         <CustomText variant="h5" fontFamily={Fonts.inter.bold} style={externalUi.cardTitle}>
-          New collect request
+          New collection request
         </CustomText>
         <CustomText variant="h7" style={externalUi.muted}>
           Submit oil collection details. Uses your login Bearer token automatically.

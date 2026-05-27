@@ -6,13 +6,14 @@ import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import useCertificates from '@/hooks/vendor/use-certificates';
 import {ExternalLayout} from '@/layouts/ExternalLayout';
-import {StackNav, TabNav} from '@/navigations/NavigationKeys';
+import {StackNav} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
 import {externalUi} from '@/styles/externalUi';
 import {screen} from '@/styles/ui';
 import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
 import {clearSession} from '@/utils/sessionStorage';
-import {navigateToTab, push, resetAndNavigate} from '@/utils/NavigationUtils';
+import {buildVendorNavItems} from '@/utils/vendorNavItems';
+import {resetAndNavigate} from '@/utils/NavigationUtils';
 import {moderateScaleVertical} from '@/utils/responsiveSize';
 import React, {useCallback} from 'react';
 import {
@@ -34,53 +35,7 @@ export default function MyCertificatesScreen() {
     resetAndNavigate(StackNav.Login, 0);
   }
 
-  const navItems = [
-    {
-      key: TabNav.Home,
-      label: 'Home',
-      icon: 'home-outline' as const,
-      onPress: () => resetAndNavigate(StackNav.Main, 0),
-    },
-    {
-      key: TabNav.Services,
-      label: 'Our Services',
-      icon: 'grid-outline' as const,
-      onPress: () => {
-        resetAndNavigate(StackNav.Main, 0);
-        navigateToTab(TabNav.Services);
-      },
-    },
-    {
-      key: TabNav.Requests,
-      label: 'My Service Requests',
-      icon: 'document-text-outline' as const,
-      onPress: () => {
-        resetAndNavigate(StackNav.Main, 0);
-        navigateToTab(TabNav.Requests);
-      },
-    },
-    {
-      key: TabNav.Collect,
-      label: 'Collect Request',
-      icon: 'cube-outline' as const,
-      onPress: () => {
-        resetAndNavigate(StackNav.Main, 0);
-        navigateToTab(TabNav.Collect);
-      },
-    },
-    {
-      key: StackNav.CollectRequestList,
-      label: 'Collect Request List',
-      icon: 'list-outline' as const,
-      onPress: () => push(StackNav.CollectRequestList),
-    },
-    {
-      key: StackNav.MyCertificates,
-      label: 'My Certificates',
-      icon: 'ribbon-outline' as const,
-      onPress: () => {},
-    },
-  ];
+  const navItems = buildVendorNavItems(StackNav.MyCertificates);
 
   const keyExtractor = useCallback(
     (item: CertificateRow) => item.year_month_no || item.month_year,

@@ -26,6 +26,31 @@ export type PublicService = {
   updatedAt?: string;
 };
 
+export type PublicSupplierDirectoryRow = {
+  id: string;
+  name: string;
+  mobile: string;
+  city: string | null;
+  verified: boolean;
+};
+
+export async function fetchPublicSuppliersByCity(
+  city: string,
+  serviceId?: string,
+): Promise<PublicSupplierDirectoryRow[]> {
+  const cityQ = city.trim();
+  if (!cityQ) {
+    return [];
+  }
+  const {data} = await publicApi.get<PublicSupplierDirectoryRow[]>('/suppliers', {
+    params: {
+      city: cityQ,
+      ...(serviceId?.trim() ? {serviceId: serviceId.trim()} : {}),
+    },
+  });
+  return data;
+}
+
 export type FormQuestionType = 'TEXT' | 'DROPDOWN' | 'CHECKBOX';
 
 export type ServiceFormQuestion = {

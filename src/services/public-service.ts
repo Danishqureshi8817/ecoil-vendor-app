@@ -3,6 +3,7 @@ import {
   fetchMyApplications,
   fetchPublicServiceForm,
   fetchPublicServices,
+  fetchPublicSuppliersByCity,
   submitPublicServiceApplication,
 } from '@/api/publicApi';
 
@@ -11,11 +12,15 @@ class PublicService {
     services: 'publicServices',
     serviceForm: 'publicServiceForm',
     myApplications: 'myApplications',
+    suppliers: 'publicSuppliers',
   };
 
   getServices = (q?: string) => fetchPublicServices(q);
 
   getServiceForm = (serviceId: string) => fetchPublicServiceForm(serviceId);
+
+  getSuppliersByCity = (city: string, serviceId?: string) =>
+    fetchPublicSuppliersByCity(city, serviceId);
 
   getMyApplications = (vendorMobile: string) =>
     fetchMyApplications(vendorMobile);

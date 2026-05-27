@@ -3,6 +3,12 @@ import {VENDOR_API_BASE} from '@/config/env';
 import type {ExternalAuthSession, KnparisesEnvelope} from '@/types/vendor';
 import {unwrapKnparises} from '@/utils/knparises';
 
+const vendorApi = axios.create({
+  baseURL: VENDOR_API_BASE.replace(/\/$/, ''),
+  timeout: 60_000,
+  headers: {Accept: 'application/json'},
+});
+
 type ValidateLoginData = {
   token?: string;
   expiry?: string;
@@ -37,13 +43,10 @@ export async function validateVendorLogin(
   form.set('mobile', trimmedMobile);
   form.set('password', password);
 
-  const {data: body} = await axios.post<KnparisesEnvelope<ValidateLoginData>>(
-    `${VENDOR_API_BASE.replace(/\/$/, '')}/login/validate`,
+  const {data: body} = await vendorApi.post<KnparisesEnvelope<ValidateLoginData>>(
+    '/login/validate',
     form.toString(),
-    {
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      timeout: 60_000,
-    },
+    {headers: {'Content-Type': 'application/x-www-form-urlencoded'}},
   );
 
   const block = unwrapKnparises(body);

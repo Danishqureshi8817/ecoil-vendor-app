@@ -1,74 +1,57 @@
+import React from 'react';
+import {StyleSheet, View} from 'react-native';
 import CustomText from '@/components/global/CustomText';
 import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import {theme} from '@/constants/theme';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import React from 'react';
-import {StyleSheet, View} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
-type Step = 'list' | 'form';
+export type ServiceStep = 'list' | 'suppliers' | 'form';
 
 type Props = {
-  step: Step;
+  step: ServiceStep;
 };
 
 export function ServiceStepNav({step}: Props) {
+  const steps: {key: ServiceStep; num: number; label: string}[] = [
+    {key: 'list', num: 1, label: 'Service'},
+    {key: 'suppliers', num: 2, label: 'Partners'},
+    {key: 'form', num: 3, label: 'Form'},
+  ];
+
   return (
     <View style={styles.nav}>
-      <View style={[styles.pill, step === 'list' && styles.pillActive]}>
-        <View style={step === 'list' ? styles.numActiveWrap : styles.numWrap}>
-          {step === 'list' ? (
-            <LinearGradient
-              colors={[Colors.brandDark, Colors.brand]}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.numActive}>
-              <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.numActiveText}>
-                1
-              </CustomText>
-            </LinearGradient>
-          ) : (
-            <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.numText}>
-              1
+      {steps.map((s, index) => (
+        <React.Fragment key={s.key}>
+          {index > 0 ? <View style={styles.line} /> : null}
+          <View style={[styles.pill, step === s.key && styles.pillActive]}>
+            {step === s.key ? (
+              <LinearGradient
+                colors={[Colors.brandDark, Colors.brand]}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.numActive}>
+                <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.numActiveText}>
+                  {s.num}
+                </CustomText>
+              </LinearGradient>
+            ) : (
+              <View style={styles.numWrap}>
+                <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.numText}>
+                  {s.num}
+                </CustomText>
+              </View>
+            )}
+            <CustomText
+              variant="h7"
+              fontFamily={Fonts.inter.bold}
+              style={step === s.key ? styles.pillLabelActive : styles.pillLabel}>
+              {s.label}
             </CustomText>
-          )}
-        </View>
-        <CustomText
-          variant="h7"
-          fontFamily={Fonts.inter.bold}
-          style={step === 'list' ? styles.pillLabelActive : styles.pillLabel}>
-          Service
-        </CustomText>
-      </View>
-
-      <View style={styles.line} />
-
-      <View style={[styles.pill, step === 'form' && styles.pillActive]}>
-        <View style={step === 'form' ? styles.numActiveWrap : styles.numWrap}>
-          {step === 'form' ? (
-            <LinearGradient
-              colors={[Colors.brandDark, Colors.brand]}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.numActive}>
-              <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.numActiveText}>
-                2
-              </CustomText>
-            </LinearGradient>
-          ) : (
-            <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.numText}>
-              2
-            </CustomText>
-          )}
-        </View>
-        <CustomText
-          variant="h7"
-          fontFamily={Fonts.inter.bold}
-          style={step === 'form' ? styles.pillLabelActive : styles.pillLabel}>
-          Form
-        </CustomText>
-      </View>
+          </View>
+        </React.Fragment>
+      ))}
     </View>
   );
 }
@@ -89,53 +72,35 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: moderateScale(8),
-    paddingVertical: moderateScaleVertical(9),
-    paddingHorizontal: moderateScale(16),
+    gap: moderateScale(6),
+    paddingVertical: moderateScaleVertical(8),
+    paddingHorizontal: moderateScale(10),
     borderRadius: 999,
   },
-  pillActive: {
-    backgroundColor: Colors.brandSoft,
-  },
-  pillLabel: {
-    color: Colors.muted,
-  },
-  pillLabelActive: {
-    color: Colors.brandDark,
-  },
+  pillActive: {backgroundColor: Colors.brandSoft},
+  pillLabel: {color: Colors.muted, fontSize: moderateScale(11)},
+  pillLabelActive: {color: Colors.brandDark, fontSize: moderateScale(11)},
   numWrap: {
-    width: moderateScale(24),
-    height: moderateScale(24),
-    borderRadius: 12,
+    width: moderateScale(22),
+    height: moderateScale(22),
+    borderRadius: 11,
     backgroundColor: Colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  numActiveWrap: {
-    width: moderateScale(24),
-    height: moderateScale(24),
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
   numActive: {
-    width: '100%',
-    height: '100%',
+    width: moderateScale(22),
+    height: moderateScale(22),
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  numText: {
-    color: Colors.black,
-    fontSize: moderateScale(11),
-  },
-  numActiveText: {
-    color: Colors.white,
-    fontSize: moderateScale(11),
-  },
+  numText: {color: Colors.black, fontSize: moderateScale(10)},
+  numActiveText: {color: Colors.white, fontSize: moderateScale(10)},
   line: {
-    width: moderateScale(24),
+    width: moderateScale(12),
     height: 2,
     backgroundColor: Colors.line,
     borderRadius: 2,
-    marginHorizontal: moderateScale(4),
   },
 });

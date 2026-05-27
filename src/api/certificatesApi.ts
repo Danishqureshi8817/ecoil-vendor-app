@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {VENDOR_PROXY_API_BASE} from '@/config/env';
+import {VENDOR_API_BASE} from '@/config/env';
 import type {KnparisesEnvelope} from '@/types/vendor';
 import {getStoredToken} from '@/utils/sessionStorage';
 import {unwrapKnparises} from '@/utils/knparises';
@@ -12,7 +12,7 @@ export type CertificateRow = {
   ruco_pdf_url: string;
 };
 
-const base = () => VENDOR_PROXY_API_BASE.replace(/\/$/, '');
+const base = () => VENDOR_API_BASE.replace(/\/$/, '');
 
 function bearerHeaders() {
   const token = getStoredToken();

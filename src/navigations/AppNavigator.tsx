@@ -4,7 +4,10 @@ import MainScreen from '@/navigations/MainScreen';
 import Splash from '@/screens/Splash';
 import Login from '@/screens/Login';
 import CollectRequestListScreen from '@/screens/CollectRequestListScreen';
+import CollectRequestDetailScreen from '@/screens/CollectRequestDetailScreen';
 import MyCertificatesScreen from '@/screens/MyCertificatesScreen';
+import PaymentDetailsScreen from '@/screens/PaymentDetailsScreen';
+import AgreementScreen from '@/screens/AgreementScreen';
 import {navigationRef} from '@/utils/NavigationUtils';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -25,9 +28,18 @@ export default function AppNavigator() {
           component={CollectRequestListScreen}
         />
         <Stack.Screen
+          name={StackNav.CollectRequestDetail}
+          component={CollectRequestDetailScreen}
+        />
+        <Stack.Screen
           name={StackNav.MyCertificates}
           component={MyCertificatesScreen}
         />
+        <Stack.Screen
+          name={StackNav.PaymentDetails}
+          component={PaymentDetailsScreen}
+        />
+        <Stack.Screen name={StackNav.Agreement} component={AgreementScreen} />
       </Stack.Navigator>
       <CheckInternet />
     </NavigationContainer>

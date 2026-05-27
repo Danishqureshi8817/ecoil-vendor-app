@@ -2,6 +2,7 @@ import {validateVendorLogin} from '@/api/vendorApi';
 import {fetchCertificatesList} from '@/api/certificatesApi';
 import {
   fetchAllCollectionRequests,
+  fetchCollectionRequestsByVendor,
   submitCollectionRequest,
   type SubmitCollectionRequestInput,
 } from '@/api/collectionApi';
@@ -17,6 +18,9 @@ class VendorService {
     validateVendorLogin(mobile, password);
 
   getAllCollectionRequests = () => fetchAllCollectionRequests();
+
+  getCollectionRequestsByVendor = (vendorUserId: string | number) =>
+    fetchCollectionRequestsByVendor(vendorUserId);
 
   submitCollection = (input: SubmitCollectionRequestInput) =>
     submitCollectionRequest(input);

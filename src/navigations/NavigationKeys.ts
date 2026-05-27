@@ -10,7 +10,10 @@ export const StackNav = {
   Login: 'Login',
   Main: 'Main',
   CollectRequestList: 'CollectRequestList',
+  CollectRequestDetail: 'CollectRequestDetail',
   MyCertificates: 'MyCertificates',
+  PaymentDetails: 'PaymentDetails',
+  Agreement: 'Agreement',
 } as const;
 
 export type RootStackParamList = {
@@ -20,7 +23,10 @@ export type RootStackParamList = {
     | {screen?: keyof MainTabParamList}
     | undefined;
   [StackNav.CollectRequestList]: undefined;
+  [StackNav.CollectRequestDetail]: {id: string};
   [StackNav.MyCertificates]: undefined;
+  [StackNav.PaymentDetails]: undefined;
+  [StackNav.Agreement]: undefined;
 };
 
 export type MainTabParamList = {
