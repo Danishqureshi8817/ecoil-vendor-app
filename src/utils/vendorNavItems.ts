@@ -2,6 +2,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import React from 'react';
 import {StackNav, TabNav} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
+import type {ExternalVendorUser} from '@/types/vendor';
 import {navigateToTab, push, resetAndNavigate} from '@/utils/NavigationUtils';
 import {isPrimaryVendor} from '@/utils/vendorUser';
 
@@ -13,8 +14,12 @@ type NavItem = {
   primaryOnly?: boolean;
 };
 
-export function buildVendorNavItems(activeKey: string): NavItem[] {
-  const primary = isPrimaryVendor(useAuthStore.getState().user);
+export function buildVendorNavItems(
+  activeKey: string,
+  user?: ExternalVendorUser | null,
+): NavItem[] {
+  const resolvedUser = user ?? useAuthStore.getState().user;
+  const primary = isPrimaryVendor(resolvedUser);
 
   const items: NavItem[] = [
     {

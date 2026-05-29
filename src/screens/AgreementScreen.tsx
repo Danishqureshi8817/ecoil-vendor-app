@@ -99,7 +99,7 @@ export default function AgreementScreen() {
     <ExternalLayout
       title="Agreement"
       activeKey={StackNav.Agreement}
-      navItems={buildVendorNavItems(StackNav.Agreement)}
+      navItems={buildVendorNavItems(StackNav.Agreement, user)}
       onLogout={handleLogout}>
       <ScrollView contentContainerStyle={screen.scroll} showsVerticalScrollIndicator={false}>
         {loading ? (

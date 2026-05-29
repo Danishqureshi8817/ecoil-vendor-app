@@ -57,7 +57,11 @@ export function VendorChrome({children}: Props) {
     resetAndNavigate(StackNav.Login, 0);
   }
 
-  const navItems = useMemo(() => buildVendorNavItems(activeTab), [activeTab]);
+  const user = useAuthStore(s => s.user);
+  const navItems = useMemo(
+    () => buildVendorNavItems(activeTab, user),
+    [activeTab, user],
+  );
 
   return (
     <ExternalLayout

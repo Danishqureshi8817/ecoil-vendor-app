@@ -61,6 +61,7 @@ function PaymentCard({row, index}: {row: PaymentDetailRow; index: number}) {
 }
 
 export default function PaymentDetailsScreen() {
+  const user = useAuthStore(s => s.user);
   const defaultRange = defaultPaymentDateRange();
   const [dateFrom, setDateFrom] = useState(defaultRange.date_from);
   const [dateUpto, setDateUpto] = useState(defaultRange.date_upto);
@@ -106,7 +107,7 @@ export default function PaymentDetailsScreen() {
     <ExternalLayout
       title="Payment details"
       activeKey={StackNav.PaymentDetails}
-      navItems={buildVendorNavItems(StackNav.PaymentDetails)}
+      navItems={buildVendorNavItems(StackNav.PaymentDetails, user)}
       onLogout={handleLogout}>
       <ScrollView contentContainerStyle={screen.scroll} showsVerticalScrollIndicator={false}>
         <View style={[card.base, styles.filterCard]}>

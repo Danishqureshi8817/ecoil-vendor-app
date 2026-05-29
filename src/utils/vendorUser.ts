@@ -41,9 +41,10 @@ export function isPrimaryVendor(
   if (!user) {
     return false;
   }
-  const vendorId = user.VendorId ?? user.vendor_id;
-  if (vendorId == null || vendorId === '') {
+  const parentVendorId =
+    user.VendorId ?? user.vendorId ?? user.ParentVendorId ?? user.parent_vendor_id;
+  if (parentVendorId == null || parentVendorId === '') {
     return true;
   }
-  return Number(vendorId) === 0;
+  return Number(parentVendorId) === 0;
 }

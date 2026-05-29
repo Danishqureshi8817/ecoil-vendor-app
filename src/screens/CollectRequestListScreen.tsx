@@ -38,6 +38,7 @@ function goToNewCollectRequest() {
 
 export default function CollectRequestListScreen() {
   const insets = useSafeAreaInsets();
+  const user = useAuthStore(s => s.user);
   const { data, isLoading, refetch, isRefetching, error } = useCollectionRequests();
   const rows = data ?? [];
   const fabBottom = insets.bottom + moderateScaleVertical(16);
@@ -48,7 +49,7 @@ export default function CollectRequestListScreen() {
     resetAndNavigate(StackNav.Login, 0);
   }
 
-  const navItems = buildVendorNavItems(StackNav.CollectRequestList);
+  const navItems = buildVendorNavItems(StackNav.CollectRequestList, user);
 
   const keyExtractor = useCallback(
     (item: CollectionRequestRow, index: number) =>

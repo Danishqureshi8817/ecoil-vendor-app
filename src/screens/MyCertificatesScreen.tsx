@@ -26,6 +26,7 @@ import {
 } from 'react-native';
 
 export default function MyCertificatesScreen() {
+  const user = useAuthStore(s => s.user);
   const {data, isLoading, refetch, isRefetching, error} = useCertificates();
   const rows = data ?? [];
 
@@ -35,7 +36,7 @@ export default function MyCertificatesScreen() {
     resetAndNavigate(StackNav.Login, 0);
   }
 
-  const navItems = buildVendorNavItems(StackNav.MyCertificates);
+  const navItems = buildVendorNavItems(StackNav.MyCertificates, user);
 
   const keyExtractor = useCallback(
     (item: CertificateRow) => item.year_month_no || item.month_year,

@@ -101,12 +101,64 @@ export default function CollectRequestDetailScreen({route}: Props) {
     void load();
   }, [load]);
 
+  const defaultTitle = 'Collection request';
+
+  if (loading) {
+    return (
+      <Container
+        backgroundColor={Colors.bg}
+        fullScreen
+        statusBarStyle="light-content"
+        statusBarBackgroundColor="transparent">
+        <VendorBackHeader title={defaultTitle} onBack={() => void goBack()} />
+        <View style={styles.center}>
+          <ActivityIndicator color={Colors.brand} />
+          <CustomText variant="h7" style={externalUi.muted}>
+            Loading…
+          </CustomText>
+        </View>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container
+        backgroundColor={Colors.bg}
+        fullScreen
+        statusBarStyle="light-content"
+        statusBarBackgroundColor="transparent">
+        <VendorBackHeader title={defaultTitle} onBack={() => void goBack()} />
+        <ScrollView contentContainerStyle={screen.scroll} showsVerticalScrollIndicator={false}>
+          <ErrorBanner message={error} />
+        </ScrollView>
+      </Container>
+    );
+  }
+
+  if (!row) {
+    return (
+      <Container
+        backgroundColor={Colors.bg}
+        fullScreen
+        statusBarStyle="light-content"
+        statusBarBackgroundColor="transparent">
+        <VendorBackHeader title={defaultTitle} onBack={() => void goBack()} />
+        <ScrollView contentContainerStyle={screen.scroll} showsVerticalScrollIndicator={false}>
+          <CustomText variant="h7" style={externalUi.muted}>
+            Request details not found.
+          </CustomText>
+        </ScrollView>
+      </Container>
+    );
+  }
+
   const gatePassRaw =
-    row?.gate_pass != null && String(row.gate_pass).trim() !== ''
+    row.gate_pass != null && String(row.gate_pass).trim() !== ''
       ? String(row.gate_pass)
       : null;
   const gatePassUrl = gatePassRaw ? gatePassImageUrl(gatePassRaw) : '';
-  const title = row ? collectionRequestLabel(row) : 'Collection request';
+  const title = collectionRequestLabel(row);
 
   return (
     <Container
@@ -117,69 +169,65 @@ export default function CollectRequestDetailScreen({route}: Props) {
       <VendorBackHeader title={title} onBack={() => void goBack()} />
 
       <ScrollView contentContainerStyle={screen.scroll} showsVerticalScrollIndicator={false}>
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={Colors.brand} />
-          </View>
-        ) : null}!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?!loading && !error && row ?
-
-        {error ? <ErrorBanner message={error} /> : null}
-
-        {!loading && !error && row ? (
-          <View style={card.base}>
-            <View style={externalUi.listCardHead}>
-              <CustomText variant="h6" fontFamily={Fonts.inter.bold} style={{flex: 1}}>
-                {collectionRequestLabel(row)}
+        <View style={card.base}>
+          <View style={externalUi.listCardHead}>
+            <CustomText variant="h6" fontFamily={Fonts.inter.bold} style={{flex: 1}}>
+              {collectionRequestLabel(row)}
+            </CustomText>
+            <View style={externalUi.badge}>
+              <CustomText variant="h7" style={externalUi.badgeText}>
+                {collectionRequestStatus(row)}
               </CustomText>
-              <View style={externalUi.badge}>
-                <CustomText variant="h7" style={externalUi.badgeText}>
-                  {collectionRequestStatus(row)}
-                </CustomText>
-              </View>
             </View>
-
-            {buildDetailRows(row)?.map(({label, value}) => (
-              <View key={label} style={externalUi.metaRow}>
-                <CustomText variant="h7" style={externalUi.metaDt}>
-                  {label}
-                </CustomText>
-                <CustomText variant="h7" style={externalUi.metaDd}>
-                  {/date|time/i.test(label) ? formatDate(value) : String(value)}
-                </CustomText>
-              </View>
-            ))}
-
-            {gatePassRaw && gatePassUrl ? (
-              <View style={styles.gatePassRow}>
-                <View style={styles.gatePassInfo}>
-                  <CustomText variant="h7" style={externalUi.metaDt}>
-                    Gate pass
-                  </CustomText>
-                  <CustomText variant="h7" style={externalUi.metaDd} numberOfLines={2}>
-                    {gatePassFileName(gatePassRaw)}
-                  </CustomText>
-                </View>
-                <Pressable
-                  style={[externalUi.btnSecondary, externalUi.btnSecondaryLink, styles.downloadBtn]}
-                  onPress={() => void Linking.openURL(gatePassUrl)}>
-                  <CustomText
-                    variant="h7"
-                    fontFamily={Fonts.inter.bold}
-                    style={[externalUi.btnSecondaryText, externalUi.btnSecondaryTextLink]}>
-                    Download
-                  </CustomText>
-                </Pressable>
-              </View>
-            ) : null}
           </View>
-        ) : null}
+
+          {buildDetailRows(row).map(({label, value}) => (
+            <View key={label} style={externalUi.metaRow}>
+              <CustomText variant="h7" style={externalUi.metaDt}>
+                {label}
+              </CustomText>
+              <CustomText variant="h7" style={externalUi.metaDd}>
+                {/date|time/i.test(label) ? formatDate(value) : String(value)}
+              </CustomText>
+            </View>
+          ))}
+
+          {gatePassRaw && gatePassUrl ? (
+            <View style={styles.gatePassRow}>
+              <View style={styles.gatePassInfo}>
+                <CustomText variant="h7" style={externalUi.metaDt}>
+                  Gate pass
+                </CustomText>
+                <CustomText variant="h7" style={externalUi.metaDd} numberOfLine={2}>
+                  {gatePassFileName(gatePassRaw)}
+                </CustomText>
+              </View>
+              <Pressable
+                style={[externalUi.btnSecondary, externalUi.btnSecondaryLink, styles.downloadBtn]}
+                onPress={() => void Linking.openURL(gatePassUrl)}>
+                <CustomText
+                  variant="h7"
+                  fontFamily={Fonts.inter.bold}
+                  style={[externalUi.btnSecondaryText, externalUi.btnSecondaryTextLink]}>
+                  Download
+                </CustomText>
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
       </ScrollView>
     </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  center: {paddingVertical: moderateScaleVertical(32), alignItems: 'center'},
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: moderateScaleVertical(12),
+    paddingVertical: moderateScaleVertical(32),
+  },
   gatePassRow: {
     flexDirection: 'row',
     alignItems: 'center',
