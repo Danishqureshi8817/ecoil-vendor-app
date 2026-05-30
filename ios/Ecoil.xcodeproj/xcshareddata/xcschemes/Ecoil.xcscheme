@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "ecoilvendorapp.app"
-               BlueprintName = "ecoilvendorapp"
-               ReferencedContainer = "container:ecoilvendorapp.xcodeproj">
+               BuildableName = "Ecoil.app"
+               BlueprintName = "Ecoil"
+               ReferencedContainer = "container:Ecoil.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "ecoilvendorappTests.xctest"
-               BlueprintName = "ecoilvendorappTests"
-               ReferencedContainer = "container:ecoilvendorapp.xcodeproj">
+               BuildableName = "EcoilTests.xctest"
+               BlueprintName = "EcoilTests"
+               ReferencedContainer = "container:Ecoil.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "ecoilvendorapp.app"
-            BlueprintName = "ecoilvendorapp"
-            ReferencedContainer = "container:ecoilvendorapp.xcodeproj">
+            BuildableName = "Ecoil.app"
+            BlueprintName = "Ecoil"
+            ReferencedContainer = "container:Ecoil.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "ecoilvendorapp.app"
-            BlueprintName = "ecoilvendorapp"
-            ReferencedContainer = "container:ecoilvendorapp.xcodeproj">
+            BuildableName = "Ecoil.app"
+            BlueprintName = "Ecoil"
+            ReferencedContainer = "container:Ecoil.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

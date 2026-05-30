@@ -1,4 +1,4 @@
-package com.ecoilvendorapp
+package com.arises.knp
 
 import android.app.Application
 import com.facebook.react.PackageList
