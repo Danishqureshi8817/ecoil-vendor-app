@@ -30,6 +30,7 @@ export type PublicSupplierDirectoryRow = {
   id: string;
   name: string;
   mobile: string;
+  websiteUrl: string | null;
   city: string | null;
   verified: boolean;
 };

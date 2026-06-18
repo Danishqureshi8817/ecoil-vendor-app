@@ -12,6 +12,7 @@ export const StackNav = {
   CollectRequestList: 'CollectRequestList',
   CollectRequestDetail: 'CollectRequestDetail',
   MyCertificates: 'MyCertificates',
+  MyRewards: 'MyRewards',
   PaymentDetails: 'PaymentDetails',
   Agreement: 'Agreement',
 } as const;
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   [StackNav.CollectRequestList]: undefined;
   [StackNav.CollectRequestDetail]: {id: string};
   [StackNav.MyCertificates]: undefined;
+  [StackNav.MyRewards]: undefined;
   [StackNav.PaymentDetails]: undefined;
   [StackNav.Agreement]: undefined;
 };

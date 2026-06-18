@@ -73,6 +73,14 @@ export default function HomeScreen() {
         onPress: () => push(StackNav.MyCertificates),
       },
       {
+        title: 'Scratch & Win',
+        desc: 'Redeem reward cards',
+        icon: 'gift-outline',
+        iconColor: Colors.purple,
+        iconBg: Colors.purpleSoft,
+        onPress: () => push(StackNav.MyRewards),
+      },
+      {
         title: 'Payment Details',
         desc: 'View payment records',
         icon: 'card-outline',

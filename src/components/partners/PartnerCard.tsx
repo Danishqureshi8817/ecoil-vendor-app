@@ -25,12 +25,21 @@ function formatMobile(mobile: string): string {
   return mobile.trim() || '—';
 }
 
+function toExternalUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return '';
+  }
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
 type Props = {
   row: PublicSupplierDirectoryRow;
 };
 
 export function PartnerCard({row}: Props) {
   const tel = row.mobile.replace(/\D/g, '');
+  const websiteHref = row.websiteUrl ? toExternalUrl(row.websiteUrl) : '';
 
   return (
     <View style={styles.card}>
@@ -69,38 +78,51 @@ export function PartnerCard({row}: Props) {
               </View>
             ) : null}
           </View>
+          <CustomText variant="h6" fontFamily={Fonts.inter.bold} style={styles.mobile}>
+            {formatMobile(row.mobile)}
+          </CustomText>
         </View>
       </View>
 
       <View style={styles.divider} />
 
       <View style={styles.footer}>
-        <View style={styles.contact}>
-          <CustomText variant="h7" style={styles.contactLabel}>
-            CONTACT
-          </CustomText>
-          <CustomText variant="h6" fontFamily={Fonts.inter.bold}>
-            {formatMobile(row.mobile)}
-          </CustomText>
+        <View style={[styles.actions, websiteHref ? styles.actionsRow : styles.actionsColumn]}>
+          {websiteHref ? (
+            <Pressable
+              style={({pressed}) => [
+                styles.actionItem,
+                styles.websiteBtn,
+                pressed && styles.actionPressed,
+              ]}
+              onPress={() => {
+                void Linking.openURL(websiteHref);
+              }}>
+              <Ionicons name="globe-outline" size={16} color={Colors.brandDark} />
+              <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.websiteText}>
+                Website
+              </CustomText>
+            </Pressable>
+          ) : null}
+          <Pressable
+            style={({pressed}) => [styles.actionItem, pressed && styles.actionPressed]}
+            onPress={() => {
+              if (tel) {
+                void Linking.openURL(`tel:${tel}`);
+              }
+            }}>
+            <LinearGradient
+              colors={[Colors.brandDark, Colors.brand]}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={styles.callBtn}>
+              <Ionicons name="call" size={16} color={Colors.white} />
+              <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.callText}>
+                Call
+              </CustomText>
+            </LinearGradient>
+          </Pressable>
         </View>
-        <Pressable
-          style={({pressed}) => [pressed && styles.callPressed]}
-          onPress={() => {
-            if (tel) {
-              void Linking.openURL(`tel:${tel}`);
-            }
-          }}>
-          <LinearGradient
-            colors={[Colors.brandDark, Colors.brand]}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            style={styles.callBtn}>
-            <Ionicons name="call" size={16} color={Colors.white} />
-            <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.callText}>
-              Call
-            </CustomText>
-          </LinearGradient>
-        </Pressable>
       </View>
     </View>
   );
@@ -151,34 +173,58 @@ const styles = StyleSheet.create({
     borderColor: Colors.line,
   },
   chipCityText: {color: Colors.muted, fontSize: moderateScale(11)},
+  mobile: {
+    marginTop: moderateScaleVertical(10),
+    color: Colors.black,
+    letterSpacing: 0.2,
+  },
   divider: {
     height: 1,
     marginHorizontal: moderateScale(16),
     backgroundColor: Colors.line,
   },
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: moderateScale(16),
     paddingVertical: moderateScaleVertical(14),
-    gap: moderateScale(12),
   },
-  contact: {flex: 1, minWidth: 0},
-  contactLabel: {
-    color: Colors.muted,
-    fontSize: moderateScale(10),
-    letterSpacing: 0.6,
-    marginBottom: 2,
+  actions: {
+    alignItems: 'stretch',
   },
-  callBtn: {
+  actionsRow: {
+    flexDirection: 'row',
+    gap: moderateScale(8),
+  },
+  actionsColumn: {
+    flexDirection: 'column',
+    gap: moderateScaleVertical(8),
+  },
+  actionItem: {
+    flex: 1,
+    minWidth: 0,
+  },
+  websiteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: moderateScale(6),
+    paddingVertical: moderateScaleVertical(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(14),
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: 'rgba(4,120,87,0.35)',
+  },
+  websiteText: {color: Colors.brandDark},
+  callBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: moderateScale(6),
     paddingVertical: moderateScaleVertical(10),
     paddingHorizontal: moderateScale(16),
     borderRadius: moderateScale(14),
   },
   callText: {color: Colors.white},
-  callPressed: {opacity: 0.9, transform: [{scale: 0.97}]},
+  actionPressed: {opacity: 0.9, transform: [{scale: 0.97}]},
 });

@@ -14,7 +14,7 @@ import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
 import {clearSession} from '@/utils/sessionStorage';
 import {buildVendorNavItems} from '@/utils/vendorNavItems';
 import {resetAndNavigate} from '@/utils/NavigationUtils';
-import {moderateScaleVertical} from '@/utils/responsiveSize';
+import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import React, {useCallback} from 'react';
 import {
   ActivityIndicator,
@@ -51,7 +51,7 @@ export default function MyCertificatesScreen() {
   const listEmpty = useCallback(() => {
     if (isLoading) {
       return (
-        <View style={styles.emptyWrap}>
+        <View style={styles.emptyBody}>
           <ActivityIndicator size="large" color={Colors.brand} />
           <CustomText variant="h7" style={[externalUi.muted, styles.emptySub]}>
             Loading certificates…
@@ -61,21 +61,28 @@ export default function MyCertificatesScreen() {
     }
     if (error) {
       return (
-        <View style={externalUi.alertError}>
-          <CustomText variant="h7" style={externalUi.alertErrorText}>
-            {getApiErrorMessage(error, 'Could not load certificates')}
-          </CustomText>
+        <View style={styles.emptyBody}>
+          <View style={externalUi.alertError}>
+            <CustomText variant="h7" style={externalUi.alertErrorText}>
+              {getApiErrorMessage(error, 'Could not load certificates')}
+            </CustomText>
+          </View>
         </View>
       );
     }
     return (
-      <EmptyState
-        icon="ribbon-outline"
-        title="No certificates"
-        subtitle="Certificates will appear here when available."
-      />
+      <View style={styles.emptyBody}>
+        <EmptyState
+          icon="ribbon-outline"
+          title="No certificates"
+          subtitle="Certificates will appear here when available."
+        />
+      </View>
     );
   }, [isLoading, error]);
+
+  const isEmpty = !isLoading && !error && rows.length === 0;
+  const showListHeader = !(isLoading || isEmpty || error);
 
   return (
     <ExternalLayout
@@ -89,17 +96,23 @@ export default function MyCertificatesScreen() {
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         ListHeaderComponent={
-          <View style={styles.header}>
-            <CustomText variant="h5" fontFamily={Fonts.inter.bold}>
-              Download Certificates
-            </CustomText>
-            <CustomText variant="h7" style={externalUi.muted}>
-              Each row has the certificate name and a download button
-            </CustomText>
-          </View>
+          showListHeader ? (
+            <View style={styles.header}>
+              <CustomText variant="h5" fontFamily={Fonts.inter.bold}>
+                Download Certificates
+              </CustomText>
+              <CustomText variant="h7" style={externalUi.muted}>
+                Each row has the certificate name and a download button
+              </CustomText>
+            </View>
+          ) : null
         }
         ListEmptyComponent={listEmpty}
-        contentContainerStyle={[screen.scroll, styles.listContent]}
+        contentContainerStyle={[
+          screen.scroll,
+          styles.listContent,
+          (isLoading || isEmpty || error) && styles.emptyContent,
+        ]}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -118,16 +131,18 @@ const styles = StyleSheet.create({
   list: {flex: 1},
   listContent: {
     paddingBottom: moderateScaleVertical(24),
-    flexGrow: 1,
+  },
+  emptyContent: {flexGrow: 1},
+  emptyBody: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: moderateScale(16),
   },
   header: {
     marginBottom: moderateScaleVertical(14),
     gap: moderateScaleVertical(4),
   },
   separator: {height: moderateScaleVertical(10)},
-  emptyWrap: {
-    alignItems: 'center',
-    paddingVertical: moderateScaleVertical(40),
-  },
   emptySub: {marginTop: moderateScaleVertical(12)},
 });

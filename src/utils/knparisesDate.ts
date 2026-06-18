@@ -20,6 +20,30 @@ export function formatKnparisesDate(date: Date): string {
   return `${day}-${month}-${year}`;
 }
 
+export function parseKnparisesDate(value: string): Date | null {
+  const match = value.trim().match(/^(\d{2})-([A-Za-z]{3})-(\d{4})$/);
+  if (!match) {
+    return null;
+  }
+  const day = Number(match[1]);
+  const monthIndex = MONTHS.findIndex(
+    month => month.toLowerCase() === match[2].toLowerCase(),
+  );
+  if (monthIndex < 0) {
+    return null;
+  }
+  const year = Number(match[3]);
+  const date = new Date(year, monthIndex, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== monthIndex ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+}
+
 export function defaultPaymentDateRange(): {date_from: string; date_upto: string} {
   const upto = new Date();
   const from = new Date();

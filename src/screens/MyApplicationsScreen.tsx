@@ -96,6 +96,7 @@ export default function MyApplicationsScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore(s => s.user);
   const mobile = user?.mobile?.trim() ?? '';
+  const [detailOpen, setDetailOpen] = useState(false);
   const [detail, setDetail] = useState<VendorApplicationDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -122,6 +123,7 @@ export default function MyApplicationsScreen() {
     if (!mobile) {
       return;
     }
+    setDetailOpen(true);
     setDetailLoading(true);
     setDetail(null);
     try {
@@ -132,6 +134,12 @@ export default function MyApplicationsScreen() {
     } finally {
       setDetailLoading(false);
     }
+  }
+
+  function closeDetail() {
+    setDetailOpen(false);
+    setDetail(null);
+    setDetailLoading(false);
   }
 
   const keyExtractor = useCallback((item: VendorApplicationRow) => item.id, []);
@@ -222,11 +230,11 @@ export default function MyApplicationsScreen() {
       </Pressable>
 
       <ApplicationDetailModal
-        visible={detailLoading || detail != null}
+        visible={detailOpen}
         loading={detailLoading}
         detail={detail}
         submittedLabel={detail ? `Submitted ${formatDate(detail.createdAt)}` : undefined}
-        onClose={() => setDetail(null)}
+        onClose={closeDetail}
       />
     </View>
   );

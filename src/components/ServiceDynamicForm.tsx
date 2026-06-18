@@ -24,7 +24,6 @@ type Props = {
   user: ExternalVendorUser | null;
   saving: boolean;
   onSubmit: (answers: {questionId: string; value: string}[]) => void;
-  onBack: () => void;
 };
 
 /** Profile prefill only for plain text fields with obvious vendor/contact labels. */
@@ -79,7 +78,7 @@ function guessPrefill(
   return '';
 }
 
-export function ServiceDynamicForm({form, user, saving, onSubmit, onBack}: Props) {
+export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
   const {toastError} = useToastMessage();
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
   const [dropdownAnswers, setDropdownAnswers] = useState<Record<string, string>>({});
@@ -220,12 +219,6 @@ export function ServiceDynamicForm({form, user, saving, onSubmit, onBack}: Props
 
   return (
     <View style={serviceUi.card}>
-      <Pressable style={serviceUi.backBtn} onPress={onBack}>
-        <CustomText variant="h6" style={serviceUi.backBtnText}>
-          ← Back to services
-        </CustomText>
-      </Pressable>
-
       <View style={serviceUi.selectedBanner}>
         <CustomText variant="h6" style={serviceUi.selectedBannerLabel}>
           Selected:{' '}

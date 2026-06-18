@@ -1,9 +1,11 @@
 import CustomText from '@/components/global/CustomText';
-import {ListToolbar} from '@/components/external/ListToolbar';
+import {SecondaryButton} from '@/components/external/SecondaryButton';
 import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import {StackNav} from '@/navigations/NavigationKeys';
 import vendorService from '@/services/vendor-service';
+import {useAuthStore} from '@/states/authStore';
+import {vendorUserId} from '@/utils/vendorUser';
 import {externalUi} from '@/styles/externalUi';
 import {screen} from '@/styles/ui';
 import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
@@ -23,6 +25,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 
 export default function CollectRequestScreen() {
+  const user = useAuthStore(s => s.user);
   const [enteredDrumsQty, setEnteredDrumsQty] = useState('');
   const [enteredVolume, setEnteredVolume] = useState('');
   const [emptyDrumsQty, setEmptyDrumsQty] = useState('');
@@ -73,11 +76,14 @@ export default function CollectRequestScreen() {
       return;
     }
 
+    const vid = vendorUserId(user);
     submitMutation.mutate({
       entered_drums_qty: drums,
       entered_volume: volume,
       empty_drums_qty: emptyDrums,
       notes_for_team: notesForTeam,
+      vendorUserId: vid,
+      vendorName: user?.name ?? user?.vendor_name ?? String(vid),
     });
   }
 
@@ -181,12 +187,13 @@ export default function CollectRequestScreen() {
           </LinearGradient>
         </Pressable>
 
-        <View style={externalUi.formFooter}>
-          <Pressable onPress={() => push(StackNav.CollectRequestList)}>
-            <CustomText variant="h7" style={externalUi.formFooterLink}>
-              View all requests →
-            </CustomText>
-          </Pressable>
+        <View style={styles.viewAllWrap}>
+          <SecondaryButton
+            label="View all requests"
+            variant="link"
+            fullWidth
+            onPress={() => push(StackNav.CollectRequestList)}
+          />
         </View>
       </View>
     </ScrollView>
@@ -195,4 +202,8 @@ export default function CollectRequestScreen() {
 
 const styles = StyleSheet.create({
   submitDisabled: {opacity: 0.55},
+  viewAllWrap: {
+    marginTop: moderateScaleVertical(14),
+    width: '100%',
+  },
 });

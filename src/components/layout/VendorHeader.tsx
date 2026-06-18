@@ -24,10 +24,11 @@ type Props = {
   title: string;
   firmName?: string;
   initials: string;
-  onMenuPress: () => void;
+  leading?: 'menu' | 'back';
+  onLeadingPress: () => void;
 };
 
-export function VendorHeader({title, firmName, initials, onMenuPress}: Props) {
+export function VendorHeader({title, firmName, initials, leading = 'menu', onLeadingPress}: Props) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -46,11 +47,15 @@ export function VendorHeader({title, firmName, initials, onMenuPress}: Props) {
         angle={HEADER_GRADIENT.angle}
         style={[styles.gradient, {paddingTop: insets.top + moderateScaleVertical(8)}]}>
         <TouchableOpacity
-          onPress={onMenuPress}
+          onPress={onLeadingPress}
           style={styles.menuBtn}
-          accessibilityLabel="Open menu"
+          accessibilityLabel={leading === 'back' ? 'Go back' : 'Open menu'}
           activeOpacity={0.85}>
-          <Ionicons name="menu" size={24} color={Colors.white} />
+          <Ionicons
+            name={leading === 'back' ? 'arrow-back' : 'menu'}
+            size={24}
+            color={Colors.white}
+          />
         </TouchableOpacity>
 
         <View style={styles.headerText}>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "252936130081",
+    "project_id": "ecoil-app",
+    "storage_bucket": "ecoil-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:252936130081:android:e32eace55433c5a0415d60",
+        "android_client_info": {
+          "package_name": "com.arises.knp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDx-6W0Fn3WZ3zcq6x-bW4igcAWqdx8IzM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -33,6 +33,8 @@ type Props = {
   onLogout: () => void;
   showBottomNav?: boolean;
   bottomNav?: React.ReactNode;
+  headerLeading?: 'menu' | 'back';
+  onHeaderLeadingPress?: () => void;
 };
 
 export function ExternalLayout({
@@ -41,6 +43,8 @@ export function ExternalLayout({
   navItems,
   activeKey,
   onLogout,
+  headerLeading = 'menu',
+  onHeaderLeadingPress,
 }: Props) {
   const user = useAuthStore(s => s.user);
   const insets = useSafeAreaInsets();
@@ -58,7 +62,8 @@ export function ExternalLayout({
       <VendorHeader
         title={title}
         initials={initials}
-        onMenuPress={() => setMenuOpen(true)}
+        leading={headerLeading}
+        onLeadingPress={onHeaderLeadingPress ?? (() => setMenuOpen(true))}
       />
 
       <View style={styles.content}>{children}</View>

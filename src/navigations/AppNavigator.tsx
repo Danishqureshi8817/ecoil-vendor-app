@@ -6,6 +6,7 @@ import Login from '@/screens/Login';
 import CollectRequestListScreen from '@/screens/CollectRequestListScreen';
 import CollectRequestDetailScreen from '@/screens/CollectRequestDetailScreen';
 import MyCertificatesScreen from '@/screens/MyCertificatesScreen';
+import MyRewardsScreen from '@/screens/MyRewardsScreen';
 import PaymentDetailsScreen from '@/screens/PaymentDetailsScreen';
 import AgreementScreen from '@/screens/AgreementScreen';
 import {navigationRef} from '@/utils/NavigationUtils';
@@ -35,6 +36,7 @@ export default function AppNavigator() {
           name={StackNav.MyCertificates}
           component={MyCertificatesScreen}
         />
+        <Stack.Screen name={StackNav.MyRewards} component={MyRewardsScreen} />
         <Stack.Screen
           name={StackNav.PaymentDetails}
           component={PaymentDetailsScreen}

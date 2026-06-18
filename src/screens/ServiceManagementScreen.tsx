@@ -1,7 +1,7 @@
 import CustomText from '@/components/global/CustomText';
 import {PartnerCard} from '@/components/partners/PartnerCard';
 import {ServiceDynamicForm} from '@/components/ServiceDynamicForm';
-import {ServiceStepNav, type ServiceStep} from '@/components/service/ServiceStepNav';
+import type {ServiceStep} from '@/components/service/ServiceStepNav';
 import {EmptyState} from '@/components/ui/EmptyState';
 import {ErrorBanner} from '@/components/ui/ErrorBanner';
 import {
@@ -14,6 +14,7 @@ import {
 } from '@/api/publicApi';
 import publicService from '@/services/public-service';
 import {useAuthStore} from '@/states/authStore';
+import {useServiceFlowHeaderStore} from '@/states/serviceFlowHeaderStore';
 import {TabNav} from '@/navigations/NavigationKeys';
 import {screen} from '@/styles/ui';
 import {serviceUi} from '@/styles/serviceUi';
@@ -22,8 +23,9 @@ import {vendorUserCity} from '@/utils/vendorUser';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import {useToastMessage} from '@/utils/useToastMessage';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import {useQuery} from '@tanstack/react-query';
-import React, {useCallback, useMemo, useState} from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useFocusEffect} from '@react-navigation/native';
+import React, {useCallback, useLayoutEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -93,6 +95,7 @@ function ServiceListItem({
 
 export default function ServiceManagementScreen() {
   const user = useAuthStore(s => s.user);
+  const queryClient = useQueryClient();
   const vendorCity = useMemo(() => vendorUserCity(user), [user]);
   const {toastSuccess} = useToastMessage();
   const [step, setStep] = useState<ServiceStep>('list');
@@ -141,8 +144,8 @@ export default function ServiceManagementScreen() {
     : !vendorCity
       ? 'Add city in your profile to see local partners'
       : suppliers.length === 0
-        ? `No partners in ${vendorCity} for this service yet`
-        : `${suppliers.length} partner${suppliers.length > 1 ? 's' : ''} in ${vendorCity}`;
+        ? ``
+        : `${suppliers.length} Partner${suppliers.length > 1 ? 's' : ''}`;
 
   async function loadSuppliersForService(service: PublicService) {
     setSuppliersLoading(true);
@@ -194,19 +197,47 @@ export default function ServiceManagementScreen() {
     }
   }
 
-  function backToServices() {
+  const setServiceHeader = useServiceFlowHeaderStore(s => s.setHeader);
+  const clearServiceHeader = useServiceFlowHeaderStore(s => s.clearHeader);
+
+  const resetToServiceList = useCallback(() => {
     setStep('list');
     setSelected(null);
     setForm(null);
     setSuppliers([]);
     setError('');
-  }
+    setFormLoading(false);
+    setFormLoadingId(null);
+    clearServiceHeader();
+  }, [clearServiceHeader]);
 
-  function backToSuppliers() {
+  const backToServices = useCallback(() => {
+    resetToServiceList();
+  }, [resetToServiceList]);
+
+  const backToSuppliers = useCallback(() => {
     setStep('suppliers');
     setForm(null);
     setError('');
-  }
+  }, []);
+
+  useLayoutEffect(() => {
+    if (step === 'suppliers' && selected) {
+      setServiceHeader(selected.name, backToServices);
+    } else if (step === 'form' && selected) {
+      setServiceHeader(selected.name, backToSuppliers);
+    } else {
+      clearServiceHeader();
+    }
+  }, [step, selected, setServiceHeader, clearServiceHeader, backToServices, backToSuppliers]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        resetToServiceList();
+      };
+    }, [resetToServiceList]),
+  );
 
   async function handleSubmit(answers: {questionId: string; value: string}[]) {
     if (!selected || !user) {
@@ -225,6 +256,9 @@ export default function ServiceManagementScreen() {
         vendorName: user.name || 'Vendor',
         vendorMobile: user.mobile || mobile,
         answers,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: [publicService.queryKeys.myApplications],
       });
       toastSuccess('Application submitted successfully');
       backToServices();
@@ -257,7 +291,6 @@ export default function ServiceManagementScreen() {
   const listHeader = useCallback(
     () => (
       <View>
-        <ServiceStepNav step={step} />
         {error ? <ErrorBanner message={error} /> : null}
         <View
           style={[serviceUi.searchRow, searchFocused && serviceUi.searchRowFocused]}>
@@ -288,7 +321,7 @@ export default function ServiceManagementScreen() {
         )}
       </View>
     ),
-    [step, error, search, searchFocused, isLoading],
+    [error, search, searchFocused, isLoading],
   );
 
   const listEmpty = useCallback(() => {
@@ -312,14 +345,12 @@ export default function ServiceManagementScreen() {
         contentContainerStyle={screen.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled">
-        <ServiceStepNav step={step} />
         {error ? <ErrorBanner message={error} /> : null}
         <ServiceDynamicForm
           form={form}
           user={user}
           saving={saving}
           onSubmit={handleSubmit}
-          onBack={backToSuppliers}
         />
       </ScrollView>
     );
@@ -331,24 +362,9 @@ export default function ServiceManagementScreen() {
         contentContainerStyle={screen.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled">
-        <ServiceStepNav step={step} />
-
-        <Pressable onPress={backToServices} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={18} color={Colors.brandDark} />
-          <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.backText}>
-            Back to services
-          </CustomText>
-        </Pressable>
-
         {error ? <ErrorBanner message={error} /> : null}
 
         <View style={styles.hero}>
-          <CustomText variant="h7" style={styles.eyebrow}>
-            SERVICE PARTNERS
-          </CustomText>
-          <CustomText variant="h4" fontFamily={Fonts.inter.bold}>
-            {selected.name}
-          </CustomText>
           {vendorCity ? (
             <View style={styles.cityPill}>
               <Ionicons name="location-outline" size={14} color={Colors.accent} />
@@ -356,8 +372,10 @@ export default function ServiceManagementScreen() {
                 {vendorCity}
               </CustomText>
             </View>
-          ) : null}
-          <CustomText variant="h7" style={styles.muted}>
+          ) : (
+            <View />
+          )}
+          <CustomText variant="h7" style={styles.heroCount} numberOfLine={2}>
             {supplierCountLabel}
           </CustomText>
         </View>
@@ -511,28 +529,29 @@ const styles = StyleSheet.create({
     gap: moderateScaleVertical(10),
   },
   loadingModalTitle: {color: Colors.black, textAlign: 'center'},
-  backBtn: {flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: moderateScaleVertical(12)},
-  backText: {color: Colors.brandDark},
-  hero: {marginBottom: moderateScaleVertical(14)},
-  eyebrow: {
-    color: Colors.muted,
-    letterSpacing: 0.8,
-    fontSize: moderateScale(11),
-    marginBottom: 4,
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: moderateScale(12),
+    marginBottom: moderateScaleVertical(14),
   },
   cityPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    alignSelf: 'flex-start',
-    marginTop: moderateScaleVertical(8),
-    marginBottom: moderateScaleVertical(8),
+    flexShrink: 0,
     paddingHorizontal: moderateScale(12),
     paddingVertical: moderateScaleVertical(6),
     borderRadius: 999,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.line,
+  },
+  heroCount: {
+    flex: 1,
+    color: Colors.muted,
+    textAlign: 'right',
   },
   ecoilBanner: {
     flexDirection: 'row',

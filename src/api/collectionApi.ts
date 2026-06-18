@@ -43,6 +43,9 @@ export type SubmitCollectionRequestInput = {
   entered_volume: number;
   empty_drums_qty: number;
   notes_for_team: string;
+  vendorUserId?: string | number;
+  vendorName?: string;
+  collectionRequestId?: string | number;
 };
 
 const base = () => VENDOR_API_BASE.replace(/\/$/, '');
@@ -71,6 +74,9 @@ function normalizeCollectionList(payload: unknown): CollectionRequestRow[] {
     const keys = [
       'list',
       'requests',
+      'history',
+      'pickup_history',
+      'pickupHistory',
       'coll_req',
       'collReq',
       'collection_requests',
@@ -152,10 +158,22 @@ export async function submitCollectionRequest(
       entered_volume: input.entered_volume,
       empty_drums_qty: input.empty_drums_qty,
       notes_for_team: input.notes_for_team.trim(),
+      ...(input.vendorUserId != null ? {vendorUserId: input.vendorUserId} : {}),
+      ...(input.vendorName ? {vendorName: input.vendorName} : {}),
+      ...(input.collectionRequestId != null
+        ? {collectionRequestId: input.collectionRequestId}
+        : {}),
     },
     {headers: bearerHeaders(), timeout: 60_000},
   );
   return unwrapKnparises(data);
+}
+
+const COLLECTION_CHALLAN_BASE =
+  'https://app.knparises.com/api/VendorPickupRequest/challan';
+
+export function collectionChallanUrl(requestId: string | number): string {
+  return `${COLLECTION_CHALLAN_BASE}/${encodeURIComponent(String(requestId).trim())}`;
 }
 
 export function collectionRequestLabel(row: CollectionRequestRow): string {

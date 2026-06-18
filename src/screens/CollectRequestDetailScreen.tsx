@@ -5,6 +5,7 @@ import {ErrorBanner} from '@/components/ui/ErrorBanner';
 import {
   collectionRequestLabel,
   collectionRequestStatus,
+  collectionChallanUrl,
   fetchCollectionRequestById,
   type CollectionRequestRow,
 } from '@/api/collectionApi';
@@ -159,6 +160,7 @@ export default function CollectRequestDetailScreen({route}: Props) {
       : null;
   const gatePassUrl = gatePassRaw ? gatePassImageUrl(gatePassRaw) : '';
   const title = collectionRequestLabel(row);
+  const challanUrl = collectionChallanUrl(id);
 
   return (
     <Container
@@ -214,6 +216,27 @@ export default function CollectRequestDetailScreen({route}: Props) {
               </Pressable>
             </View>
           ) : null}
+
+          <View style={styles.gatePassRow}>
+            <View style={styles.gatePassInfo}>
+              <CustomText variant="h7" style={externalUi.metaDt}>
+                Challan
+              </CustomText>
+              <CustomText variant="h7" style={externalUi.metaDd}>
+                Pickup challan #{id}
+              </CustomText>
+            </View>
+            <Pressable
+              style={[externalUi.btnSecondary, externalUi.btnSecondaryLink, styles.downloadBtn]}
+              onPress={() => void Linking.openURL(challanUrl)}>
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.inter.bold}
+                style={[externalUi.btnSecondaryText, externalUi.btnSecondaryTextLink]}>
+                Download
+              </CustomText>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </Container>

@@ -6,12 +6,26 @@ import {
   submitCollectionRequest,
   type SubmitCollectionRequestInput,
 } from '@/api/collectionApi';
+import {
+  fetchVendorCoins,
+  fetchVendorScratchCards,
+  fetchVendorTransactions,
+  redeemVendorCoins,
+  scratchVendorCard,
+  type ScratchCardStatus,
+  type ScratchTxnType,
+} from '@/api/scratchApi';
+import {useAuthStore} from '@/states/authStore';
+import {vendorUserId} from '@/utils/vendorUser';
 
 class VendorService {
   queryKeys = {
     vendorLogin: 'vendorLogin',
     collectionRequests: 'collectionRequests',
     certificates: 'certificates',
+    scratchCards: 'scratchCards',
+    vendorCoins: 'vendorCoins',
+    vendorTransactions: 'vendorTransactions',
   };
 
   validateLogin = (mobile: string, password: string) =>
@@ -25,7 +39,31 @@ class VendorService {
   submitCollection = (input: SubmitCollectionRequestInput) =>
     submitCollectionRequest(input);
 
-  getCertificatesList = () => fetchCertificatesList();
+  getCertificatesList = () => {
+    const user = useAuthStore.getState().user;
+    return fetchCertificatesList(vendorUserId(user));
+  };
+
+  getScratchCards = (vendorUserId: string | number, status?: ScratchCardStatus) =>
+    fetchVendorScratchCards(vendorUserId, status);
+
+  getVendorCoins = (vendorUserId: string | number) =>
+    fetchVendorCoins(vendorUserId);
+
+  scratchCard = (vendorUserId: string | number, cardId: string) =>
+    scratchVendorCard(vendorUserId, cardId);
+
+  getVendorTransactions = (
+    vendorUserId: string | number,
+    txnType?: ScratchTxnType,
+  ) => fetchVendorTransactions(vendorUserId, txnType);
+
+  redeemCoins = (payload: {
+    vendorId: string | number;
+    vendorName: string;
+    coinAmount: number;
+    description: string;
+  }) => redeemVendorCoins(payload);
 }
 
 export default new VendorService();

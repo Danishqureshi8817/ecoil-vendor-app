@@ -28,3 +28,7 @@ export const AUTH_KEYS = {
   user: 'user',
   expiry: 'expiry',
 } as const;
+
+export const PUSH_KEYS = {
+  fcmToken: 'fcm_token',
+} as const;

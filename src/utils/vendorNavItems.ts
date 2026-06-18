@@ -68,6 +68,12 @@ export function buildVendorNavItems(
       onPress: () => push(StackNav.MyCertificates),
     },
     {
+      key: StackNav.MyRewards,
+      label: 'Scratch & Win',
+      icon: 'gift-outline',
+      onPress: () => push(StackNav.MyRewards),
+    },
+    {
       key: StackNav.PaymentDetails,
       label: 'Payment Details',
       icon: 'card-outline',

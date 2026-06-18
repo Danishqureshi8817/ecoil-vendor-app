@@ -1,5 +1,6 @@
 import AppNavigator from '@/navigations/AppNavigator';
 import {QueryProvider} from '@/providers/QueryProvider';
+import {PushNotificationProvider} from '@/providers/PushNotificationProvider';
 import React from 'react';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
@@ -27,7 +28,9 @@ function App() {
       />
       <SafeAreaProvider>
         <QueryProvider>
-          <AppNavigator />
+          <PushNotificationProvider>
+            <AppNavigator />
+          </PushNotificationProvider>
         </QueryProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

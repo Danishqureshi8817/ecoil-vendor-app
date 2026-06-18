@@ -40,9 +40,12 @@ function normalizeRow(raw: unknown): CertificateRow | null {
   };
 }
 
-export async function fetchCertificatesList(): Promise<CertificateRow[]> {
-  const {data} = await axios.get<KnparisesEnvelope<unknown>>(
+export async function fetchCertificatesList(
+  vendorUserId: string | number,
+): Promise<CertificateRow[]> {
+  const {data} = await axios.post<KnparisesEnvelope<unknown>>(
     `${base()}/certificates/list`,
+    {vendorUserId},
     {headers: bearerHeaders(), timeout: 60_000},
   );
   const payload = unwrapKnparises(data);

@@ -1,6 +1,7 @@
 import {ExternalLayout} from '@/layouts/ExternalLayout';
 import {StackNav, TabNav} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
+import {useServiceFlowHeaderStore} from '@/states/serviceFlowHeaderStore';
 import {clearSession} from '@/utils/sessionStorage';
 import {navigationRef, resetAndNavigate, navigateToTab} from '@/utils/NavigationUtils';
 import {buildVendorNavItems} from '@/utils/vendorNavItems';
@@ -58,18 +59,28 @@ export function VendorChrome({children}: Props) {
   }
 
   const user = useAuthStore(s => s.user);
+  const serviceFlowHeader = useServiceFlowHeaderStore();
   const navItems = useMemo(
     () => buildVendorNavItems(activeTab, user),
     [activeTab, user],
   );
 
+  const onServicesTab = activeTab === TabNav.Services;
+  const useServiceBackHeader = onServicesTab && serviceFlowHeader.showBack;
+
   return (
     <ExternalLayout
-      title={getTitle(activeTab)}
+      title={useServiceBackHeader ? serviceFlowHeader.title : getTitle(activeTab)}
       activeKey={activeTab}
       navItems={navItems}
       onLogout={handleLogout}
-      showBottomNav={false}>
+      showBottomNav={false}
+      headerLeading={useServiceBackHeader ? 'back' : 'menu'}
+      onHeaderLeadingPress={
+        useServiceBackHeader && serviceFlowHeader.onBack
+          ? serviceFlowHeader.onBack
+          : undefined
+      }>
       <View style={{flex: 1}}>{children}</View>
     </ExternalLayout>
   );
