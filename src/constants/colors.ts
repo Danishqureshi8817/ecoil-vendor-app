@@ -22,4 +22,23 @@ export const Colors = {
   borderColor: '#e8ecf0',
   placeHolderColor: '#94a3b8',
   primary: '#047857',
+
+  /** Onboarding / auth intro screens (Figma) */
+  onboardingBg: '#f7fbf8',
+  onboardingSurface: '#ffffff',
+  onboardingPrimary: '#095227',
+  onboardingAccent: '#f0a21e',
+  onboardingMuted: '#5f6d66',
+  onboardingTipBg: '#e8f5ec',
+  onboardingBackBg: '#e8f5ec',
+  onboardingDotInactive: '#c5ddcb',
+  onboardingDotActive: '#17944D',
+  onboardingIllustrationGreen: '#F4F9F4',
+  onboardingIllustrationYellow: '#FEF8ED',
+
+  /** Login screen (Figma) */
+  loginInputBg: '#ffffff',
+  loginInputIconBg: '#e8f5ec',
+  loginLink: '#17944D',
+  loginFooterDivider: '#e2e8e4',
 };

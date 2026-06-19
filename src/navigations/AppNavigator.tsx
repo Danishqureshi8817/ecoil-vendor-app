@@ -2,6 +2,7 @@ import CheckInternet from '@/components/global/CheckInternet';
 import {StackNav} from '@/navigations/NavigationKeys';
 import MainScreen from '@/navigations/MainScreen';
 import Splash from '@/screens/Splash';
+import OnboardingScreen from '@/screens/OnboardingScreen';
 import Login from '@/screens/Login';
 import CollectRequestListScreen from '@/screens/CollectRequestListScreen';
 import CollectRequestDetailScreen from '@/screens/CollectRequestDetailScreen';
@@ -22,6 +23,7 @@ export default function AppNavigator() {
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{headerShown: false}}>
         <Stack.Screen name={StackNav.Splash} component={Splash} />
+        <Stack.Screen name={StackNav.Onboarding} component={OnboardingScreen} />
         <Stack.Screen name={StackNav.Login} component={Login} />
         <Stack.Screen name={StackNav.Main} component={MainScreen} />
         <Stack.Screen

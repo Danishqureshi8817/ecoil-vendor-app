@@ -7,6 +7,7 @@ export const TabNav = {
 
 export const StackNav = {
   Splash: 'Splash',
+  Onboarding: 'Onboarding',
   Login: 'Login',
   Main: 'Main',
   CollectRequestList: 'CollectRequestList',
@@ -19,6 +20,7 @@ export const StackNav = {
 
 export type RootStackParamList = {
   [StackNav.Splash]: undefined;
+  [StackNav.Onboarding]: undefined;
   [StackNav.Login]: undefined;
   [StackNav.Main]:
     | {screen?: keyof MainTabParamList}
