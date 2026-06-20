@@ -24,7 +24,7 @@ export const serviceUi = StyleSheet.create({
   refreshBtn: {
     paddingVertical: moderateScaleVertical(11),
     paddingHorizontal: moderateScale(16),
-    borderRadius: moderateScale(14),
+    borderRadius: moderateScale(25),
     borderWidth: 1.5,
     borderColor: Colors.line,
     backgroundColor: Colors.white,

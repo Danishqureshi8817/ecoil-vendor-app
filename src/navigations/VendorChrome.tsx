@@ -4,6 +4,7 @@ import {useAuthStore} from '@/states/authStore';
 import {useServiceFlowHeaderStore} from '@/states/serviceFlowHeaderStore';
 import {clearSession} from '@/utils/sessionStorage';
 import {navigationRef, resetAndNavigate, navigateToTab} from '@/utils/NavigationUtils';
+import {getGreeting} from '@/utils/homeMetrics';
 import {buildVendorNavItems} from '@/utils/vendorNavItems';
 import {CommonActions, useNavigationState} from '@react-navigation/native';
 import React, {useMemo} from 'react';
@@ -12,13 +13,13 @@ import {View} from 'react-native';
 function getTitle(routeName: string): string {
   switch (routeName) {
     case TabNav.Home:
-      return 'Home';
+      return 'Dashboard';
     case TabNav.Services:
       return 'Our Services';
     case TabNav.Requests:
       return 'My Service Requests';
     case TabNav.Collect:
-      return 'Collection Request';
+      return 'Collection requests';
     default:
       return 'Ecoil Vendor';
   }
@@ -65,17 +66,29 @@ export function VendorChrome({children}: Props) {
     [activeTab, user],
   );
 
+  const onHomeTab = activeTab === TabNav.Home;
   const onServicesTab = activeTab === TabNav.Services;
+  const onRequestsTab = activeTab === TabNav.Requests;
   const useServiceBackHeader = onServicesTab && serviceFlowHeader.showBack;
+  const centeredHeaderTab = onServicesTab || onRequestsTab;
+
+  const shellTitle = useServiceBackHeader
+    ? serviceFlowHeader.title
+    : onHomeTab
+      ? user?.firm_name?.trim() || user?.name?.trim() || 'Dashboard'
+      : getTitle(activeTab);
 
   return (
     <ExternalLayout
-      title={useServiceBackHeader ? serviceFlowHeader.title : getTitle(activeTab)}
+      title={shellTitle}
       activeKey={activeTab}
       navItems={navItems}
       onLogout={handleLogout}
       showBottomNav={false}
       headerLeading={useServiceBackHeader ? 'back' : 'menu'}
+      headerEyebrow={onHomeTab ? getGreeting() : undefined}
+      headerHideAvatar={onHomeTab || centeredHeaderTab}
+      headerCenterTitle={centeredHeaderTab}
       onHeaderLeadingPress={
         useServiceBackHeader && serviceFlowHeader.onBack
           ? serviceFlowHeader.onBack

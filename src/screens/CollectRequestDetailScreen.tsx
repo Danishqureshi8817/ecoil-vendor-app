@@ -1,11 +1,12 @@
 import CustomText from '@/components/global/CustomText';
 import {Container} from '@/components/global/Container';
 import {VendorBackHeader} from '@/components/layout/VendorBackHeader';
+import {GreenTruckIcon} from '@/components/icon/icon';
 import {ErrorBanner} from '@/components/ui/ErrorBanner';
 import {
-  collectionRequestLabel,
-  collectionRequestStatus,
   collectionChallanUrl,
+  collectionRequestId,
+  collectionRequestStatus,
   fetchCollectionRequestById,
   type CollectionRequestRow,
 } from '@/api/collectionApi';
@@ -14,67 +15,138 @@ import {Fonts} from '@/constants/fonts';
 import {StackNav} from '@/navigations/NavigationKeys';
 import type {RootStackParamList} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
-import {card, screen} from '@/styles/ui';
-import {externalUi} from '@/styles/externalUi';
+import {screen} from '@/styles/ui';
 import {gatePassFileName, gatePassImageUrl} from '@/utils/gatePass';
 import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
 import {vendorUserId} from '@/utils/vendorUser';
 import {goBack} from '@/utils/NavigationUtils';
-import {moderateScaleVertical} from '@/utils/responsiveSize';
+import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
+import Ionicons from '@react-native-vector-icons/ionicons';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import React, {useCallback, useEffect, useState} from 'react';
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+import {RFValue} from 'react-native-responsive-fontsize';
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
   typeof StackNav.CollectRequestDetail
 >;
 
-function formatDate(value: unknown): string {
+const DETAIL_TITLE = 'Request Details';
+const REQUEST_DETAIL_BOTTOM = require('@/assets/images/requestDetailBottom.png');
+
+function formatDetailDate(value: unknown): string {
   if (value == null || value === '') {
     return '—';
   }
-  const s = String(value);
-  const d = new Date(s);
-  if (!Number.isNaN(d.getTime())) {
-    return d.toLocaleString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const d = new Date(String(value));
+  if (Number.isNaN(d.getTime())) {
+    return String(value);
   }
-  return s;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleString(undefined, {month: 'short'});
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
 }
 
-type DetailRow = {label: string; value: unknown};
+function formatDetailDateTime(value: unknown): string {
+  if (value == null || value === '') {
+    return '—';
+  }
+  const d = new Date(String(value));
+  if (Number.isNaN(d.getTime())) {
+    return String(value);
+  }
+  const date = formatDetailDate(value);
+  const time = d.toLocaleString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${date}, ${time}`;
+}
 
-function buildDetailRows(row: CollectionRequestRow): DetailRow[] {
-  const pairs: DetailRow[] = [
-    {label: 'Request type', value: row.request_type_name ?? row.request_type},
-    {label: 'Pickup date', value: row.request_date},
-    {label: 'Estimated pickup', value: row.max_completion_datetime},
-    {label: 'Status', value: row.request_status_name ?? collectionRequestStatus(row)},
-    {label: 'Requested drums', value: row.entered_drums_qty},
-    {label: 'Actual drums', value: row.actual_drums_qty ?? row.actual_drums_qty_temp},
-    {label: 'Requested oil (kg)', value: row.entered_volume},
-    {label: 'Actual oil (kg)', value: row.actual_volume ?? row.actual_volume_temp},
-    {label: 'Empty drums', value: row.empty_drums_qty},
-    {label: 'Logistic manager', value: row.logistic_manager},
-    {label: 'PDA', value: row.assigned_to_name},
-    {label: 'Vehicle no.', value: row.vehicle_no},
-    {label: 'Security code', value: row.security_code},
-    {label: 'Notes', value: row.notes_for_team ?? row.notes},
-  ];
-  return pairs.filter(p => p.value != null && String(p.value).trim() !== '');
+function formatKg(value: unknown): string {
+  if (value == null || value === '') {
+    return '—';
+  }
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(2) : String(value);
+}
+
+function DetailCard({
+  icon,
+  title,
+  headerRight,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  headerRight?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.detailCard}>
+      <View style={styles.detailCardHead}>
+        <View style={styles.detailCardTitleRow}>
+          {icon}
+          <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold} style={styles.detailCardTitle}>
+            {title}
+          </CustomText>
+        </View>
+        {headerRight ? (
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.bold} style={styles.detailCardRight}>
+            {headerRight}
+          </CustomText>
+        ) : null}
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  valueHighlight,
+}: {
+  label: string;
+  value: string;
+  valueHighlight?: boolean;
+}) {
+  return (
+    <View style={styles.detailRow}>
+      <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.detailLabel}>
+        {label}
+      </CustomText>
+      <CustomText
+        variant="h7"
+        fontFamily={Fonts.montserrat.medium}
+        style={valueHighlight ? [styles.detailValue, styles.detailValueHighlight] : styles.detailValue}
+        numberOfLine={2}>
+        {value}
+      </CustomText>
+    </View>
+  );
+}
+
+function DownloadButton({label, onPress}: {label: string; onPress: () => void}) {
+  return (
+    <Pressable style={({pressed}) => [styles.downloadBtn, pressed && styles.pressed]} onPress={onPress}>
+      <Ionicons name="download-outline" size={moderateScale(14)} color={Colors.white} />
+      <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.downloadBtnText}>
+        {label}
+      </CustomText>
+    </Pressable>
+  );
 }
 
 export default function CollectRequestDetailScreen({route}: Props) {
@@ -102,8 +174,6 @@ export default function CollectRequestDetailScreen({route}: Props) {
     void load();
   }, [load]);
 
-  const defaultTitle = 'Collection request';
-
   if (loading) {
     return (
       <Container
@@ -111,10 +181,10 @@ export default function CollectRequestDetailScreen({route}: Props) {
         fullScreen
         statusBarStyle="light-content"
         statusBarBackgroundColor="transparent">
-        <VendorBackHeader title={defaultTitle} onBack={() => void goBack()} />
+        <VendorBackHeader title={DETAIL_TITLE} onBack={() => void goBack()} />
         <View style={styles.center}>
           <ActivityIndicator color={Colors.brand} />
-          <CustomText variant="h7" style={externalUi.muted}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.muted}>
             Loading…
           </CustomText>
         </View>
@@ -129,7 +199,7 @@ export default function CollectRequestDetailScreen({route}: Props) {
         fullScreen
         statusBarStyle="light-content"
         statusBarBackgroundColor="transparent">
-        <VendorBackHeader title={defaultTitle} onBack={() => void goBack()} />
+        <VendorBackHeader title={DETAIL_TITLE} onBack={() => void goBack()} />
         <ScrollView contentContainerStyle={screen.scroll} showsVerticalScrollIndicator={false}>
           <ErrorBanner message={error} />
         </ScrollView>
@@ -144,9 +214,9 @@ export default function CollectRequestDetailScreen({route}: Props) {
         fullScreen
         statusBarStyle="light-content"
         statusBarBackgroundColor="transparent">
-        <VendorBackHeader title={defaultTitle} onBack={() => void goBack()} />
+        <VendorBackHeader title={DETAIL_TITLE} onBack={() => void goBack()} />
         <ScrollView contentContainerStyle={screen.scroll} showsVerticalScrollIndicator={false}>
-          <CustomText variant="h7" style={externalUi.muted}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.muted}>
             Request details not found.
           </CustomText>
         </ScrollView>
@@ -154,13 +224,18 @@ export default function CollectRequestDetailScreen({route}: Props) {
     );
   }
 
+  const requestId = collectionRequestId(row) ?? id;
+  const status = collectionRequestStatus(row);
   const gatePassRaw =
     row.gate_pass != null && String(row.gate_pass).trim() !== ''
       ? String(row.gate_pass)
       : null;
   const gatePassUrl = gatePassRaw ? gatePassImageUrl(gatePassRaw) : '';
-  const title = collectionRequestLabel(row);
   const challanUrl = collectionChallanUrl(id);
+  const securityCode =
+    row.security_code != null && String(row.security_code).trim() !== ''
+      ? '****'
+      : '—';
 
   return (
     <Container
@@ -168,82 +243,108 @@ export default function CollectRequestDetailScreen({route}: Props) {
       fullScreen
       statusBarStyle="light-content"
       statusBarBackgroundColor="transparent">
-      <VendorBackHeader title={title} onBack={() => void goBack()} />
+      <VendorBackHeader title={DETAIL_TITLE} onBack={() => void goBack()} />
 
-      <ScrollView contentContainerStyle={screen.scroll} showsVerticalScrollIndicator={false}>
-        <View style={card.base}>
-          <View style={externalUi.listCardHead}>
-            <CustomText variant="h6" fontFamily={Fonts.inter.bold} style={{flex: 1}}>
-              {collectionRequestLabel(row)}
+      <ScrollView
+        contentContainerStyle={[screen.scroll, styles.scrollContent]}
+        showsVerticalScrollIndicator={false}>
+        <DetailCard
+          icon={<Ionicons name="clipboard-outline" size={moderateScale(20)} color={Colors.buttonPrimary} />}
+          title="Request Information"
+          headerRight={`Request #${requestId}`}>
+          <DetailRow
+            label="Request Type"
+            value={String(row.request_type_name ?? row.request_type ?? '—')}
+          />
+          <DetailRow
+            label="Pickup Request Date"
+            value={formatDetailDate(row.request_date ?? row.created_at)}
+          />
+          <DetailRow
+            label="Estimated Pickup Time"
+            value={formatDetailDateTime(row.max_completion_datetime ?? row.request_date)}
+          />
+          <DetailRow label="Request Status" value={status} valueHighlight />
+        </DetailCard>
+
+        <DetailCard
+          icon={<Ionicons name="water-outline" size={moderateScale(20)} color={Colors.brand} />}
+          title="Drum & Oil Details">
+          <DetailRow
+            label="Req. Filled Drums Qty"
+            value={String(row.entered_drums_qty ?? '—')}
+          />
+          <DetailRow
+            label="Actual Filled Drums Qty"
+            value={String(row.actual_drums_qty ?? row.actual_drums_qty_temp ?? '—')}
+          />
+          <DetailRow
+            label="Request Oil Weight (kg)"
+            value={formatKg(row.entered_volume)}
+          />
+          <DetailRow
+            label="Actual Oil Weight (kg)"
+            value={formatKg(row.actual_volume ?? row.actual_volume_temp ?? row.entered_volume)}
+          />
+          <DetailRow
+            label="Empty Drums Required"
+            value={String(row.empty_drums_qty ?? row.empty_drums ?? '—')}
+          />
+        </DetailCard>
+
+        <DetailCard
+          icon={<GreenTruckIcon />}
+          title="Logistics Details">
+          <DetailRow label="Logistic Manager" value={String(row.logistic_manager ?? '—')} />
+          <DetailRow label="Collection Hero" value={String(row.assigned_to_name ?? '—')} />
+          <DetailRow label="Vehicle No" value={String(row.vehicle_no ?? '—')} />
+          <DetailRow label="Security Code" value={securityCode} />
+          <View style={styles.detailRow}>
+            <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.detailLabel}>
+              Gate Pass
             </CustomText>
-            <View style={externalUi.badge}>
-              <CustomText variant="h7" style={externalUi.badgeText}>
-                {collectionRequestStatus(row)}
+            {gatePassRaw && gatePassUrl ? (
+              <DownloadButton
+                label="View /Download"
+                onPress={() => void Linking.openURL(gatePassUrl)}
+              />
+            ) : (
+              <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.detailValue}>
+                —
               </CustomText>
-            </View>
+            )}
           </View>
-
-          {buildDetailRows(row).map(({label, value}) => (
-            <View key={label} style={externalUi.metaRow}>
-              <CustomText variant="h7" style={externalUi.metaDt}>
-                {label}
-              </CustomText>
-              <CustomText variant="h7" style={externalUi.metaDd}>
-                {/date|time/i.test(label) ? formatDate(value) : String(value)}
-              </CustomText>
-            </View>
-          ))}
-
-          {gatePassRaw && gatePassUrl ? (
-            <View style={styles.gatePassRow}>
-              <View style={styles.gatePassInfo}>
-                <CustomText variant="h7" style={externalUi.metaDt}>
-                  Gate pass
-                </CustomText>
-                <CustomText variant="h7" style={externalUi.metaDd} numberOfLine={2}>
-                  {gatePassFileName(gatePassRaw)}
-                </CustomText>
-              </View>
-              <Pressable
-                style={[externalUi.btnSecondary, externalUi.btnSecondaryLink, styles.downloadBtn]}
-                onPress={() => void Linking.openURL(gatePassUrl)}>
-                <CustomText
-                  variant="h7"
-                  fontFamily={Fonts.inter.bold}
-                  style={[externalUi.btnSecondaryText, externalUi.btnSecondaryTextLink]}>
-                  Download
-                </CustomText>
-              </Pressable>
-            </View>
-          ) : null}
-
-          <View style={styles.gatePassRow}>
-            <View style={styles.gatePassInfo}>
-              <CustomText variant="h7" style={externalUi.metaDt}>
-                Challan
-              </CustomText>
-              <CustomText variant="h7" style={externalUi.metaDd}>
-                Pickup challan #{id}
-              </CustomText>
-            </View>
-            <Pressable
-              style={[externalUi.btnSecondary, externalUi.btnSecondaryLink, styles.downloadBtn]}
-              onPress={() => void Linking.openURL(challanUrl)}>
-              <CustomText
-                variant="h7"
-                fontFamily={Fonts.inter.bold}
-                style={[externalUi.btnSecondaryText, externalUi.btnSecondaryTextLink]}>
-                Download
-              </CustomText>
-            </Pressable>
+          <View style={styles.detailRow}>
+            <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.detailLabel}>
+              Challan
+            </CustomText>
+            <DownloadButton label="View /Download" onPress={() => void Linking.openURL(challanUrl)} />
           </View>
-        </View>
+        </DetailCard>
+
+        <Image
+          source={REQUEST_DETAIL_BOTTOM}
+          style={styles.thankYouBanner}
+          resizeMode="contain"
+        />
+
+        <Pressable
+          style={({pressed}) => [styles.backBtn, pressed && styles.pressed]}
+          onPress={() => void goBack()}>
+          <Ionicons name="arrow-back" size={moderateScale(16)} color={Colors.white} />
+          <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold} style={styles.backBtnText}>
+            Back to Requests
+          </CustomText>
+        </Pressable>
       </ScrollView>
     </Container>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: moderateScaleVertical(32),
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -251,21 +352,107 @@ const styles = StyleSheet.create({
     gap: moderateScaleVertical(12),
     paddingVertical: moderateScaleVertical(32),
   },
-  gatePassRow: {
+  muted: {
+    color: Colors.muted,
+  },
+  detailCard: {
+    backgroundColor: Colors.white,
+    borderRadius: moderateScale(16),
+    padding: moderateScale(16),
+    marginBottom: moderateScaleVertical(14),
+    borderWidth: 1,
+    borderColor: Colors.line,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  detailCardHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: moderateScale(10),
+    marginBottom: moderateScaleVertical(12),
+    paddingBottom: moderateScaleVertical(10),
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.line,
+  },
+  detailCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(8),
+    flex: 1,
+  },
+  detailCardTitle: {
+    color: Colors.buttonPrimary,
+    fontSize: RFValue(10),
+  },
+  detailCardRight: {
+    color: Colors.black,
+    fontSize: RFValue(10),
+  },
+  detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    marginTop: moderateScaleVertical(16),
-    paddingTop: moderateScaleVertical(12),
-    borderTopWidth: 1,
-    borderTopColor: Colors.line,
+    gap: moderateScale(12),
+    paddingVertical: moderateScaleVertical(10),
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#DBDBDB',
   },
-  gatePassInfo: {
+  detailLabel: {
+    color: Colors.black,
+    fontSize: RFValue(11),
     flex: 1,
-    minWidth: 0,
+  },
+  detailValue: {
+    color: Colors.black,
+    fontSize: RFValue(11),
+    textAlign: 'left',
+    flex: 1,
+  },
+  detailValueHighlight: {
+    color: Colors.brand,
   },
   downloadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(4),
+    backgroundColor: Colors.buttonPrimary,
+    paddingVertical: moderateScaleVertical(8),
+    paddingHorizontal: moderateScale(12),
+    borderRadius: moderateScale(40),
     flexShrink: 0,
+  },
+  downloadBtnText: {
+    color: Colors.white,
+    fontSize: RFValue(8),
+  },
+  thankYouBanner: {
+    width: '100%',
+    height: moderateScaleVertical(96),
+    marginBottom: moderateScaleVertical(16),
+    borderRadius: moderateScale(16),
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: moderateScale(8),
+    backgroundColor: Colors.buttonPrimary,
+    borderRadius: 999,
+    paddingVertical: moderateScaleVertical(14),
+    paddingHorizontal: moderateScale(24),
+    width: '80%',
+    alignSelf: 'center',
+  },
+  backBtnText: {
+    color: Colors.white,
+    fontSize: RFValue(10),
+  },
+  pressed: {
+    opacity: 0.92,
+    transform: [{scale: 0.98}],
   },
 });

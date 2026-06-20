@@ -253,7 +253,7 @@ export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
             onPress={handleSubmit}
             disabled={saving}>
             <LinearGradient
-              colors={[Colors.brandDark, Colors.brand, Colors.brandMid]}
+              colors={[Colors.buttonPrimary, Colors.buttonPrimary, Colors.buttonPrimary]}
               locations={[0, 0.55, 1]}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 1}}

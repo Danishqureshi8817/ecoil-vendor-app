@@ -1,24 +1,25 @@
 import CustomText from '@/components/global/CustomText';
-import { CollectionRequestCard } from '@/components/external/CollectionRequestCard';
-import { EmptyState } from '@/components/ui/EmptyState';
+import {CollectionRequestCard} from '@/components/external/CollectionRequestCard';
+import {EmptyState} from '@/components/ui/EmptyState';
 import {
   collectionRequestId,
+  collectionRequestLabel,
+  collectionRequestStatus,
   type CollectionRequestRow,
 } from '@/api/collectionApi';
-import { Colors } from '@/constants/colors';
-import { Fonts } from '@/constants/fonts';
+import {Colors} from '@/constants/colors';
+import {Fonts} from '@/constants/fonts';
 import useCollectionRequests from '@/hooks/vendor/use-collection-requests';
-import { ExternalLayout } from '@/layouts/ExternalLayout';
-import { StackNav, TabNav } from '@/navigations/NavigationKeys';
-import { useAuthStore } from '@/states/authStore';
-import { externalUi } from '@/styles/externalUi';
-import { screen } from '@/styles/ui';
-import { clearSession } from '@/utils/sessionStorage';
-import { buildVendorNavItems } from '@/utils/vendorNavItems';
-import { navigateToTab, push, resetAndNavigate } from '@/utils/NavigationUtils';
-import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
+import {ExternalLayout} from '@/layouts/ExternalLayout';
+import {StackNav, TabNav} from '@/navigations/NavigationKeys';
+import {useAuthStore} from '@/states/authStore';
+import {screen} from '@/styles/ui';
+import {clearSession} from '@/utils/sessionStorage';
+import {buildVendorNavItems} from '@/utils/vendorNavItems';
+import {navigateToTab, push, resetAndNavigate} from '@/utils/NavigationUtils';
+import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import React, { useCallback } from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -26,22 +27,60 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
+  TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {RFValue} from 'react-native-responsive-fontsize';
 
 function goToNewCollectRequest() {
   resetAndNavigate(StackNav.Main, 0);
   navigateToTab(TabNav.Collect);
 }
 
+function HeaderAddButton({onPress}: {onPress: () => void}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.addBtn}
+      accessibilityLabel="New collection request"
+      activeOpacity={0.85}>
+      <Ionicons name="add" size={moderateScale(26)} color={Colors.drawerGradientEnd} />
+    </TouchableOpacity>
+  );
+}
+
+function matchesSearch(row: CollectionRequestRow, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    return true;
+  }
+  const haystack = [
+    collectionRequestId(row),
+    collectionRequestLabel(row),
+    collectionRequestStatus(row),
+    row.request_type_name,
+    row.request_type,
+    row.request_id,
+    row.id,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(q);
+}
+
 export default function CollectRequestListScreen() {
-  const insets = useSafeAreaInsets();
   const user = useAuthStore(s => s.user);
-  const { data, isLoading, refetch, isRefetching, error } = useCollectionRequests();
+  const [search, setSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const {data, isLoading, refetch, isRefetching, error} = useCollectionRequests();
   const rows = data ?? [];
-  const fabBottom = insets.bottom + moderateScaleVertical(16);
+
+  const filteredRows = useMemo(
+    () => rows.filter(row => matchesSearch(row, search)),
+    [rows, search],
+  );
 
   function handleLogout() {
     clearSession();
@@ -57,68 +96,103 @@ export default function CollectRequestListScreen() {
     [],
   );
 
-  const renderItem: ListRenderItem<CollectionRequestRow> = useCallback(({ item }) => {
+  const renderItem: ListRenderItem<CollectionRequestRow> = useCallback(({item}) => {
     const id = collectionRequestId(item);
     return (
       <CollectionRequestCard
         row={item}
-        onPress={id ? () => push(StackNav.CollectRequestDetail, { id }) : undefined}
+        onPress={id ? () => push(StackNav.CollectRequestDetail, {id}) : undefined}
       />
     );
   }, []);
 
+  const listHeader = useCallback(
+    () => (
+      <View style={[styles.searchRow, searchFocused && styles.searchRowFocused]}>
+        <Ionicons
+          name="search-outline"
+          size={20}
+          color={searchFocused ? Colors.brand : Colors.muted}
+        />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
+          placeholder="Search requests..."
+          placeholderTextColor={Colors.placeHolderColor}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
+    ),
+    [search, searchFocused],
+  );
+
   const listEmpty = useCallback(() => {
     if (isLoading) {
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <View style={styles.emptyWrap}>
           <ActivityIndicator size="large" color={Colors.brand} />
-          <CustomText variant="h7" style={[externalUi.muted, styles.emptySub]}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.emptySub}>
             Loading requests…
           </CustomText>
         </View>
       );
     }
-    if (!error) {
+    if (error) {
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <View style={externalUi.alertError}>
-            <CustomText variant="h7" style={externalUi.alertErrorText}>
-              Could not load collection requests...
-            </CustomText>
-          </View>
+        <View style={styles.emptyWrap}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.errorText}>
+            Could not load collection requests.
+          </CustomText>
+        </View>
+      );
+    }
+    if (search.trim() && filteredRows.length === 0) {
+      return (
+        <View style={styles.emptyWrap}>
+          <EmptyState
+            icon="search-outline"
+            title="No matching requests"
+            subtitle="Try a different search term"
+          />
         </View>
       );
     }
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <View style={externalUi.card}>
-          <EmptyState
-            icon="cube-outline"
-            title="No collection requests yet"
-            subtitle="Create your first pickup request"
-          />
-          <Pressable onPress={goToNewCollectRequest} style={styles.emptyLinkWrap}>
-            <CustomText variant="h7" style={externalUi.inlineLink}>
-              Create your first request
-            </CustomText>
-          </Pressable>
-        </View>
+      <View style={styles.emptyWrap}>
+        <Pressable onPress={goToNewCollectRequest}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.emptyLink}>
+            Create your first request
+          </CustomText>
+        </Pressable>
+        <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.emptySub}>
+          No collection requests yet.
+        </CustomText>
       </View>
-
     );
-  }, [isLoading, error]);
-  // !isLoading && !error ? rows :
+  }, [isLoading, error, search, filteredRows.length]);
+
+  const listData = !isLoading && !error ? filteredRows : [];
+
   return (
     <ExternalLayout
-      title="Collection history"
+      title="Collection Requests"
       activeKey={StackNav.CollectRequestList}
       navItems={navItems}
-      onLogout={handleLogout}>
+      onLogout={handleLogout}
+      headerHideAvatar
+      headerCenterTitle
+      headerTrailing={<HeaderAddButton onPress={goToNewCollectRequest} />}>
       <View style={styles.container}>
         <FlatList
-          data={!isLoading && !error ? rows :[]}
+          style={styles.list}
+          data={listData}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
+          ListHeaderComponent={listHeader}
           ListEmptyComponent={listEmpty}
           contentContainerStyle={[screen.scroll, styles.listContent]}
           showsVerticalScrollIndicator={false}
@@ -130,27 +204,6 @@ export default function CollectRequestListScreen() {
             />
           }
         />
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.fab,
-            { bottom: fabBottom },
-            pressed && styles.fabPressed,
-          ]}
-          onPress={goToNewCollectRequest}
-          accessibilityRole="button"
-          accessibilityLabel="New request">
-          <LinearGradient
-            colors={[Colors.brandDark, Colors.brand]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.fabGradient}>
-            <Ionicons name="add" size={22} color={Colors.white} />
-            <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.fabText}>
-              New request
-            </CustomText>
-          </LinearGradient>
-        </Pressable>
       </View>
     </ExternalLayout>
   );
@@ -161,51 +214,62 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bg,
   },
-  toolbar: {
-    marginBottom: moderateScaleVertical(4),
+  list: {
+    flex: 1,
   },
   listContent: {
-    paddingBottom: moderateScaleVertical(100),
+    paddingBottom: moderateScaleVertical(88),
     flexGrow: 1,
+  },
+  addBtn: {
+    width: moderateScale(50),
+    height: moderateScale(50),
+    borderRadius: moderateScale(50),
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(10),
+    backgroundColor: Colors.white,
+    borderRadius: moderateScale(14),
+    borderWidth: 1,
+    borderColor: Colors.line,
+    paddingHorizontal: moderateScale(14),
+    minHeight: moderateScaleVertical(48),
+    marginBottom: moderateScaleVertical(16),
+  },
+  searchRowFocused: {
+    borderColor: Colors.brand,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: RFValue(13),
+    color: Colors.black,
+    fontFamily: Fonts.montserrat.regular,
+    paddingVertical: moderateScaleVertical(10),
   },
   emptyWrap: {
     alignItems: 'center',
-    paddingVertical: moderateScaleVertical(24),
-    gap: moderateScaleVertical(12),
+    paddingVertical: moderateScaleVertical(48),
+    paddingHorizontal: moderateScale(16),
+  },
+  emptyLink: {
+    color: Colors.drawerGradientEnd,
+    fontSize: RFValue(13),
+    textDecorationLine: 'underline',
+    marginBottom: moderateScaleVertical(10),
   },
   emptySub: {
-    marginTop: moderateScaleVertical(4),
+    color: Colors.muted,
+    fontSize: RFValue(12),
+    textAlign: 'center',
   },
-  emptyLinkWrap: {
-    alignItems: 'center',
-    paddingBottom: moderateScaleVertical(20),
-  },
-  btnPressed: { opacity: 0.88 },
-  fab: {
-    position: 'absolute',
-    right: moderateScale(16),
-    borderRadius: 999,
-    overflow: 'hidden',
-    shadowColor: Colors.brandDark,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
-    maxWidth: '72%',
-  },
-  fabGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: moderateScale(6),
-    paddingVertical: moderateScaleVertical(14),
-    paddingHorizontal: moderateScale(18),
-  },
-  fabText: {
-    color: Colors.white,
-    flexShrink: 1,
-  },
-  fabPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.97 }],
+  errorText: {
+    color: Colors.error,
+    fontSize: RFValue(12),
+    textAlign: 'center',
   },
 });

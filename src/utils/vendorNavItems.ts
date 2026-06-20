@@ -6,12 +6,13 @@ import type {ExternalVendorUser} from '@/types/vendor';
 import {navigateToTab, push, resetAndNavigate} from '@/utils/NavigationUtils';
 import {isPrimaryVendor} from '@/utils/vendorUser';
 
-type NavItem = {
+export type NavItem = {
   key: string;
   label: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
-  onPress: () => void;
+  onPress?: () => void;
   primaryOnly?: boolean;
+  disabled?: boolean;
 };
 
 export function buildVendorNavItems(
@@ -24,14 +25,14 @@ export function buildVendorNavItems(
   const items: NavItem[] = [
     {
       key: TabNav.Home,
-      label: 'Home',
-      icon: 'home-outline',
+      label: 'Dashboard',
+      icon: 'grid-outline',
       onPress: () => resetAndNavigate(StackNav.Main, 0),
     },
     {
       key: TabNav.Services,
       label: 'Our Services',
-      icon: 'grid-outline',
+      icon: 'sunny-outline',
       onPress: () => {
         resetAndNavigate(StackNav.Main, 0);
         navigateToTab(TabNav.Services);
@@ -48,42 +49,36 @@ export function buildVendorNavItems(
     },
     {
       key: TabNav.Collect,
-      label: 'Collection Request',
-      icon: 'cube-outline',
+      label: 'Collection requests',
+      icon: 'list-circle-outline',
       onPress: () => {
         resetAndNavigate(StackNav.Main, 0);
         navigateToTab(TabNav.Collect);
       },
     },
     {
-      key: StackNav.CollectRequestList,
-      label: 'Collection History',
-      icon: 'list-outline',
-      onPress: () => push(StackNav.CollectRequestList),
+      key: StackNav.PaymentDetails,
+      label: 'Payment Details',
+      icon: 'wallet-outline',
+      onPress: () => push(StackNav.PaymentDetails),
+      primaryOnly: true,
     },
     {
       key: StackNav.MyCertificates,
-      label: 'My Certificates',
+      label: 'Certificates',
       icon: 'ribbon-outline',
       onPress: () => push(StackNav.MyCertificates),
     },
     {
       key: StackNav.MyRewards,
       label: 'Scratch & Win',
-      icon: 'gift-outline',
+      icon: 'star-outline',
       onPress: () => push(StackNav.MyRewards),
-    },
-    {
-      key: StackNav.PaymentDetails,
-      label: 'Payment Details',
-      icon: 'card-outline',
-      onPress: () => push(StackNav.PaymentDetails),
-      primaryOnly: true,
     },
     {
       key: StackNav.Agreement,
       label: 'Agreement',
-      icon: 'document-outline',
+      icon: 'document-attach-outline',
       onPress: () => push(StackNav.Agreement),
       primaryOnly: true,
     },

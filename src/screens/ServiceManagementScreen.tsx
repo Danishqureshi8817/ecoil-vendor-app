@@ -1,18 +1,20 @@
 import CustomText from '@/components/global/CustomText';
 import {PartnerCard} from '@/components/partners/PartnerCard';
 import {ServiceDynamicForm} from '@/components/ServiceDynamicForm';
+import {ServiceStepNav} from '@/components/service/ServiceStepNav';
 import type {ServiceStep} from '@/components/service/ServiceStepNav';
+import {getHomeServiceIcon} from '@/utils/homeServiceIconMap';
 import {EmptyState} from '@/components/ui/EmptyState';
 import {ErrorBanner} from '@/components/ui/ErrorBanner';
 import {
   getPublicApiError,
   isServiceFormAvailable,
-  serviceAvatarColor,
   type PublicService,
   type PublicSupplierDirectoryRow,
   type ServiceFormPayload,
 } from '@/api/publicApi';
 import publicService from '@/services/public-service';
+import {useServiceNavigationStore} from '@/states/serviceNavigationStore';
 import {useAuthStore} from '@/states/authStore';
 import {useServiceFlowHeaderStore} from '@/states/serviceFlowHeaderStore';
 import {TabNav} from '@/navigations/NavigationKeys';
@@ -25,7 +27,7 @@ import {useToastMessage} from '@/utils/useToastMessage';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {useFocusEffect} from '@react-navigation/native';
-import React, {useCallback, useLayoutEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -36,16 +38,88 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
+import {RFValue} from 'react-native-responsive-fontsize';
 import {externalUi} from '@/styles/externalUi';
 import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import LinearGradient from 'react-native-linear-gradient';
 
-function ServiceListItem({
+const REQUEST_DETAILS_TITLE = 'Request Details';
+
+function PartnersEmptyState({
+  serviceName,
+  city,
+}: {
+  serviceName: string;
+  city: string;
+}) {
+  return (
+    <View style={styles.partnersEmpty}>
+      <View style={styles.partnersEmptyIcon}>
+        <Ionicons name="location" size={moderateScale(28)} color={Colors.accent} />
+      </View>
+      <CustomText
+        variant="h6"
+        fontFamily={Fonts.montserrat.bold}
+        style={styles.partnersEmptyTitle}>
+        No local partners yet
+      </CustomText>
+      <CustomText
+        variant="h7"
+        fontFamily={Fonts.montserrat.regular}
+        style={styles.partnersEmptySub}>
+        {`We could not find partners for ${serviceName} in ${city}. You can still apply through Ecoil above.`}
+      </CustomText>
+    </View>
+  );
+}
+
+function OfficialEcoilCard({
+  loading,
+  onApply,
+}: {
+  loading: boolean;
+  onApply: () => void;
+}) {
+  return (
+    <View style={styles.officialCard}>
+      <LinearGradient
+        colors={['#FFF8F3', 'rgba(255,255,255,0)']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={styles.officialCardGlow}
+      />
+      <CustomText variant="h7" fontFamily={Fonts.montserrat.bold} style={styles.officialLabel}>
+        OFFICIAL
+      </CustomText>
+      <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} style={styles.officialTitle}>
+        Apply through Ecoil
+      </CustomText>
+      <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.officialSub}>
+        Submit your application with Ecoil support & tracking
+      </CustomText>
+      <View style={styles.officialActions}>
+        <Pressable
+          style={({pressed}) => [
+            styles.applyBtnGreen,
+            pressed && styles.pressed,
+            loading && styles.serviceDisabled,
+          ]}
+          disabled={loading}
+          onPress={onApply}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.applyText}>
+            {loading ? '…' : 'Apply'}
+          </CustomText>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function ServiceGridTile({
   service,
   loading,
   onPress,
@@ -54,42 +128,73 @@ function ServiceListItem({
   loading: boolean;
   onPress: () => void;
 }) {
-  const letter = (service.name.trim()[0] || 'S').toUpperCase();
+  const Icon = getHomeServiceIcon(service.name);
 
   return (
     <Pressable
       style={({pressed}) => [
-        serviceUi.serviceCard,
-        pressed && serviceUi.serviceCardPressed,
+        styles.gridTile,
+        pressed && styles.pressed,
         loading && styles.serviceDisabled,
       ]}
       onPress={onPress}
       disabled={loading}>
-      <View
-        style={[
-          serviceUi.serviceAvatar,
-          {backgroundColor: serviceAvatarColor(service.name)},
-        ]}>
-        <CustomText variant="h5" fontFamily={Fonts.inter.bold} style={{color: Colors.white}}>
-          {letter}
-        </CustomText>
-      </View>
-      <View style={styles.serviceBody}>
-        <CustomText variant="h6" fontFamily={Fonts.inter.bold} numberOfLine={1}>
-          {service.name}
-        </CustomText>
-        <CustomText variant="h7" style={serviceUi.serviceMeta}>
-          View local partners
-        </CustomText>
-      </View>
-      <View style={serviceUi.serviceChevron}>
-        {loading ? (
-          <ActivityIndicator size="small" color={Colors.brand} />
-        ) : (
-          <Ionicons name="chevron-forward" size={18} color={Colors.brand} />
-        )}
-      </View>
+      {loading ? (
+        <ActivityIndicator size="small" color={Colors.brand} style={styles.gridIconLoader} />
+      ) : Icon ? (
+        <Icon width={moderateScale(52)} height={moderateScale(56)} />
+      ) : (
+        <View style={styles.gridEmptyIcon}>
+          <Ionicons name="ellipse-outline" size={moderateScale(34)} color={Colors.line} />
+        </View>
+      )}
+      <CustomText
+        variant="h7"
+        fontFamily={Fonts.montserrat.semiBold}
+        style={styles.gridTileLabel}
+        numberOfLine={3}>
+        {service.name}
+      </CustomText>
     </Pressable>
+  );
+}
+
+function ServicesListHeader({
+  count,
+  isLoading,
+  onRefresh,
+  isRefreshing,
+}: {
+  count: number;
+  isLoading: boolean;
+  onRefresh: () => void;
+  isRefreshing: boolean;
+}) {
+  return (
+    <View>
+      <ServiceStepNav step="list" />
+      <View style={styles.listHeadRow}>
+        <View style={styles.listHeadCopy}>
+          <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.listHeadTitle}>
+            Our services
+          </CustomText>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.listHeadSub}>
+            {isLoading ? 'Loading services…' : `${count} service${count === 1 ? '' : 's'} available`}
+          </CustomText>
+        </View>
+        <Pressable
+          style={({pressed}) => [serviceUi.refreshBtn, pressed && styles.pressed]}
+          onPress={onRefresh}
+          disabled={isRefreshing || isLoading}>
+          <CustomText
+            variant="h7"
+            fontFamily={Fonts.montserrat.semiBold}
+            style={styles.refreshBtnText}>
+            Refresh
+          </CustomText>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -99,8 +204,6 @@ export default function ServiceManagementScreen() {
   const vendorCity = useMemo(() => vendorUserCity(user), [user]);
   const {toastSuccess} = useToastMessage();
   const [step, setStep] = useState<ServiceStep>('list');
-  const [search, setSearch] = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
   const [selected, setSelected] = useState<PublicService | null>(null);
   const [suppliers, setSuppliers] = useState<PublicSupplierDirectoryRow[]>([]);
   const [suppliersLoading, setSuppliersLoading] = useState(false);
@@ -115,17 +218,13 @@ export default function ServiceManagementScreen() {
     queryFn: () => publicService.getServices(),
   });
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) {
-      return services;
-    }
-    return services.filter(s => s.name.toLowerCase().includes(q));
-  }, [services, search]);
+  const pendingServiceId = useServiceNavigationStore(s => s.pendingServiceId);
+  const clearPendingService = useServiceNavigationStore(s => s.clearPendingService);
+
+  const listData = !isLoading ? services : [];
+  const isEmptyList = listData.length === 0;
 
   const {height: windowHeight} = useWindowDimensions();
-  const listData = !isLoading ? filtered : [];
-  const isEmptyList = listData.length === 0;
 
   const loadingServiceName = useMemo(() => {
     if (!formLoadingId) {
@@ -139,15 +238,23 @@ export default function ServiceManagementScreen() {
     moderateScaleVertical(280),
   );
 
-  const supplierCountLabel = suppliersLoading
-    ? 'Loading suppliers…'
-    : !vendorCity
-      ? 'Add city in your profile to see local partners'
-      : suppliers.length === 0
-        ? ``
-        : `${suppliers.length} Partner${suppliers.length > 1 ? 's' : ''}`;
+  const partnersStatusMessage = useMemo(() => {
+    if (suppliersLoading) {
+      return 'Loading partners…';
+    }
+    if (!vendorCity) {
+      return 'Add city in your profile to see local partners';
+    }
+    if (suppliers.length === 0) {
+      return `No partners in ${vendorCity} for this service yet`;
+    }
+    return `${suppliers.length} partner${suppliers.length > 1 ? 's' : ''} in ${vendorCity}`;
+  }, [suppliersLoading, vendorCity, suppliers.length]);
 
-  async function loadSuppliersForService(service: PublicService) {
+  const selectService = useCallback(async (service: PublicService) => {
+    setSelected(service);
+    setForm(null);
+    setStep('suppliers');
     setSuppliersLoading(true);
     setError('');
     try {
@@ -159,14 +266,18 @@ export default function ServiceManagementScreen() {
     } finally {
       setSuppliersLoading(false);
     }
-  }
+  }, [vendorCity]);
 
-  async function selectService(service: PublicService) {
-    setSelected(service);
-    setForm(null);
-    setStep('suppliers');
-    await loadSuppliersForService(service);
-  }
+  useEffect(() => {
+    if (!pendingServiceId || isLoading || services.length === 0) {
+      return;
+    }
+    const service = services.find(s => s.id === pendingServiceId);
+    clearPendingService();
+    if (service) {
+      void selectService(service);
+    }
+  }, [pendingServiceId, isLoading, services, clearPendingService, selectService]);
 
   async function openEcoilForm() {
     if (!selected) {
@@ -223,9 +334,9 @@ export default function ServiceManagementScreen() {
 
   useLayoutEffect(() => {
     if (step === 'suppliers' && selected) {
-      setServiceHeader(selected.name, backToServices);
+      setServiceHeader(REQUEST_DETAILS_TITLE, backToServices);
     } else if (step === 'form' && selected) {
-      setServiceHeader(selected.name, backToSuppliers);
+      setServiceHeader(REQUEST_DETAILS_TITLE, backToSuppliers);
     } else {
       clearServiceHeader();
     }
@@ -274,54 +385,37 @@ export default function ServiceManagementScreen() {
 
   const renderItem: ListRenderItem<PublicService> = useCallback(
     ({item}) => (
-      <ServiceListItem
-        service={item}
-        loading={suppliersLoading && selected?.id === item.id}
-        onPress={() => void selectService(item)}
-      />
+      <View style={styles.gridCell}>
+        <ServiceGridTile
+          service={item}
+          loading={suppliersLoading && selected?.id === item.id}
+          onPress={() => void selectService(item)}
+        />
+      </View>
     ),
-    [suppliersLoading, selected?.id],
-  );
-
-  const ItemSeparator = useCallback(
-    () => <View style={styles.itemSeparator} />,
-    [],
+    [suppliersLoading, selected?.id, selectService],
   );
 
   const listHeader = useCallback(
     () => (
       <View>
         {error ? <ErrorBanner message={error} /> : null}
-        <View
-          style={[serviceUi.searchRow, searchFocused && serviceUi.searchRowFocused]}>
-          <Ionicons
-            name="search-outline"
-            size={20}
-            color={searchFocused ? Colors.brand : Colors.muted}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={serviceUi.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-            placeholder="Search services…"
-            placeholderTextColor={Colors.placeHolderColor}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
-        {isLoading && (
-          <View style={styles.skeletonList}>
-            <View style={styles.skeleton} />
-            <View style={styles.skeleton} />
-            <View style={styles.skeleton} />
+        <ServicesListHeader
+          count={services.length}
+          isLoading={isLoading}
+          onRefresh={() => void refetch()}
+          isRefreshing={isRefetching}
+        />
+        {isLoading ? (
+          <View style={styles.skeletonGrid}>
+            {[0, 1, 2, 3].map(i => (
+              <View key={i} style={styles.skeletonTileHalf} />
+            ))}
           </View>
-        )}
+        ) : null}
       </View>
     ),
-    [error, search, searchFocused, isLoading],
+    [error, services.length, isLoading, isRefetching, refetch],
   );
 
   const listEmpty = useCallback(() => {
@@ -331,9 +425,9 @@ export default function ServiceManagementScreen() {
     return (
       <View style={[styles.emptyFill, {minHeight: emptyAreaMinHeight}]}>
         <EmptyState
-          icon="search-outline"
-          title="No services found"
-          subtitle="Try a different search or pull down to refresh"
+          icon="grid-outline"
+          title="No services available"
+          subtitle="Pull down to refresh or tap Refresh"
         />
       </View>
     );
@@ -346,6 +440,7 @@ export default function ServiceManagementScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled">
         {error ? <ErrorBanner message={error} /> : null}
+        <ServiceStepNav step="form" />
         <ServiceDynamicForm
           form={form}
           user={user}
@@ -359,56 +454,43 @@ export default function ServiceManagementScreen() {
   if (step === 'suppliers' && selected) {
     return (
       <ScrollView
-        contentContainerStyle={screen.scroll}
+        style={screen.pageBg}
+        contentContainerStyle={[screen.scroll, styles.partnersScroll]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled">
         {error ? <ErrorBanner message={error} /> : null}
+        <ServiceStepNav step="suppliers" />
 
-        <View style={styles.hero}>
+        <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.sectionEyebrow}>
+          SERVICE PARTNERS
+        </CustomText>
+
+        <View style={styles.serviceHeadRow}>
+          <CustomText
+            variant="h5"
+            fontFamily={Fonts.montserrat.bold}
+            style={styles.serviceHeadTitle}
+            numberOfLine={2}>
+            {selected.name}
+          </CustomText>
           {vendorCity ? (
             <View style={styles.cityPill}>
-              <Ionicons name="location-outline" size={14} color={Colors.accent} />
-              <CustomText variant="h7" fontFamily={Fonts.inter.bold}>
+              <Ionicons name="location" size={moderateScale(14)} color={Colors.accent} />
+              <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.cityPillText}>
                 {vendorCity}
               </CustomText>
             </View>
-          ) : (
-            <View />
-          )}
-          <CustomText variant="h7" style={styles.heroCount} numberOfLine={2}>
-            {supplierCountLabel}
-          </CustomText>
+          ) : null}
         </View>
 
-        <View style={styles.ecoilBanner}>
-          <View style={styles.ecoilCopy}>
-            <View style={styles.officialTag}>
-              <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.officialText}>
-                OFFICIAL
-              </CustomText>
-            </View>
-            <CustomText variant="h6" fontFamily={Fonts.inter.bold}>
-              Apply through Ecoil
-            </CustomText>
-            <CustomText variant="h7" style={styles.muted}>
-              Submit your application with Ecoil support & tracking
-            </CustomText>
-          </View>
-          <Pressable
-            style={({pressed}) => [pressed && styles.pressed]}
-            disabled={formLoading}
-            onPress={() => void openEcoilForm()}>
-            <LinearGradient
-              colors={['#e6730f', Colors.accent]}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.applyBtn}>
-              <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.applyText}>
-                {formLoading ? '…' : 'Apply'}
-              </CustomText>
-            </LinearGradient>
-          </Pressable>
-        </View>
+        <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.partnersStatus}>
+          {partnersStatusMessage}
+        </CustomText>
+
+        <OfficialEcoilCard
+          loading={formLoading}
+          onApply={() => void openEcoilForm()}
+        />
 
         {suppliersLoading ? (
           <View style={styles.skeletonList}>
@@ -420,11 +502,11 @@ export default function ServiceManagementScreen() {
         {!suppliersLoading && suppliers.length > 0 ? (
           <>
             <View style={styles.sectionHead}>
-              <CustomText variant="h6" fontFamily={Fonts.inter.bold}>
+              <CustomText variant="h6" fontFamily={Fonts.montserrat.bold}>
                 Local partners
               </CustomText>
               <View style={styles.countBadge}>
-                <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.countText}>
+                <CustomText variant="h7" fontFamily={Fonts.montserrat.bold} style={styles.countText}>
                   {suppliers.length}
                 </CustomText>
               </View>
@@ -438,11 +520,7 @@ export default function ServiceManagementScreen() {
         ) : null}
 
         {!suppliersLoading && suppliers.length === 0 && vendorCity ? (
-          <EmptyState
-            icon="location-outline"
-            title="No local partners yet"
-            subtitle={`You can still apply through Ecoil above.`}
-          />
+          <PartnersEmptyState serviceName={selected.name} city={vendorCity} />
         ) : null}
       </ScrollView>
     );
@@ -451,11 +529,12 @@ export default function ServiceManagementScreen() {
   return (
     <>
       <FlatList
-        style={styles.list}
+        style={[styles.list, screen.pageBg]}
         data={listData}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        ItemSeparatorComponent={ItemSeparator}
+        numColumns={2}
+        columnWrapperStyle={styles.gridRow}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={listEmpty}
         contentContainerStyle={[
@@ -506,17 +585,86 @@ const styles = StyleSheet.create({
   listContent: {flexGrow: 1},
   listContentEmpty: {flexGrow: 1},
   emptyFill: {flexGrow: 1, justifyContent: 'center', alignItems: 'center'},
-  itemSeparator: {height: moderateScaleVertical(10)},
-  serviceBody: {flex: 1, minWidth: 0},
-  muted: {color: Colors.muted},
-  searchIcon: {marginRight: moderateScale(10)},
+  listHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: moderateScale(12),
+    marginBottom: moderateScaleVertical(16),
+  },
+  listHeadCopy: {flex: 1, minWidth: 0},
+  listHeadTitle: {
+    color: Colors.black,
+    fontSize: RFValue(16),
+    marginBottom: moderateScaleVertical(4),
+  },
+  listHeadSub: {
+    color: Colors.muted,
+    fontSize: RFValue(11),
+  },
+  refreshBtnText: {
+    color: Colors.black,
+    fontSize: RFValue(11),
+  },
+  gridRow: {
+    justifyContent: 'space-between',
+    marginBottom: moderateScaleVertical(12),
+  },
+  gridCell: {
+    width: '48%',
+  },
+  gridTile: {
+    backgroundColor: Colors.white,
+    borderRadius: moderateScale(16),
+    paddingVertical: moderateScaleVertical(18),
+    paddingHorizontal: moderateScale(10),
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: moderateScaleVertical(148),
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  gridTileLabel: {
+    color: Colors.black,
+    fontSize: RFValue(11),
+    textAlign: 'center',
+    marginTop: moderateScaleVertical(12),
+    lineHeight: RFValue(15),
+  },
+  gridEmptyIcon: {
+    width: moderateScale(52),
+    height: moderateScale(56),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridIconLoader: {
+    height: moderateScaleVertical(56),
+  },
+  skeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: moderateScaleVertical(12),
+    marginBottom: moderateScaleVertical(12),
+  },
+  skeletonTileHalf: {
+    width: '48%',
+    minHeight: moderateScaleVertical(148),
+    borderRadius: moderateScale(16),
+    backgroundColor: Colors.line,
+    opacity: 0.55,
+  },
   serviceDisabled: {opacity: 0.65},
+  muted: {color: Colors.muted},
   skeletonList: {gap: moderateScaleVertical(10), marginBottom: moderateScaleVertical(12)},
   skeleton: {
-    height: moderateScaleVertical(76),
-    borderRadius: moderateScale(14),
+    height: moderateScaleVertical(148),
+    borderRadius: moderateScale(16),
     backgroundColor: Colors.line,
-    opacity: 0.6,
+    opacity: 0.55,
   },
   loadingModalCard: {
     backgroundColor: Colors.white,
@@ -529,57 +677,121 @@ const styles = StyleSheet.create({
     gap: moderateScaleVertical(10),
   },
   loadingModalTitle: {color: Colors.black, textAlign: 'center'},
-  hero: {
+  partnersScroll: {
+    flexGrow: 1,
+  },
+  sectionEyebrow: {
+    color: Colors.muted,
+    fontSize: RFValue(8),
+    letterSpacing: 1.1,
+    // marginBottom: moderateScaleVertical(8),
+  },
+  serviceHeadRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: moderateScale(12),
-    marginBottom: moderateScaleVertical(14),
+    marginBottom: moderateScaleVertical(8),
+  },
+  serviceHeadTitle: {
+    flex: 1,
+    color: Colors.black,
+    fontSize: RFValue(16),
+    lineHeight: RFValue(24),
   },
   cityPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: moderateScale(4),
     flexShrink: 0,
     paddingHorizontal: moderateScale(12),
-    paddingVertical: moderateScaleVertical(6),
+    paddingVertical: moderateScaleVertical(7),
     borderRadius: 999,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.line,
   },
-  heroCount: {
-    flex: 1,
+  cityPillText: {
+    color: Colors.black,
+    fontSize: RFValue(11),
+  },
+  partnersStatus: {
     color: Colors.muted,
-    textAlign: 'right',
+    fontSize: RFValue(12),
+    marginBottom: moderateScaleVertical(18),
   },
-  ecoilBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: moderateScale(12),
-    padding: moderateScale(16),
+  officialCard: {
+    backgroundColor: '#FFFBF5',
     borderRadius: moderateScale(20),
-    backgroundColor: Colors.accentSoft,
+    padding: moderateScale(18),
+    marginBottom: moderateScaleVertical(24),
     borderWidth: 1,
-    borderColor: 'rgba(252,128,25,0.28)',
-    marginBottom: moderateScaleVertical(16),
+    borderColor: 'rgba(252,128,25,0.16)',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  ecoilCopy: {flex: 1, minWidth: 0},
-  officialTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.accent,
-    paddingHorizontal: moderateScale(8),
-    paddingVertical: moderateScaleVertical(3),
-    borderRadius: moderateScale(6),
+  officialCardGlow: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: moderateScale(20),
+  },
+  officialLabel: {
+    color: Colors.accent,
+    fontSize: RFValue(10),
+    letterSpacing: 0.8,
+    marginBottom: moderateScaleVertical(8),
+  },
+  officialTitle: {
+    color: Colors.black,
+    fontSize: RFValue(15),
     marginBottom: moderateScaleVertical(6),
   },
-  officialText: {color: Colors.white, fontSize: moderateScale(10)},
-  applyBtn: {
-    paddingVertical: moderateScaleVertical(12),
-    paddingHorizontal: moderateScale(18),
-    borderRadius: moderateScale(14),
+  officialSub: {
+    color: Colors.muted,
+    fontSize: RFValue(12),
+    lineHeight: RFValue(18),
+    marginBottom: moderateScaleVertical(14),
   },
-  applyText: {color: Colors.white},
+  officialActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  applyBtnGreen: {
+    paddingVertical: moderateScaleVertical(11),
+    paddingHorizontal: moderateScale(28),
+    borderRadius: 999,
+    backgroundColor: Colors.buttonPrimary,
+  },
+  applyText: {color: Colors.white, fontSize: RFValue(12)},
+  partnersEmpty: {
+    alignItems: 'center',
+    paddingVertical: moderateScaleVertical(36),
+    paddingHorizontal: moderateScale(12),
+  },
+  partnersEmptyIcon: {
+    width: moderateScale(72),
+    height: moderateScale(72),
+    borderRadius: moderateScale(36),
+    backgroundColor: '#FDF6E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: moderateScaleVertical(16),
+  },
+  partnersEmptyTitle: {
+    color: Colors.black,
+    fontSize: RFValue(15),
+    textAlign: 'center',
+    marginBottom: moderateScaleVertical(10),
+  },
+  partnersEmptySub: {
+    color: Colors.muted,
+    fontSize: RFValue(12),
+    lineHeight: RFValue(18),
+    textAlign: 'center',
+  },
   pressed: {opacity: 0.92, transform: [{scale: 0.97}]},
   sectionHead: {
     flexDirection: 'row',
@@ -596,6 +808,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: moderateScale(7),
   },
-  countText: {color: Colors.brandDark, fontSize: moderateScale(12)},
+  countText: {color: Colors.brandDark, fontSize: RFValue(11)},
   partnerGap: {marginBottom: moderateScaleVertical(14)},
 });

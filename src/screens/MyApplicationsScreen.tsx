@@ -1,7 +1,6 @@
 import CustomText from '@/components/global/CustomText';
 import {ApplicationDetailModal} from '@/components/external/ApplicationDetailModal';
 import {SecondaryButton} from '@/components/external/SecondaryButton';
-import {EmptyState} from '@/components/ui/EmptyState';
 import type {VendorApplicationDetail, VendorApplicationRow} from '@/api/publicApi';
 import publicService from '@/services/public-service';
 import {useAuthStore} from '@/states/authStore';
@@ -9,11 +8,11 @@ import {TabNav} from '@/navigations/NavigationKeys';
 import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import {externalUi} from '@/styles/externalUi';
+import {serviceUi} from '@/styles/serviceUi';
 import {screen} from '@/styles/ui';
 import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
 import {navigateToTab} from '@/utils/NavigationUtils';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import Ionicons from '@react-native-vector-icons/ionicons';
 import {useQuery} from '@tanstack/react-query';
 import React, {useCallback, useMemo, useState} from 'react';
 import {
@@ -25,8 +24,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {RFValue} from 'react-native-responsive-fontsize';
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -42,7 +40,60 @@ function formatDate(iso: string) {
   });
 }
 
-const TAB_BAR_HEIGHT = moderateScaleVertical(56);
+function RequestsActionCard({
+  isLoading,
+  isRefreshing,
+  onRefresh,
+  onNewRequest,
+}: {
+  isLoading: boolean;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  onNewRequest: () => void;
+}) {
+  return (
+    <View style={styles.actionCard}>
+      <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.actionTitle}>
+        My service requests
+      </CustomText>
+      <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.actionSub}>
+        Applications you have submitted for our services.
+      </CustomText>
+      <View style={styles.actionBtnRow}>
+        <Pressable
+          style={({pressed}) => [serviceUi.refreshBtn, pressed && styles.pressed]}
+          onPress={onRefresh}
+          disabled={isRefreshing || isLoading}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.refreshText}>
+            Refresh
+          </CustomText>
+        </Pressable>
+        <Pressable
+          style={({pressed}) => [styles.newRequestBtn, pressed && styles.pressed]}
+          onPress={onNewRequest}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.newRequestText}>
+            + New service request
+          </CustomText>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function RequestsEmptyState({onBrowseServices}: {onBrowseServices: () => void}) {
+  return (
+    <View style={styles.emptyWrap}>
+      <Pressable onPress={onBrowseServices} style={({pressed}) => pressed && styles.pressed}>
+        <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.browseLink}>
+          Browse our services
+        </CustomText>
+      </Pressable>
+      <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.emptyMessage}>
+        You have not submitted any applications yet.
+      </CustomText>
+    </View>
+  );
+}
 
 function ApplicationListCard({
   row,
@@ -56,7 +107,7 @@ function ApplicationListCard({
       <View style={externalUi.listCardHead}>
         <CustomText
           variant="h6"
-          fontFamily={Fonts.inter.bold}
+          fontFamily={Fonts.montserrat.bold}
           style={externalUi.listCardTitle}
           numberOfLine={2}>
           {row.serviceName}
@@ -93,7 +144,6 @@ function ApplicationListCard({
 }
 
 export default function MyApplicationsScreen() {
-  const insets = useSafeAreaInsets();
   const user = useAuthStore(s => s.user);
   const mobile = user?.mobile?.trim() ?? '';
   const [detailOpen, setDetailOpen] = useState(false);
@@ -106,18 +156,12 @@ export default function MyApplicationsScreen() {
     enabled: mobile.length > 0,
   });
 
-  const fabBottom = insets.bottom  + moderateScaleVertical(0);
   const listData = !isLoading && !error && mobile ? rows : [];
   const isEmptyList = listData.length === 0;
 
-  const contentContainerStyle = useMemo(
-    () => [
-      screen.scroll,
-      styles.listContent,
-      isEmptyList && styles.listContentEmpty,
-    ],
-    [isEmptyList],
-  );
+  const goToServices = useCallback(() => {
+    navigateToTab(TabNav.Services);
+  }, []);
 
   async function openDetail(row: VendorApplicationRow) {
     if (!mobile) {
@@ -146,16 +190,28 @@ export default function MyApplicationsScreen() {
 
   const renderItem: ListRenderItem<VendorApplicationRow> = useCallback(
     ({item}) => (
-      <ApplicationListCard row={item} onViewDetails={() => openDetail(item)} />
+      <ApplicationListCard row={item} onViewDetails={() => void openDetail(item)} />
     ),
     [mobile],
+  );
+
+  const listHeader = useCallback(
+    () => (
+      <RequestsActionCard
+        isLoading={isLoading}
+        isRefreshing={isRefetching}
+        onRefresh={() => void refetch()}
+        onNewRequest={goToServices}
+      />
+    ),
+    [isLoading, isRefetching, refetch, goToServices],
   );
 
   const listEmpty = useCallback(() => {
     if (!mobile) {
       return (
-        <View style={externalUi.card}>
-          <CustomText variant="h7" style={externalUi.alertErrorText}>
+        <View style={styles.emptyWrap}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.emptyMessage}>
             Mobile number missing on your profile. Please sign in again.
           </CustomText>
         </View>
@@ -163,9 +219,9 @@ export default function MyApplicationsScreen() {
     }
     if (isLoading) {
       return (
-        <View style={styles.emptyInner}>
+        <View style={styles.emptyWrap}>
           <ActivityIndicator size="large" color={Colors.brand} />
-          <CustomText variant="h7" style={[externalUi.muted, styles.emptySub]}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.emptyMessage}>
             Loading…
           </CustomText>
         </View>
@@ -173,35 +229,36 @@ export default function MyApplicationsScreen() {
     }
     if (error) {
       return (
-        <View style={externalUi.alertError}>
-          <CustomText variant="h7" style={externalUi.alertErrorText}>
+        <View style={styles.emptyWrap}>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.errorText}>
             {getApiErrorMessage(error, 'Could not load your applications')}
           </CustomText>
         </View>
       );
     }
-    return (
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-        <EmptyState
-          icon="alert-circle-outline"
-          title="Oops!"
-          subtitle="You have not submitted any applications yet."
-        />
-      </View>
-    );
-  }, [mobile, isLoading, error]);
+    return <RequestsEmptyState onBrowseServices={goToServices} />;
+  }, [mobile, isLoading, error, goToServices]);
+
+  const contentContainerStyle = useMemo(
+    () => [
+      screen.scroll,
+      styles.listContent,
+      isEmptyList && !isLoading && styles.listContentEmpty,
+    ],
+    [isEmptyList, isLoading],
+  );
 
   return (
     <View style={styles.container}>
       <FlatList
-        style={styles.list}
+        style={[styles.list, screen.pageBg]}
         data={listData}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
+        ListHeaderComponent={listHeader}
         ListEmptyComponent={listEmpty}
         contentContainerStyle={contentContainerStyle}
         showsVerticalScrollIndicator={false}
-        nestedScrollEnabled
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -211,23 +268,6 @@ export default function MyApplicationsScreen() {
           />
         }
       />
-
-      <Pressable
-        style={({pressed}) => [styles.fab, {bottom: fabBottom}, pressed && styles.fabPressed]}
-        onPress={() => navigateToTab(TabNav.Services)}
-        accessibilityRole="button"
-        accessibilityLabel="New service request">
-        <LinearGradient
-          colors={[Colors.brandDark, Colors.brand]}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={styles.fabGradient}>
-          <Ionicons name="add" size={22} color={Colors.white} />
-          <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.fabText}>
-            Service request
-          </CustomText>
-        </LinearGradient>
-      </Pressable>
 
       <ApplicationDetailModal
         visible={detailOpen}
@@ -248,53 +288,84 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: moderateScaleVertical(140),
+    paddingBottom: moderateScaleVertical(88),
     flexGrow: 1,
   },
-  /** Only when empty — fills space so ListEmpty centers vertically */
   listContentEmpty: {
-    // flexGrow: 1,
+    flexGrow: 1,
+  },
+  actionCard: {
+    backgroundColor: Colors.white,
+    borderRadius: moderateScale(20),
+    padding: moderateScale(18),
+    marginBottom: moderateScaleVertical(20),
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  actionTitle: {
+    color: Colors.black,
+    fontSize: RFValue(16),
+    marginBottom: moderateScaleVertical(6),
+  },
+  actionSub: {
+    color: Colors.muted,
+    fontSize: RFValue(12),
+    lineHeight: RFValue(18),
+    marginBottom: moderateScaleVertical(16),
+  },
+  actionBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(10),
+  },
+  refreshText: {
+    color: Colors.black,
+    fontSize: RFValue(11),
+  },
+  newRequestBtn: {
+    flex: 1,
+    paddingVertical: moderateScaleVertical(11),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: 999,
+    backgroundColor: Colors.buttonPrimary,
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  newRequestText: {
+    color: Colors.white,
+    fontSize: RFValue(11),
+    textAlign: 'center',
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    paddingTop: moderateScaleVertical(48),
+    paddingHorizontal: moderateScale(16),
+  },
+  browseLink: {
+    color: Colors.drawerGradientEnd,
+    fontSize: RFValue(13),
+    textDecorationLine: 'underline',
+    marginBottom: moderateScaleVertical(10),
+  },
+  emptyMessage: {
+    color: Colors.muted,
+    fontSize: RFValue(12),
+    textAlign: 'center',
+    lineHeight: RFValue(18),
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: RFValue(12),
+    textAlign: 'center',
   },
   viewDetailsWrap: {
     marginTop: moderateScaleVertical(10),
   },
-  emptyInner: {
-    alignItems: 'center',
-    paddingVertical: moderateScaleVertical(24),
-  },
-  emptySub: {
-    marginTop: moderateScaleVertical(12),
-  },
-  emptyLinkWrap: {
-    alignItems: 'center',
-    paddingBottom: moderateScaleVertical(8),
-  },
-  fab: {
-    position: 'absolute',
-    right: moderateScale(16),
-    borderRadius: 999,
-    overflow: 'hidden',
-    shadowColor: Colors.brandDark,
-    shadowOffset: {width: 0, height: 6},
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
-    maxWidth: '72%',
-  },
-  fabGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: moderateScale(6),
-    paddingVertical: moderateScaleVertical(14),
-    paddingHorizontal: moderateScale(18),
-  },
-  fabText: {
-    color: Colors.white,
-    flexShrink: 1,
-  },
-  fabPressed: {
+  pressed: {
     opacity: 0.92,
-    transform: [{scale: 0.97}],
+    transform: [{scale: 0.98}],
   },
 });
