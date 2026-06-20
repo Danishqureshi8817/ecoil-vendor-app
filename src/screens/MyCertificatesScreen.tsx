@@ -1,5 +1,9 @@
 import CustomText from '@/components/global/CustomText';
-import {CertificateRowCard} from '@/components/external/CertificateRowCard';
+import {
+  CertificateRowCard,
+  CertificateTableHeader,
+  TABLE_MIN_WIDTH,
+} from '@/components/external/CertificateRowCard';
 import {EmptyState} from '@/components/ui/EmptyState';
 import type {CertificateRow} from '@/api/certificatesApi';
 import {Colors} from '@/constants/colors';
@@ -8,27 +12,30 @@ import useCertificates from '@/hooks/vendor/use-certificates';
 import {ExternalLayout} from '@/layouts/ExternalLayout';
 import {StackNav} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
-import {externalUi} from '@/styles/externalUi';
-import {screen} from '@/styles/ui';
 import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
 import {clearSession} from '@/utils/sessionStorage';
 import {buildVendorNavItems} from '@/utils/vendorNavItems';
 import {resetAndNavigate} from '@/utils/NavigationUtils';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import React, {useCallback} from 'react';
+import React, {useCallback, useRef} from 'react';
 import {
   ActivityIndicator,
   FlatList,
   ListRenderItem,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+import {RFValue} from 'react-native-responsive-fontsize';
 
 export default function MyCertificatesScreen() {
   const user = useAuthStore(s => s.user);
   const {data, isLoading, refetch, isRefetching, error} = useCertificates();
   const rows = data ?? [];
+  const headerScrollRef = useRef<ScrollView>(null);
 
   function handleLogout() {
     clearSession();
@@ -37,6 +44,14 @@ export default function MyCertificatesScreen() {
   }
 
   const navItems = buildVendorNavItems(StackNav.MyCertificates, user);
+
+  const handleBodyHorizontalScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const x = event.nativeEvent.contentOffset.x;
+      headerScrollRef.current?.scrollTo({x, animated: false});
+    },
+    [],
+  );
 
   const keyExtractor = useCallback(
     (item: CertificateRow) => item.year_month_no || item.month_year,
@@ -48,101 +63,143 @@ export default function MyCertificatesScreen() {
     [],
   );
 
-  const listEmpty = useCallback(() => {
-    if (isLoading) {
-      return (
-        <View style={styles.emptyBody}>
-          <ActivityIndicator size="large" color={Colors.brand} />
-          <CustomText variant="h7" style={[externalUi.muted, styles.emptySub]}>
-            Loading certificates…
-          </CustomText>
-        </View>
-      );
-    }
-    if (error) {
-      return (
-        <View style={styles.emptyBody}>
-          <View style={externalUi.alertError}>
-            <CustomText variant="h7" style={externalUi.alertErrorText}>
-              {getApiErrorMessage(error, 'Could not load certificates')}
-            </CustomText>
-          </View>
-        </View>
-      );
-    }
-    return (
-      <View style={styles.emptyBody}>
-        <EmptyState
-          icon="ribbon-outline"
-          title="No certificates"
-          subtitle="Certificates will appear here when available."
-        />
-      </View>
-    );
-  }, [isLoading, error]);
-
-  const isEmpty = !isLoading && !error && rows.length === 0;
-  const showListHeader = !(isLoading || isEmpty || error);
+  const showTable = !isLoading && !error && rows.length > 0;
 
   return (
     <ExternalLayout
-      title="My Certificates"
+      title="Certificates"
       activeKey={StackNav.MyCertificates}
       navItems={navItems}
-      onLogout={handleLogout}>
-      <FlatList
-        style={styles.list}
-        data={rows}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        ListHeaderComponent={
-          showListHeader ? (
-            <View style={styles.header}>
-              <CustomText variant="h5" fontFamily={Fonts.inter.bold}>
-                Download Certificates
-              </CustomText>
-              <CustomText variant="h7" style={externalUi.muted}>
-                Each row has the certificate name and a download button
-              </CustomText>
+      onLogout={handleLogout}
+      headerHideAvatar
+      headerCenterTitle>
+      <View style={styles.container}>
+        {isLoading ? (
+          <View style={styles.emptyBody}>
+            <ActivityIndicator size="large" color={Colors.brand} />
+            <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.emptySub}>
+              Loading certificates…
+            </CustomText>
+          </View>
+        ) : null}
+
+        {!isLoading && error ? (
+          <View style={styles.emptyBody}>
+            <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.errorText}>
+              {getApiErrorMessage(error, 'Could not load certificates')}
+            </CustomText>
+          </View>
+        ) : null}
+
+        {!isLoading && !error && rows.length === 0 ? (
+          <View style={styles.emptyBody}>
+            <EmptyState
+              icon="ribbon-outline"
+              title="No certificates"
+              subtitle="Certificates will appear here when available."
+            />
+          </View>
+        ) : null}
+
+        {showTable ? (
+          <View style={styles.tableWrap}>
+            <View style={styles.tableCard}>
+              <ScrollView
+                ref={headerScrollRef}
+                horizontal
+                scrollEnabled={false}
+                showsHorizontalScrollIndicator={false}
+                style={styles.headerScroll}>
+                <CertificateTableHeader />
+              </ScrollView>
+
+              <ScrollView
+                horizontal
+                nestedScrollEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleBodyHorizontalScroll}
+                scrollEventThrottle={16}
+                style={styles.bodyScroll}
+                contentContainerStyle={styles.bodyScrollContent}>
+                <FlatList
+                  data={rows}
+                  keyExtractor={keyExtractor}
+                  renderItem={renderItem}
+                  style={styles.list}
+                  contentContainerStyle={styles.listContent}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={isRefetching}
+                      onRefresh={refetch}
+                      tintColor={Colors.brand}
+                    />
+                  }
+                />
+              </ScrollView>
             </View>
-          ) : null
-        }
-        ListEmptyComponent={listEmpty}
-        contentContainerStyle={[
-          screen.scroll,
-          styles.listContent,
-          (isLoading || isEmpty || error) && styles.emptyContent,
-        ]}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={Colors.brand}
-          />
-        }
-      />
+          </View>
+        ) : null}
+      </View>
     </ExternalLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  list: {flex: 1},
-  listContent: {
-    paddingBottom: moderateScaleVertical(24),
+  container: {
+    flex: 1,
+    backgroundColor: Colors.white,
   },
-  emptyContent: {flexGrow: 1},
+  tableWrap: {
+    flex: 1,
+    paddingHorizontal: moderateScale(12),
+    paddingTop: moderateScaleVertical(12),
+    paddingBottom: moderateScaleVertical(16),
+  },
+  tableCard: {
+    flex: 1,
+    borderRadius: moderateScale(12),
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.line,
+    backgroundColor: Colors.white,
+  },
+  headerScroll: {
+    flexGrow: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.line,
+    zIndex: 2,
+    backgroundColor: Colors.bg,
+  },
+  bodyScroll: {
+    flex: 1,
+  },
+  bodyScrollContent: {
+    flexGrow: 1,
+  },
+  list: {
+    width: TABLE_MIN_WIDTH,
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: moderateScaleVertical(8),
+  },
   emptyBody: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: moderateScale(16),
   },
-  header: {
-    marginBottom: moderateScaleVertical(14),
-    gap: moderateScaleVertical(4),
+  emptySub: {
+    marginTop: moderateScaleVertical(12),
+    color: Colors.muted,
+    fontSize: RFValue(12),
+    textAlign: 'center',
   },
-  separator: {height: moderateScaleVertical(10)},
-  emptySub: {marginTop: moderateScaleVertical(12)},
+  errorText: {
+    color: Colors.error,
+    fontSize: RFValue(12),
+    textAlign: 'center',
+  },
 });

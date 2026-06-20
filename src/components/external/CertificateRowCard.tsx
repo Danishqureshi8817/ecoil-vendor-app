@@ -2,19 +2,24 @@ import CustomText from '@/components/global/CustomText';
 import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import type {CertificateRow} from '@/api/certificatesApi';
-import {externalUi} from '@/styles/externalUi';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import React from 'react';
 import {Linking, Pressable, StyleSheet, View} from 'react-native';
+import {RFValue} from 'react-native-responsive-fontsize';
 
 type DownloadKey = 'co2_monthly_pdf_url' | 'co2_tilldate_pdf_url' | 'ruco_pdf_url';
 
-const DOWNLOADS: {key: DownloadKey; label: string}[] = [
-  {key: 'co2_monthly_pdf_url', label: 'CO2 Certificate For Month'},
+export const CERT_TABLE_COLUMNS: {key: DownloadKey; label: string}[] = [
+  {key: 'co2_monthly_pdf_url', label: 'CO2 Certificate Month'},
   {key: 'co2_tilldate_pdf_url', label: 'CO2 Certificate Till Date'},
   {key: 'ruco_pdf_url', label: 'RUCO Certificate'},
 ];
+
+export const MONTH_COL_WIDTH = moderateScale(118);
+export const CERT_COL_WIDTH = moderateScale(148);
+export const TABLE_MIN_WIDTH =
+  MONTH_COL_WIDTH + CERT_COL_WIDTH * CERT_TABLE_COLUMNS.length;
 
 async function openPdf(url: string) {
   if (!url) {
@@ -23,96 +28,189 @@ async function openPdf(url: string) {
   await Linking.openURL(url);
 }
 
-function DownloadRow({label, url}: {label: string; url: string}) {
+function CertActionButtons({url}: {url: string}) {
   const enabled = Boolean(url);
+
   return (
-    <View style={styles.certRow}>
-      <CustomText
-        variant="h7"
-        fontFamily={Fonts.inter.medium}
-        style={styles.certLabel}
-        numberOfLine={2}>
-        {label}
-      </CustomText>
+    <View style={styles.actions}>
       <Pressable
         style={({pressed}) => [
-          styles.dlBtn,
-          !enabled && styles.dlBtnDisabled,
-          pressed && enabled && styles.dlBtnPressed,
+          styles.downloadBtn,
+          !enabled && styles.btnDisabled,
+          pressed && enabled && styles.btnPressed,
         ]}
         disabled={!enabled}
         onPress={() => void openPdf(url)}
-        accessibilityLabel={`Download ${label}`}>
-        <Ionicons
-          name="download-outline"
-          size={22}
-          color={enabled ? Colors.brand : Colors.muted}
-        />
+        accessibilityLabel="Download certificate">
+        <Ionicons name="download-outline" size={moderateScale(16)} color={Colors.white} />
+        <CustomText
+          variant="h7"
+          fontFamily={Fonts.montserrat.semiBold}
+          style={styles.downloadText}>
+          Download
+        </CustomText>
       </Pressable>
+      <Pressable
+        style={({pressed}) => [
+          styles.viewBtn,
+          !enabled && styles.viewBtnDisabled,
+          pressed && enabled && styles.btnPressed,
+        ]}
+        disabled={!enabled}
+        onPress={() => void openPdf(url)}
+        accessibilityLabel="View certificate">
+        <Ionicons name="eye-outline" size={moderateScale(16)} color={Colors.brand} />
+        <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.viewText}>
+          View
+        </CustomText>
+      </Pressable>
+    </View>
+  );
+}
+
+export function CertificateTableHeader() {
+  return (
+    <View style={styles.headerRow}>
+      <View style={[styles.monthCol, styles.headerCell]}>
+        <CustomText
+          variant="h7"
+          fontFamily={Fonts.montserrat.semiBold}
+          style={styles.headerText}
+          numberOfLine={2}>
+          Month-Year
+        </CustomText>
+      </View>
+      {CERT_TABLE_COLUMNS.map((col, index) => (
+        <View
+          key={col.key}
+          style={[
+            styles.certCol,
+            styles.headerCell,
+            index < CERT_TABLE_COLUMNS.length - 1 && styles.colDivider,
+          ]}>
+          <CustomText
+            variant="h7"
+            fontFamily={Fonts.montserrat.semiBold}
+            style={styles.headerText}
+            numberOfLine={2}>
+            {col.label}
+          </CustomText>
+        </View>
+      ))}
     </View>
   );
 }
 
 export function CertificateRowCard({row}: {row: CertificateRow}) {
   return (
-    <View style={externalUi.listCard}>
-      <CustomText variant="h5" fontFamily={Fonts.inter.bold} style={styles.month}>
-        {row.month_year}
-      </CustomText>
-      <View style={styles.rows}>
-        {DOWNLOADS.map(d => (
-          <DownloadRow key={d.key} label={d.label} url={row[d.key]} />
-        ))}
+    <View style={styles.dataRow}>
+      <View style={styles.monthCol}>
+        <CustomText
+          variant="h6"
+          fontFamily={Fonts.montserrat.bold}
+          style={styles.monthText}
+          numberOfLine={2}>
+          {row.month_year}
+        </CustomText>
       </View>
+      {CERT_TABLE_COLUMNS.map((col, index) => (
+        <View
+          key={col.key}
+          style={[styles.certCol, index < CERT_TABLE_COLUMNS.length - 1 && styles.colDivider]}>
+          <CertActionButtons url={row[col.key]} />
+        </View>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  month: {
-    color: Colors.black,
-    marginBottom: moderateScaleVertical(12),
-    letterSpacing: -0.2,
-    paddingBottom: moderateScaleVertical(10),
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    backgroundColor: Colors.bg,
+    minWidth: TABLE_MIN_WIDTH,
+  },
+  dataRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.line,
+    minWidth: TABLE_MIN_WIDTH,
   },
-  rows: {
-    gap: moderateScaleVertical(10),
+  headerCell: {
+    justifyContent: 'center',
+    paddingVertical: moderateScaleVertical(14),
+    paddingHorizontal: moderateScale(10),
   },
-  certRow: {
+  monthCol: {
+    width: MONTH_COL_WIDTH,
+    justifyContent: 'center',
+    paddingVertical: moderateScaleVertical(14),
+    paddingHorizontal: moderateScale(10),
+  },
+  certCol: {
+    width: CERT_COL_WIDTH,
+    justifyContent: 'center',
+    paddingVertical: moderateScaleVertical(12),
+    paddingHorizontal: moderateScale(8),
+  },
+  colDivider: {
+    borderRightWidth: 1,
+    borderRightColor: Colors.line,
+  },
+  headerText: {
+    color: Colors.black,
+    fontSize: RFValue(11),
+    lineHeight: RFValue(15),
+  },
+  monthText: {
+    color: Colors.black,
+    fontSize: RFValue(13),
+    lineHeight: RFValue(18),
+  },
+  actions: {
+    gap: moderateScaleVertical(8),
+    alignItems: 'stretch',
+  },
+  downloadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: moderateScale(12),
-    paddingVertical: moderateScaleVertical(10),
-    paddingHorizontal: moderateScale(12),
-    borderRadius: moderateScale(12),
-    backgroundColor: Colors.bg,
-    borderWidth: 1,
-    borderColor: Colors.line,
+    justifyContent: 'center',
+    gap: moderateScale(6),
+    backgroundColor: Colors.buttonPrimary,
+    borderRadius: moderateScale(999),
+    paddingVertical: moderateScaleVertical(8),
+    paddingHorizontal: moderateScale(10),
   },
-  certLabel: {
-    flex: 1,
-    color: Colors.black,
-    fontSize: moderateScale(13),
-    lineHeight: moderateScale(18),
+  downloadText: {
+    color: Colors.white,
+    fontSize: RFValue(11),
   },
-  dlBtn: {
-    width: moderateScale(44),
-    height: moderateScale(44),
-    borderRadius: moderateScale(12),
+  viewBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.brandSoft,
-    borderWidth: 1,
-    borderColor: 'rgba(4, 120, 87, 0.2)',
+    gap: moderateScale(6),
+    backgroundColor: Colors.drawerIconBgColor,
+    borderRadius: moderateScale(999),
+    paddingVertical: moderateScaleVertical(8),
+    paddingHorizontal: moderateScale(10),
   },
-  dlBtnPressed: {
-    opacity: 0.88,
-  },
-  dlBtnDisabled: {
+  viewBtnDisabled: {
     backgroundColor: Colors.line,
-    borderColor: Colors.line,
+    opacity: 0.55,
+  },
+  viewText: {
+    color: Colors.brand,
+    fontSize: RFValue(11),
+  },
+  btnDisabled: {
+    backgroundColor: Colors.muted,
+    opacity: 0.45,
+  },
+  btnPressed: {
+    opacity: 0.88,
   },
 });

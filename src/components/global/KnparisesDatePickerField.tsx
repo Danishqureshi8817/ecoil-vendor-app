@@ -3,11 +3,13 @@ import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import {formatKnparisesDate, parseKnparisesDate} from '@/utils/knparisesDate';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
+import Ionicons from '@react-native-vector-icons/ionicons';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import React, {useMemo, useState} from 'react';
 import {Modal, Platform, Pressable, StyleSheet, View} from 'react-native';
+import {RFValue} from 'react-native-responsive-fontsize';
 
 type Props = {
   label: string;
@@ -17,6 +19,7 @@ type Props = {
   minimumDate?: Date;
   hideLabel?: boolean;
   compact?: boolean;
+  variant?: 'default' | 'outlined';
 };
 
 export function KnparisesDatePickerField({
@@ -27,7 +30,9 @@ export function KnparisesDatePickerField({
   minimumDate,
   hideLabel = false,
   compact = false,
+  variant = 'default',
 }: Props) {
+  const outlined = variant === 'outlined';
   const [open, setOpen] = useState(false);
   const selectedDate = useMemo(
     () => parseKnparisesDate(value) ?? new Date(),
@@ -45,9 +50,12 @@ export function KnparisesDatePickerField({
   }
 
   return (
-    <View style={[styles.wrap, compact && styles.wrapCompact]}>
+    <View style={[styles.wrap, compact && styles.wrapCompact, outlined && styles.wrapOutlined]}>
       {!hideLabel ? (
-        <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.label}>
+        <CustomText
+          variant="h7"
+          fontFamily={outlined ? Fonts.montserrat.medium : Fonts.inter.bold}
+          style={outlined ? styles.outlinedLabel : styles.label}>
           {label}
         </CustomText>
       ) : null}
@@ -55,15 +63,30 @@ export function KnparisesDatePickerField({
         style={({pressed}) => [
           styles.field,
           compact && styles.fieldCompact,
+          outlined && styles.fieldOutlined,
           pressed && styles.fieldPressed,
         ]}
         onPress={() => setOpen(true)}>
+        {/* {outlined ? (
+          <Ionicons name="calendar-outline" size={moderateScale(18)} color={Colors.brand} />
+        ) : null} */}
         <CustomText
           variant={compact ? 'h7' : 'h6'}
           numberOfLine={1}
-          style={compact ? [styles.value, styles.valueCompact] : styles.value}>
+          style={
+            outlined
+              ? compact
+                ? [styles.valueOutlined, styles.valueCompact]
+                : styles.valueOutlined
+              : compact
+                ? [styles.value, styles.valueCompact]
+                : styles.value
+          }>
           {value}
         </CustomText>
+        {outlined ? (
+          <Ionicons name="chevron-down" size={moderateScale(16)} color={Colors.muted} />
+        ) : null}
       </Pressable>
 
       {Platform.OS === 'android' && open ? (
@@ -111,7 +134,12 @@ export function KnparisesDatePickerField({
 const styles = StyleSheet.create({
   wrap: {gap: moderateScaleVertical(6), flex: 1, minWidth: 0},
   wrapCompact: {gap: 0},
+  wrapOutlined: {gap: moderateScaleVertical(8)},
   label: {marginTop: moderateScaleVertical(4)},
+  outlinedLabel: {
+    color: Colors.black,
+    fontSize: RFValue(12),
+  },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -123,6 +151,15 @@ const styles = StyleSheet.create({
     paddingVertical: moderateScaleVertical(12),
     backgroundColor: Colors.bg,
   },
+  fieldOutlined: {
+    justifyContent: 'flex-start',
+    gap: moderateScale(8),
+    borderWidth: 1,
+    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScaleVertical(12),
+    backgroundColor: Colors.white,
+  },
   fieldCompact: {
     borderRadius: moderateScale(12),
     paddingHorizontal: moderateScale(8),
@@ -130,6 +167,13 @@ const styles = StyleSheet.create({
   },
   fieldPressed: {opacity: 0.92},
   value: {color: Colors.black, textAlign: 'center'},
+  valueOutlined: {
+    flex: 1,
+    color: Colors.black,
+    textAlign: 'left',
+    fontSize: RFValue(12),
+    fontFamily: Fonts.montserrat.regular,
+  },
   valueCompact: {fontSize: moderateScale(11)},
   backdrop: {
     flex: 1,
