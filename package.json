@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "android:release": "cd android && ./gradlew :react-native-reanimated:prefabReleasePackage :react-native-worklets:prefabReleasePackage :react-native-nitro-modules:prefabReleasePackage assembleRelease",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
