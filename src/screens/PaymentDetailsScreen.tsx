@@ -1,25 +1,25 @@
 import CustomText from '@/components/global/CustomText';
-import {KnparisesDatePickerField} from '@/components/global/KnparisesDatePickerField';
-import {ErrorBanner} from '@/components/ui/ErrorBanner';
-import {fetchPaymentDetails, type PaymentDetailRow} from '@/api/paymentApi';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
-import {ExternalLayout} from '@/layouts/ExternalLayout';
-import {StackNav} from '@/navigations/NavigationKeys';
-import {useAuthStore} from '@/states/authStore';
-import {externalUi} from '@/styles/externalUi';
-import {screen, shadowStyle} from '@/styles/ui';
+import { KnparisesDatePickerField } from '@/components/global/KnparisesDatePickerField';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { fetchPaymentDetails, type PaymentDetailRow } from '@/api/paymentApi';
+import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
+import { ExternalLayout } from '@/layouts/ExternalLayout';
+import { StackNav } from '@/navigations/NavigationKeys';
+import { useAuthStore } from '@/states/authStore';
+import { externalUi } from '@/styles/externalUi';
+import { screen, shadowStyle } from '@/styles/ui';
 import {
   defaultPaymentDateRange,
   parseKnparisesDate,
 } from '@/utils/knparisesDate';
-import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
-import {clearSession} from '@/utils/sessionStorage';
-import {vendorUserId} from '@/utils/vendorUser';
-import {buildVendorNavItems} from '@/utils/vendorNavItems';
-import {resetAndNavigate} from '@/utils/NavigationUtils';
-import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import { getApiErrorMessage } from '@/utils/getApiErrorMessage';
+import { clearSession } from '@/utils/sessionStorage';
+import { vendorUserId } from '@/utils/vendorUser';
+import { buildVendorNavItems } from '@/utils/vendorNavItems';
+import { resetAndNavigate } from '@/utils/NavigationUtils';
+import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -30,23 +30,25 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import {RFValue} from 'react-native-responsive-fontsize';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { Container } from '@/components/global/Container';
+import AppBar from '@/components/global/AppBar';
 
 const PAYMENT_EMPTY_IMAGE = require('@/assets/images/paymentNo.png');
 
-const FIELDS: {label: string; key: keyof PaymentDetailRow}[] = [
-  {label: 'Firm', key: 'firm_name'},
-  {label: 'Branch', key: 'branch_name'},
-  {label: 'Store code', key: 'store_code'},
-  {label: 'Volume (kg)', key: 'weight'},
-  {label: 'Oil rate', key: 'oil_rate'},
-  {label: 'GST', key: 'gst_amount'},
-  {label: 'Amount', key: 'amount'},
-  {label: 'Pickup', key: 'pickup_date'},
-  {label: 'Payment date', key: 'payment_date'},
-  {label: 'Receipt no.', key: 'receipt_no'},
-  {label: 'Invoice', key: 'invoice_number'},
-  {label: 'Remarks', key: 'payment_remarks'},
+const FIELDS: { label: string; key: keyof PaymentDetailRow }[] = [
+  { label: 'Firm', key: 'firm_name' },
+  { label: 'Branch', key: 'branch_name' },
+  { label: 'Store code', key: 'store_code' },
+  { label: 'Volume (kg)', key: 'weight' },
+  { label: 'Oil rate', key: 'oil_rate' },
+  { label: 'GST', key: 'gst_amount' },
+  { label: 'Amount', key: 'amount' },
+  { label: 'Pickup', key: 'pickup_date' },
+  { label: 'Payment date', key: 'payment_date' },
+  { label: 'Receipt no.', key: 'receipt_no' },
+  { label: 'Invoice', key: 'invoice_number' },
+  { label: 'Remarks', key: 'payment_remarks' },
 ];
 
 function PaymentEmptyState() {
@@ -63,13 +65,13 @@ function PaymentEmptyState() {
   );
 }
 
-function PaymentCard({row, index}: {row: PaymentDetailRow; index: number}) {
+function PaymentCard({ row, index }: { row: PaymentDetailRow; index: number }) {
   return (
     <View style={[externalUi.listCard, styles.paymentCard]}>
       <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold}>
         Payment #{index + 1}
       </CustomText>
-      {FIELDS.map(({label, key}) => {
+      {FIELDS.map(({ label, key }) => {
         const value = row[key];
         if (value == null || value === '') {
           return null;
@@ -159,7 +161,7 @@ export default function PaymentDetailsScreen() {
   }
 
   const renderItem: ListRenderItem<PaymentDetailRow> = useCallback(
-    ({item, index}) => (
+    ({ item, index }) => (
       <View style={styles.listItem}>
         <PaymentCard row={item} index={index} />
       </View>
@@ -190,13 +192,16 @@ export default function PaymentDetailsScreen() {
   }, [loading, error]);
 
   return (
-    <ExternalLayout
-      title="Payment Details"
-      activeKey={StackNav.PaymentDetails}
-      navItems={buildVendorNavItems(StackNav.PaymentDetails, user)}
-      onLogout={handleLogout}
-      headerHideAvatar
-      headerCenterTitle>
+    // <ExternalLayout
+    //   title="Payment Details"
+    //   activeKey={StackNav.PaymentDetails}
+    //   navItems={buildVendorNavItems(StackNav.PaymentDetails, user)}
+    //   onLogout={handleLogout}
+    //   headerHideAvatar
+    //   headerCenterTitle>
+    <Container fullScreen statusBarStyle='light-content'>
+      <AppBar title='Payment Details' leading='menu' />
+
       <View style={styles.page}>
         <View style={styles.filterCard}>
           <View style={styles.dateRow}>
@@ -217,7 +222,7 @@ export default function PaymentDetailsScreen() {
           </View>
 
           <Pressable
-            style={({pressed}) => [
+            style={({ pressed }) => [
               styles.showDataBtn,
               pressed && styles.showDataBtnPressed,
               submitting && styles.showDataBtnDisabled,
@@ -254,7 +259,8 @@ export default function PaymentDetailsScreen() {
           showsVerticalScrollIndicator={false}
         />
       </View>
-    </ExternalLayout>
+      {/* </ExternalLayout> */}
+    </Container>
   );
 }
 

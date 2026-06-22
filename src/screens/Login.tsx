@@ -56,6 +56,7 @@ function LoginField({
   secureTextEntry,
   keyboardType,
   autoCapitalize,
+  maxLength,
   right,
 }: {
   icon: number;
@@ -65,6 +66,7 @@ function LoginField({
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences';
+  maxLength?: number;
   right?: React.ReactNode;
 }) {
   return (
@@ -82,10 +84,17 @@ function LoginField({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize ?? 'none'}
         autoCorrect={false}
+        maxLength={maxLength}
       />
       {right}
     </View>
   );
+}
+
+const MOBILE_MAX_LENGTH = 10;
+
+function sanitizeMobileInput(text: string): string {
+  return text.replace(/\D/g, '').slice(0, MOBILE_MAX_LENGTH);
 }
 
 export default function Login() {
@@ -164,8 +173,9 @@ export default function Login() {
               icon={loginAssets.userIcon}
               placeholder="Mobile / Store code"
               value={identifier}
-              onChangeText={setIdentifier}
-              keyboardType="default"
+              onChangeText={text => setIdentifier(sanitizeMobileInput(text))}
+              keyboardType="phone-pad"
+              maxLength={MOBILE_MAX_LENGTH}
             />
 
             <LoginField

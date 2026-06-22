@@ -1,25 +1,21 @@
 import CustomText from '@/components/global/CustomText';
-import {CollectionRequestCard} from '@/components/external/CollectionRequestCard';
-import {EmptyState} from '@/components/ui/EmptyState';
+import { CollectionRequestCard } from '@/components/external/CollectionRequestCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import {
   collectionRequestId,
   collectionRequestLabel,
   collectionRequestStatus,
   type CollectionRequestRow,
 } from '@/api/collectionApi';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
+import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
 import useCollectionRequests from '@/hooks/vendor/use-collection-requests';
-import {ExternalLayout} from '@/layouts/ExternalLayout';
-import {StackNav, TabNav} from '@/navigations/NavigationKeys';
-import {useAuthStore} from '@/states/authStore';
-import {screen} from '@/styles/ui';
-import {clearSession} from '@/utils/sessionStorage';
-import {buildVendorNavItems} from '@/utils/vendorNavItems';
-import {navigateToTab, push, resetAndNavigate} from '@/utils/NavigationUtils';
-import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
+import { StackNav, TabNav } from '@/navigations/NavigationKeys';
+import { screen } from '@/styles/ui';
+import { navigate, navigateToTab, push, resetAndNavigate } from '@/utils/NavigationUtils';
+import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import React, {useCallback, useMemo, useState} from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -28,26 +24,16 @@ import {
   RefreshControl,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import {RFValue} from 'react-native-responsive-fontsize';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { Container } from '@/components/global/Container';
+import AppBar from '@/components/global/AppBar';
 
-function goToNewCollectRequest() {
+/** Exported so VendorChrome can use it for the header + button */
+export function goToNewCollectRequest() {
   resetAndNavigate(StackNav.Main, 0);
   navigateToTab(TabNav.Collect);
-}
-
-function HeaderAddButton({onPress}: {onPress: () => void}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={styles.addBtn}
-      accessibilityLabel="New collection request"
-      activeOpacity={0.85}>
-      <Ionicons name="add" size={moderateScale(26)} color={Colors.drawerGradientEnd} />
-    </TouchableOpacity>
-  );
 }
 
 function matchesSearch(row: CollectionRequestRow, query: string): boolean {
@@ -71,10 +57,9 @@ function matchesSearch(row: CollectionRequestRow, query: string): boolean {
 }
 
 export default function CollectRequestListScreen() {
-  const user = useAuthStore(s => s.user);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
-  const {data, isLoading, refetch, isRefetching, error} = useCollectionRequests();
+  const { data, isLoading, refetch, isRefetching, error } = useCollectionRequests();
   const rows = data ?? [];
 
   const filteredRows = useMemo(
@@ -82,26 +67,18 @@ export default function CollectRequestListScreen() {
     [rows, search],
   );
 
-  function handleLogout() {
-    clearSession();
-    useAuthStore.getState().logout();
-    resetAndNavigate(StackNav.Login, 0);
-  }
-
-  const navItems = buildVendorNavItems(StackNav.CollectRequestList, user);
-
   const keyExtractor = useCallback(
     (item: CollectionRequestRow, index: number) =>
       String(item.id ?? item.request_id ?? index),
     [],
   );
 
-  const renderItem: ListRenderItem<CollectionRequestRow> = useCallback(({item}) => {
+  const renderItem: ListRenderItem<CollectionRequestRow> = useCallback(({ item }) => {
     const id = collectionRequestId(item);
     return (
       <CollectionRequestCard
         row={item}
-        onPress={id ? () => push(StackNav.CollectRequestDetail, {id}) : undefined}
+        onPress={id ? () => push(StackNav.CollectRequestDetail, { id }) : undefined}
       />
     );
   }, []);
@@ -177,15 +154,20 @@ export default function CollectRequestListScreen() {
 
   const listData = !isLoading && !error ? filteredRows : [];
 
+  const TrailingIcon = useCallback(() => {
+    return (
+      <Pressable onPress={() => {
+        navigate(StackNav.CollectionRequest)
+      }}>
+        <Ionicons name="add" size={moderateScale(24)} color={Colors.white} />
+      </Pressable>
+    )
+  }, []);
+
   return (
-    <ExternalLayout
-      title="Collection Requests"
-      activeKey={StackNav.CollectRequestList}
-      navItems={navItems}
-      onLogout={handleLogout}
-      headerHideAvatar
-      headerCenterTitle
-      headerTrailing={<HeaderAddButton onPress={goToNewCollectRequest} />}>
+    <Container fullScreen statusBarStyle='light-content'>
+
+      <AppBar title='Collection Requests' leading='menu' trailing={<TrailingIcon />} />
       <View style={styles.container}>
         <FlatList
           style={styles.list}
@@ -205,7 +187,7 @@ export default function CollectRequestListScreen() {
           }
         />
       </View>
-    </ExternalLayout>
+    </Container>
   );
 }
 
@@ -220,14 +202,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: moderateScaleVertical(88),
     flexGrow: 1,
-  },
-  addBtn: {
-    width: moderateScale(50),
-    height: moderateScale(50),
-    borderRadius: moderateScale(50),
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   searchRow: {
     flexDirection: 'row',

@@ -60,6 +60,36 @@ export function formatPoints(value: number | null | undefined): string {
   return value.toFixed(2);
 }
 
+export function formatDashboardQty(value: string | number | null | undefined): string {
+  const raw = String(value ?? '').replace(/,/g, '').trim();
+  const n = parseFloat(raw);
+  if (!Number.isFinite(n)) {
+    return '0.00 kg';
+  }
+  return formatKg(n);
+}
+
+export function formatDashboardCount(value: string | number | null | undefined): string {
+  const raw = String(value ?? '').trim();
+  const n = parseInt(raw, 10);
+  return String(Number.isFinite(n) ? n : 0);
+}
+
+export function formatNextPickupDate(value: string | null | undefined): string {
+  const v = String(value ?? '').trim();
+  if (!v || /^-+$/.test(v)) {
+    return '-----';
+  }
+  return v;
+}
+
+export function formatNotificationBody(text: string | null | undefined): string {
+  return String(text ?? '')
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '')
+    .trim();
+}
+
 export type HomeDashboardMetrics = {
   totalOilKg: number;
   monthOilKg: number;

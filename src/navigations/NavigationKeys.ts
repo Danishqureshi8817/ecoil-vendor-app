@@ -1,8 +1,11 @@
+import type {CounterCollectionRow} from '@/api/reportsApi';
+
 export const TabNav = {
   Home: 'Home',
   Services: 'Services',
   Requests: 'Requests',
-  Collect: 'Collect',
+  CountersCollection: 'CountersCollection',
+  Profile: 'Profile',
 } as const;
 
 export const StackNav = {
@@ -12,10 +15,15 @@ export const StackNav = {
   Main: 'Main',
   CollectRequestList: 'CollectRequestList',
   CollectRequestDetail: 'CollectRequestDetail',
+  CountersCollectionList: 'CountersCollectionList',
+  CountersCollectionDetail: 'CountersCollectionDetail',
   MyCertificates: 'MyCertificates',
   MyRewards: 'MyRewards',
   PaymentDetails: 'PaymentDetails',
   Agreement: 'Agreement',
+  MyServiceRequests: 'MyServiceRequests',
+  TabNav: 'TabNav',
+  CollectionRequest: 'CollectionRequest'
 } as const;
 
 export type RootStackParamList = {
@@ -23,19 +31,22 @@ export type RootStackParamList = {
   [StackNav.Onboarding]: undefined;
   [StackNav.Login]: undefined;
   [StackNav.Main]:
-    | {screen?: keyof MainTabParamList}
-    | undefined;
+  | { screen?: keyof MainTabParamList }
+  | undefined;
   [StackNav.CollectRequestList]: undefined;
-  [StackNav.CollectRequestDetail]: {id: string};
+  [StackNav.CollectRequestDetail]: { id: string };
+  [StackNav.CountersCollectionDetail]: { row: CounterCollectionRow };
   [StackNav.MyCertificates]: undefined;
   [StackNav.MyRewards]: undefined;
   [StackNav.PaymentDetails]: undefined;
   [StackNav.Agreement]: undefined;
+  [StackNav.MyServiceRequests]: undefined;
 };
 
 export type MainTabParamList = {
   [TabNav.Home]: undefined;
   [TabNav.Services]: undefined;
   [TabNav.Requests]: undefined;
-  [TabNav.Collect]: undefined;
+  [TabNav.CountersCollection]: undefined;
+  [TabNav.Profile]: undefined;
 };

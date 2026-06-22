@@ -1,6 +1,10 @@
 import {validateVendorLogin} from '@/api/vendorApi';
 import {fetchCertificatesList} from '@/api/certificatesApi';
 import {
+  fetchVendorDashboard,
+  type VendorDashboardData,
+} from '@/api/dashboardApi';
+import {
   fetchAllCollectionRequests,
   fetchCollectionRequestsByVendor,
   submitCollectionRequest,
@@ -26,6 +30,7 @@ class VendorService {
     scratchCards: 'scratchCards',
     vendorCoins: 'vendorCoins',
     vendorTransactions: 'vendorTransactions',
+    vendorDashboard: 'vendorDashboard',
   };
 
   validateLogin = (mobile: string, password: string) =>
@@ -49,6 +54,12 @@ class VendorService {
 
   getVendorCoins = (vendorUserId: string | number) =>
     fetchVendorCoins(vendorUserId);
+
+  getDashboard = (payload: {
+    user_id: string | number;
+    user_type: string | number;
+    vendor_id: string | number;
+  }): Promise<VendorDashboardData> => fetchVendorDashboard(payload);
 
   scratchCard = (vendorUserId: string | number, cardId: string) =>
     scratchVendorCard(vendorUserId, cardId);

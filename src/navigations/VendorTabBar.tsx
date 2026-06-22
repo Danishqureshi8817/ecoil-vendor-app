@@ -1,35 +1,36 @@
 import CustomText from '@/components/global/CustomText';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
-import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
+import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
+import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import type {BottomTabBarProps} from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React from 'react';
-import {Pressable, StyleSheet, View} from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TabIcon = React.ComponentProps<typeof Ionicons>['name'];
 
-const TAB_CONFIG: Record<string, {label: string; icon: TabIcon}> = {
-  Home: {label: 'Home', icon: 'home-outline'},
-  Services: {label: 'Services', icon: 'sunny-outline'},
-  Requests: {label: 'Requests', icon: 'document-text-outline'},
-  Collect: {label: 'Collection', icon: 'basket-outline'},
+const TAB_CONFIG: Record<string, { label: string; icon: TabIcon }> = {
+  Home: { label: 'Home', icon: 'home-outline' },
+  Services: { label: 'Services', icon: 'sunny-outline' },
+  Requests: { label: 'Requests', icon: 'document-text-outline' },
+  CountersCollection: { label: 'Counters', icon: 'stats-chart-outline' },
+  Profile: { label: 'Profile', icon: 'person-outline' },
 };
 
 /** Vendor dashboard style — white bar, green top indicator on active tab */
-export function VendorTabBar({state, descriptors, navigation}: BottomTabBarProps) {
+export function VendorTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, moderateScaleVertical(8));
 
   return (
-    <View style={[styles.bar, {paddingBottom: bottomPad}]}>
+    <View style={[styles.bar, { paddingBottom: bottomPad }]}>
       {state.routes.map((route, index) => {
         const focused = state.index === index;
-        const {options} = descriptors[route.key];
+        const { options } = descriptors[route.key];
         const label =
           options.tabBarLabel !== undefined &&
-          typeof options.tabBarLabel === 'string'
+            typeof options.tabBarLabel === 'string'
             ? options.tabBarLabel
             : TAB_CONFIG[route.name]?.label ?? route.name;
 
@@ -58,7 +59,7 @@ export function VendorTabBar({state, descriptors, navigation}: BottomTabBarProps
           <Pressable
             key={route.key}
             accessibilityRole="button"
-            accessibilityState={focused ? {selected: true} : {}}
+            accessibilityState={focused ? { selected: true } : {}}
             accessibilityLabel={options.tabBarAccessibilityLabel}
             onPress={onPress}
             onLongPress={onLongPress}
@@ -68,7 +69,7 @@ export function VendorTabBar({state, descriptors, navigation}: BottomTabBarProps
             <CustomText
               variant="h7"
               fontFamily={focused ? Fonts.inter.semiBold : Fonts.inter.regular}
-              style={[styles.label, {color}]}>
+              style={[styles.label, { color }]}>
               {label}
             </CustomText>
           </Pressable>
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#e5e7eb',
     paddingTop: moderateScaleVertical(4),
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: -2},
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 8,

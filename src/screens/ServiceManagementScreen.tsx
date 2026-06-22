@@ -1,11 +1,11 @@
 import CustomText from '@/components/global/CustomText';
-import {PartnerCard} from '@/components/partners/PartnerCard';
-import {ServiceDynamicForm} from '@/components/ServiceDynamicForm';
-import {ServiceStepNav} from '@/components/service/ServiceStepNav';
-import type {ServiceStep} from '@/components/service/ServiceStepNav';
-import {getHomeServiceIcon} from '@/utils/homeServiceIconMap';
-import {EmptyState} from '@/components/ui/EmptyState';
-import {ErrorBanner} from '@/components/ui/ErrorBanner';
+import { PartnerCard } from '@/components/partners/PartnerCard';
+import { ServiceDynamicForm } from '@/components/ServiceDynamicForm';
+import { ServiceStepNav } from '@/components/service/ServiceStepNav';
+import type { ServiceStep } from '@/components/service/ServiceStepNav';
+import { ServiceIconImage } from '@/components/service/ServiceIconImage';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import {
   getPublicApiError,
   isServiceFormAvailable,
@@ -14,20 +14,20 @@ import {
   type ServiceFormPayload,
 } from '@/api/publicApi';
 import publicService from '@/services/public-service';
-import {useServiceNavigationStore} from '@/states/serviceNavigationStore';
-import {useAuthStore} from '@/states/authStore';
-import {useServiceFlowHeaderStore} from '@/states/serviceFlowHeaderStore';
-import {TabNav} from '@/navigations/NavigationKeys';
-import {screen} from '@/styles/ui';
-import {serviceUi} from '@/styles/serviceUi';
-import {navigateToTab} from '@/utils/NavigationUtils';
-import {vendorUserCity} from '@/utils/vendorUser';
-import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import {useToastMessage} from '@/utils/useToastMessage';
+import { useServiceNavigationStore } from '@/states/serviceNavigationStore';
+import { useAuthStore } from '@/states/authStore';
+import { useServiceFlowHeaderStore } from '@/states/serviceFlowHeaderStore';
+import { TabNav } from '@/navigations/NavigationKeys';
+import { screen } from '@/styles/ui';
+import { serviceUi } from '@/styles/serviceUi';
+import { navigateToTab } from '@/utils/NavigationUtils';
+import { vendorUserCity } from '@/utils/vendorUser';
+import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
+import { useToastMessage } from '@/utils/useToastMessage';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
-import {useFocusEffect} from '@react-navigation/native';
-import React, {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -41,11 +41,13 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import {RFValue} from 'react-native-responsive-fontsize';
-import {externalUi} from '@/styles/externalUi';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { externalUi } from '@/styles/externalUi';
+import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
 import LinearGradient from 'react-native-linear-gradient';
+import { Container } from '@/components/global/Container';
+import AppBar from '@/components/global/AppBar';
 
 const REQUEST_DETAILS_TITLE = 'Request Details';
 
@@ -88,8 +90,8 @@ function OfficialEcoilCard({
     <View style={styles.officialCard}>
       <LinearGradient
         colors={['#FFF8F3', 'rgba(255,255,255,0)']}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.officialCardGlow}
       />
       <CustomText variant="h7" fontFamily={Fonts.montserrat.bold} style={styles.officialLabel}>
@@ -103,7 +105,7 @@ function OfficialEcoilCard({
       </CustomText>
       <View style={styles.officialActions}>
         <Pressable
-          style={({pressed}) => [
+          style={({ pressed }) => [
             styles.applyBtnGreen,
             pressed && styles.pressed,
             loading && styles.serviceDisabled,
@@ -128,11 +130,9 @@ function ServiceGridTile({
   loading: boolean;
   onPress: () => void;
 }) {
-  const Icon = getHomeServiceIcon(service.name);
-
   return (
     <Pressable
-      style={({pressed}) => [
+      style={({ pressed }) => [
         styles.gridTile,
         pressed && styles.pressed,
         loading && styles.serviceDisabled,
@@ -141,12 +141,14 @@ function ServiceGridTile({
       disabled={loading}>
       {loading ? (
         <ActivityIndicator size="small" color={Colors.brand} style={styles.gridIconLoader} />
-      ) : Icon ? (
-        <Icon width={moderateScale(52)} height={moderateScale(56)} />
       ) : (
-        <View style={styles.gridEmptyIcon}>
-          <Ionicons name="ellipse-outline" size={moderateScale(34)} color={Colors.line} />
-        </View>
+        <ServiceIconImage
+          service={service}
+          width={moderateScale(52)}
+          height={moderateScale(56)}
+          emptyIconSize={moderateScale(34)}
+          borderRadius={moderateScale(8)}
+        />
       )}
       <CustomText
         variant="h7"
@@ -183,7 +185,7 @@ function ServicesListHeader({
           </CustomText>
         </View>
         <Pressable
-          style={({pressed}) => [serviceUi.refreshBtn, pressed && styles.pressed]}
+          style={({ pressed }) => [serviceUi.refreshBtn, pressed && styles.pressed]}
           onPress={onRefresh}
           disabled={isRefreshing || isLoading}>
           <CustomText
@@ -202,7 +204,7 @@ export default function ServiceManagementScreen() {
   const user = useAuthStore(s => s.user);
   const queryClient = useQueryClient();
   const vendorCity = useMemo(() => vendorUserCity(user), [user]);
-  const {toastSuccess} = useToastMessage();
+  const { toastSuccess } = useToastMessage();
   const [step, setStep] = useState<ServiceStep>('list');
   const [selected, setSelected] = useState<PublicService | null>(null);
   const [suppliers, setSuppliers] = useState<PublicSupplierDirectoryRow[]>([]);
@@ -213,7 +215,7 @@ export default function ServiceManagementScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const {data: services = [], isLoading, refetch, isRefetching} = useQuery({
+  const { data: services = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: [publicService.queryKeys.services],
     queryFn: () => publicService.getServices(),
   });
@@ -224,7 +226,7 @@ export default function ServiceManagementScreen() {
   const listData = !isLoading ? services : [];
   const isEmptyList = listData.length === 0;
 
-  const {height: windowHeight} = useWindowDimensions();
+  const { height: windowHeight } = useWindowDimensions();
 
   const loadingServiceName = useMemo(() => {
     if (!formLoadingId) {
@@ -350,7 +352,7 @@ export default function ServiceManagementScreen() {
     }, [resetToServiceList]),
   );
 
-  async function handleSubmit(answers: {questionId: string; value: string}[]) {
+  async function handleSubmit(answers: { questionId: string; value: string }[]) {
     if (!selected || !user) {
       return;
     }
@@ -384,7 +386,7 @@ export default function ServiceManagementScreen() {
   const keyExtractor = useCallback((item: PublicService) => item.id, []);
 
   const renderItem: ListRenderItem<PublicService> = useCallback(
-    ({item}) => (
+    ({ item }) => (
       <View style={styles.gridCell}>
         <ServiceGridTile
           service={item}
@@ -423,7 +425,7 @@ export default function ServiceManagementScreen() {
       return null;
     }
     return (
-      <View style={[styles.emptyFill, {minHeight: emptyAreaMinHeight}]}>
+      <View style={[styles.emptyFill, { minHeight: emptyAreaMinHeight }]}>
         <EmptyState
           icon="grid-outline"
           title="No services available"
@@ -435,156 +437,169 @@ export default function ServiceManagementScreen() {
 
   if (step === 'form' && form) {
     return (
-      <ScrollView
-        contentContainerStyle={screen.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled">
-        {error ? <ErrorBanner message={error} /> : null}
-        <ServiceStepNav step="form" />
-        <ServiceDynamicForm
-          form={form}
-          user={user}
-          saving={saving}
-          onSubmit={handleSubmit}
-        />
-      </ScrollView>
+      <Container fullScreen statusBarStyle='light-content'>
+
+        <AppBar title='Request Details' />
+        <ScrollView
+          contentContainerStyle={screen.scroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
+          {error ? <ErrorBanner message={error} /> : null}
+          <ServiceStepNav step="form" />
+          <ServiceDynamicForm
+            form={form}
+            user={user}
+            saving={saving}
+            onSubmit={handleSubmit}
+          />
+        </ScrollView>
+      </Container>
     );
   }
 
   if (step === 'suppliers' && selected) {
     return (
-      <ScrollView
-        style={screen.pageBg}
-        contentContainerStyle={[screen.scroll, styles.partnersScroll]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled">
-        {error ? <ErrorBanner message={error} /> : null}
-        <ServiceStepNav step="suppliers" />
+      <Container fullScreen statusBarStyle='light-content'>
+        <AppBar title='Request Details' />
 
-        <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.sectionEyebrow}>
-          SERVICE PARTNERS
-        </CustomText>
+        <ScrollView
+          style={screen.pageBg}
+          contentContainerStyle={[screen.scroll, styles.partnersScroll]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
+          {error ? <ErrorBanner message={error} /> : null}
+          <ServiceStepNav step="suppliers" />
 
-        <View style={styles.serviceHeadRow}>
-          <CustomText
-            variant="h5"
-            fontFamily={Fonts.montserrat.bold}
-            style={styles.serviceHeadTitle}
-            numberOfLine={2}>
-            {selected.name}
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.sectionEyebrow}>
+            SERVICE PARTNERS
           </CustomText>
-          {vendorCity ? (
-            <View style={styles.cityPill}>
-              <Ionicons name="location" size={moderateScale(14)} color={Colors.accent} />
-              <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.cityPillText}>
-                {vendorCity}
-              </CustomText>
-            </View>
-          ) : null}
-        </View>
 
-        <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.partnersStatus}>
-          {partnersStatusMessage}
-        </CustomText>
-
-        <OfficialEcoilCard
-          loading={formLoading}
-          onApply={() => void openEcoilForm()}
-        />
-
-        {suppliersLoading ? (
-          <View style={styles.skeletonList}>
-            <View style={[styles.skeleton, {height: moderateScaleVertical(148)}]} />
-            <View style={[styles.skeleton, {height: moderateScaleVertical(148)}]} />
-          </View>
-        ) : null}
-
-        {!suppliersLoading && suppliers.length > 0 ? (
-          <>
-            <View style={styles.sectionHead}>
-              <CustomText variant="h6" fontFamily={Fonts.montserrat.bold}>
-                Local partners
-              </CustomText>
-              <View style={styles.countBadge}>
-                <CustomText variant="h7" fontFamily={Fonts.montserrat.bold} style={styles.countText}>
-                  {suppliers.length}
+          <View style={styles.serviceHeadRow}>
+            <CustomText
+              variant="h5"
+              fontFamily={Fonts.montserrat.bold}
+              style={styles.serviceHeadTitle}
+              numberOfLine={2}>
+              {selected.name}
+            </CustomText>
+            {vendorCity ? (
+              <View style={styles.cityPill}>
+                <Ionicons name="location" size={moderateScale(14)} color={Colors.accent} />
+                <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.cityPillText}>
+                  {vendorCity}
                 </CustomText>
               </View>
-            </View>
-            {suppliers.map(row => (
-              <View key={row.id} style={styles.partnerGap}>
-                <PartnerCard row={row} />
-              </View>
-            ))}
-          </>
-        ) : null}
+            ) : null}
+          </View>
 
-        {!suppliersLoading && suppliers.length === 0 && vendorCity ? (
-          <PartnersEmptyState serviceName={selected.name} city={vendorCity} />
-        ) : null}
-      </ScrollView>
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.partnersStatus}>
+            {partnersStatusMessage}
+          </CustomText>
+
+          <OfficialEcoilCard
+            loading={formLoading}
+            onApply={() => void openEcoilForm()}
+          />
+
+          {suppliersLoading ? (
+            <View style={styles.skeletonList}>
+              <View style={[styles.skeleton, { height: moderateScaleVertical(148) }]} />
+              <View style={[styles.skeleton, { height: moderateScaleVertical(148) }]} />
+            </View>
+          ) : null}
+
+          {!suppliersLoading && suppliers.length > 0 ? (
+            <>
+              <View style={styles.sectionHead}>
+                <CustomText variant="h6" fontFamily={Fonts.montserrat.bold}>
+                  Local partners
+                </CustomText>
+                <View style={styles.countBadge}>
+                  <CustomText variant="h7" fontFamily={Fonts.montserrat.bold} style={styles.countText}>
+                    {suppliers.length}
+                  </CustomText>
+                </View>
+              </View>
+              {suppliers.map(row => (
+                <View key={row.id} style={styles.partnerGap}>
+                  <PartnerCard row={row} />
+                </View>
+              ))}
+            </>
+          ) : null}
+
+          {!suppliersLoading && suppliers.length === 0 && vendorCity ? (
+            <PartnersEmptyState serviceName={selected.name} city={vendorCity} />
+          ) : null}
+        </ScrollView>
+      </Container>
     );
   }
 
   return (
-    <>
-      <FlatList
-        style={[styles.list, screen.pageBg]}
-        data={listData}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        numColumns={2}
-        columnWrapperStyle={styles.gridRow}
-        ListHeaderComponent={listHeader}
-        ListEmptyComponent={listEmpty}
-        contentContainerStyle={[
-          screen.scroll,
-          styles.listContent,
-          isEmptyList && !isLoading && styles.listContentEmpty,
-        ]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={Colors.brand}
-          />
-        }
-      />
+    <Container fullScreen statusBarStyle='light-content'>
 
-      <Modal
-        visible={formLoading}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => {}}>
-        <View style={externalUi.detailBackdrop}>
-          <Pressable style={styles.loadingModalCard} onPress={e => e.stopPropagation()}>
-            <ActivityIndicator size="large" color={Colors.brand} />
-            <CustomText
-              variant="h5"
-              fontFamily={Fonts.inter.bold}
-              style={styles.loadingModalTitle}>
-              Opening application form
-            </CustomText>
-            {loadingServiceName ? (
-              <CustomText variant="h7" style={styles.muted} numberOfLine={2}>
-                {loadingServiceName}
+      <AppBar title='Our Services' leading='menu' />
+
+      <>
+        <FlatList
+          style={[styles.list, screen.pageBg]}
+          data={listData}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={listEmpty}
+          contentContainerStyle={[
+            screen.scroll,
+            styles.listContent,
+            isEmptyList && !isLoading && styles.listContentEmpty,
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={Colors.brand}
+            />
+          }
+        />
+
+        <Modal
+          visible={formLoading}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => { }}>
+          <View style={externalUi.detailBackdrop}>
+            <Pressable style={styles.loadingModalCard} onPress={e => e.stopPropagation()}>
+              <ActivityIndicator size="large" color={Colors.brand} />
+              <CustomText
+                variant="h5"
+                fontFamily={Fonts.inter.bold}
+                style={styles.loadingModalTitle}>
+                Opening application form
               </CustomText>
-            ) : null}
-          </Pressable>
-        </View>
-      </Modal>
-    </>
+              {loadingServiceName ? (
+                <CustomText variant="h7" style={styles.muted} numberOfLine={2}>
+                  {loadingServiceName}
+                </CustomText>
+              ) : null}
+            </Pressable>
+          </View>
+        </Modal>
+      </>
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  list: {flex: 1},
-  listContent: {flexGrow: 1},
-  listContentEmpty: {flexGrow: 1},
-  emptyFill: {flexGrow: 1, justifyContent: 'center', alignItems: 'center'},
+  list: { flex: 1 },
+  listContent: { flexGrow: 1 },
+  listContentEmpty: { flexGrow: 1 },
+  emptyFill: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   listHeadRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -592,7 +607,7 @@ const styles = StyleSheet.create({
     gap: moderateScale(12),
     marginBottom: moderateScaleVertical(16),
   },
-  listHeadCopy: {flex: 1, minWidth: 0},
+  listHeadCopy: { flex: 1, minWidth: 0 },
   listHeadTitle: {
     color: Colors.black,
     fontSize: RFValue(16),
@@ -622,7 +637,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: moderateScaleVertical(148),
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
@@ -657,9 +672,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.line,
     opacity: 0.55,
   },
-  serviceDisabled: {opacity: 0.65},
-  muted: {color: Colors.muted},
-  skeletonList: {gap: moderateScaleVertical(10), marginBottom: moderateScaleVertical(12)},
+  serviceDisabled: { opacity: 0.65 },
+  muted: { color: Colors.muted },
+  skeletonList: { gap: moderateScaleVertical(10), marginBottom: moderateScaleVertical(12) },
   skeleton: {
     height: moderateScaleVertical(148),
     borderRadius: moderateScale(16),
@@ -676,7 +691,7 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
     gap: moderateScaleVertical(10),
   },
-  loadingModalTitle: {color: Colors.black, textAlign: 'center'},
+  loadingModalTitle: { color: Colors.black, textAlign: 'center' },
   partnersScroll: {
     flexGrow: 1,
   },
@@ -729,7 +744,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(252,128,25,0.16)',
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 2,
@@ -765,7 +780,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: Colors.buttonPrimary,
   },
-  applyText: {color: Colors.white, fontSize: RFValue(12)},
+  applyText: { color: Colors.white, fontSize: RFValue(12) },
   partnersEmpty: {
     alignItems: 'center',
     paddingVertical: moderateScaleVertical(36),
@@ -792,7 +807,7 @@ const styles = StyleSheet.create({
     lineHeight: RFValue(18),
     textAlign: 'center',
   },
-  pressed: {opacity: 0.92, transform: [{scale: 0.97}]},
+  pressed: { opacity: 0.92, transform: [{ scale: 0.97 }] },
   sectionHead: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -808,6 +823,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: moderateScale(7),
   },
-  countText: {color: Colors.brandDark, fontSize: RFValue(11)},
-  partnerGap: {marginBottom: moderateScaleVertical(14)},
+  countText: { color: Colors.brandDark, fontSize: RFValue(11) },
+  partnerGap: { marginBottom: moderateScaleVertical(14) },
 });

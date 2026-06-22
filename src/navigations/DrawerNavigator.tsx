@@ -1,23 +1,62 @@
-import HomeScreen from '@/screens/HomeScreen';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { Text, View } from 'react-native';
+import React from 'react';
 import MainScreen from './MainScreen';
+import CustomDrawerContent from './CustomDrawerContent';
+import { width } from '@/utils/responsiveSize';
+import { StackNav } from './NavigationKeys';
+import PaymentDetailsScreen from '@/screens/PaymentDetailsScreen';
+import AgreementScreen from '@/screens/AgreementScreen';
+import MyCertificatesScreen from '@/screens/MyCertificatesScreen';
+import CollectRequestDetailScreen from '@/screens/CollectRequestDetailScreen';
+import CollectRequestListScreen from '@/screens/CollectRequestListScreen';
+import MyRewardsScreen from '@/screens/MyRewardsScreen';
+import MyApplicationsScreen from '@/screens/MyApplicationsScreen';
+import HomeScreen from '@/screens/HomeScreen';
+import ExternalTabBar from './ExternalTabBar';
+import CollectRequestScreen from '@/screens/CollectRequestScreen';
+import CounterCollectionListScreen from '@/screens/CounterCollectionListScreen';
 
 const Drawer = createDrawerNavigator();
-
-function HomeScreenComponent() {
-  return (
-    <View>
-      <Text>Home</Text>
-    </View>
-  );
-}
+const DRAWER_WIDTH = Math.min(width * 0.75, 320);
 
 export default function DrawerNavigator() {
   return (
-    <Drawer.Navigator screenOptions={{ headerShown: false }}>
-      <Drawer.Screen name="MainScreen" component={MainScreen} />
-      {/* <Drawer.Screen name="Profile" component={ProfileScreen} /> */}
+    <Drawer.Navigator
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      screenOptions={{
+        headerShown: false,
+        drawerStyle: {
+          width: DRAWER_WIDTH,
+        },
+      }}
+    >
+      <Drawer.Screen name={StackNav.TabNav} component={ExternalTabBar} />
+      <Drawer.Screen
+        name={StackNav.CollectionRequest}
+        component={CollectRequestScreen}
+      />
+      <Drawer.Screen
+        name={StackNav.CollectRequestList}
+        component={CollectRequestListScreen}
+      />
+      <Drawer.Screen
+        name={StackNav.CountersCollectionList}
+        component={CounterCollectionListScreen}
+      />
+      <Drawer.Screen
+        name={StackNav.MyServiceRequests}
+        component={MyApplicationsScreen}
+      />
+      < Drawer.Screen
+        name={StackNav.MyCertificates}
+        component={MyCertificatesScreen}
+      />
+      <Drawer.Screen name={StackNav.MyRewards} component={MyRewardsScreen} />
+      <Drawer.Screen
+        name={StackNav.PaymentDetails}
+        component={PaymentDetailsScreen}
+      />
+      <Drawer.Screen name={StackNav.Agreement} component={AgreementScreen} />
     </Drawer.Navigator>
   );
 }

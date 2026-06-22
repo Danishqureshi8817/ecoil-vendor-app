@@ -38,15 +38,36 @@ export type CollectionRequestRow = Record<string, unknown> & {
   gate_pass?: string;
 };
 
+export type CollectionRequestType = 0 | 1 | 2;
+
+export type ChallanFilePayload = {
+  uri: string;
+  name: string;
+  type: string;
+};
+
 export type SubmitCollectionRequestInput = {
+  request_type: CollectionRequestType;
   entered_drums_qty: number;
   entered_volume: number;
   empty_drums_qty: number;
   notes_for_team: string;
+  challan_number?: string;
+  challan_required: 0 | 1;
+  challan_file?: ChallanFilePayload | null;
   vendorUserId?: string | number;
   vendorName?: string;
   collectionRequestId?: string | number;
 };
+
+/** App UI id → knparises request_type (0=Normal, 1=Oil Pickup, 2=Drum Drop). */
+export function mapUiRequestTypeToApi(
+  type: 'normal' | 'oil' | 'drum',
+): CollectionRequestType {
+  if (type === 'oil') return 1;
+  if (type === 'drum') return 2;
+  return 0;
+}
 
 const base = () => VENDOR_API_BASE.replace(/\/$/, '');
 
@@ -151,20 +172,41 @@ export async function fetchCollectionRequestById(
 export async function submitCollectionRequest(
   input: SubmitCollectionRequestInput,
 ): Promise<unknown> {
+  const form = new FormData();
+  form.append('request_type', String(input.request_type));
+  form.append('entered_drums_qty', String(input.entered_drums_qty));
+  form.append('entered_volume', String(input.entered_volume));
+  form.append('empty_drums_qty', String(input.empty_drums_qty));
+  form.append('notes_for_team', input.notes_for_team.trim());
+  form.append('challan_number', input.challan_number?.trim() ?? '');
+  form.append('challan_required', String(input.challan_required));
+  if (input.vendorUserId != null) {
+    form.append('vendorUserId', String(input.vendorUserId));
+  }
+  if (input.vendorName) {
+    form.append('vendorName', input.vendorName);
+  }
+  if (input.collectionRequestId != null) {
+    form.append('collectionRequestId', String(input.collectionRequestId));
+  }
+  if (input.challan_file) {
+    form.append('challan_file', {
+      uri: input.challan_file.uri,
+      name: input.challan_file.name,
+      type: input.challan_file.type,
+    } as unknown as Blob);
+  }
+
   const {data} = await axios.post<KnparisesEnvelope<unknown>>(
     `${base()}/collections/submit`,
+    form,
     {
-      entered_drums_qty: input.entered_drums_qty,
-      entered_volume: input.entered_volume,
-      empty_drums_qty: input.empty_drums_qty,
-      notes_for_team: input.notes_for_team.trim(),
-      ...(input.vendorUserId != null ? {vendorUserId: input.vendorUserId} : {}),
-      ...(input.vendorName ? {vendorName: input.vendorName} : {}),
-      ...(input.collectionRequestId != null
-        ? {collectionRequestId: input.collectionRequestId}
-        : {}),
+      headers: {
+        ...bearerHeaders(),
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 120_000,
     },
-    {headers: bearerHeaders(), timeout: 60_000},
   );
   return unwrapKnparises(data);
 }

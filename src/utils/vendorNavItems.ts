@@ -1,10 +1,10 @@
 import Ionicons from '@react-native-vector-icons/ionicons';
 import React from 'react';
-import {StackNav, TabNav} from '@/navigations/NavigationKeys';
-import {useAuthStore} from '@/states/authStore';
-import type {ExternalVendorUser} from '@/types/vendor';
-import {navigateToTab, push, resetAndNavigate} from '@/utils/NavigationUtils';
-import {isPrimaryVendor} from '@/utils/vendorUser';
+import { StackNav, TabNav } from '@/navigations/NavigationKeys';
+import { useAuthStore } from '@/states/authStore';
+import type { ExternalVendorUser } from '@/types/vendor';
+import { navigate, navigateToTab } from '@/utils/NavigationUtils';
+import { isParentCounter, isPrimaryVendor } from '@/utils/vendorUser';
 
 export type NavItem = {
   key: string;
@@ -12,6 +12,8 @@ export type NavItem = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   onPress?: () => void;
   primaryOnly?: boolean;
+  parentCounterOnly?: boolean;
+  hideForParentCounter?: boolean;
   disabled?: boolean;
 };
 
@@ -21,68 +23,75 @@ export function buildVendorNavItems(
 ): NavItem[] {
   const resolvedUser = user ?? useAuthStore.getState().user;
   const primary = isPrimaryVendor(resolvedUser);
+  const parentCounter = isParentCounter(resolvedUser);
 
   const items: NavItem[] = [
     {
       key: TabNav.Home,
       label: 'Dashboard',
       icon: 'grid-outline',
-      onPress: () => resetAndNavigate(StackNav.Main, 0),
+      onPress: () => navigateToTab(TabNav.Home),
     },
     {
-      key: TabNav.Services,
-      label: 'Our Services',
-      icon: 'sunny-outline',
-      onPress: () => {
-        resetAndNavigate(StackNav.Main, 0);
-        navigateToTab(TabNav.Services);
-      },
-    },
-    {
-      key: TabNav.Requests,
+      key: StackNav.MyServiceRequests,
       label: 'My Service Requests',
       icon: 'document-text-outline',
-      onPress: () => {
-        resetAndNavigate(StackNav.Main, 0);
-        navigateToTab(TabNav.Requests);
-      },
+      onPress: () => navigate(StackNav.MyServiceRequests),
     },
     {
-      key: TabNav.Collect,
-      label: 'Collection requests',
+      key: StackNav.CountersCollectionList,
+      label: 'Counters Collection',
+      icon: 'stats-chart-outline',
+      onPress: () => navigate(StackNav.CountersCollectionList),
+      parentCounterOnly: true,
+    },
+    {
+      key: StackNav.CollectRequestList,
+      label: 'Collection Requests',
       icon: 'list-circle-outline',
       onPress: () => {
-        resetAndNavigate(StackNav.Main, 0);
-        navigateToTab(TabNav.Collect);
+        navigate(StackNav.CollectRequestList);
       },
+      hideForParentCounter: true,
     },
     {
       key: StackNav.PaymentDetails,
       label: 'Payment Details',
       icon: 'wallet-outline',
-      onPress: () => push(StackNav.PaymentDetails),
+      onPress: () => navigate(StackNav.PaymentDetails),
       primaryOnly: true,
     },
     {
       key: StackNav.MyCertificates,
       label: 'Certificates',
       icon: 'ribbon-outline',
-      onPress: () => push(StackNav.MyCertificates),
+      onPress: () => navigate(StackNav.MyCertificates),
     },
     {
       key: StackNav.MyRewards,
       label: 'Scratch & Win',
       icon: 'star-outline',
-      onPress: () => push(StackNav.MyRewards),
+      onPress: () => navigate(StackNav.MyRewards),
     },
     {
       key: StackNav.Agreement,
       label: 'Agreement',
       icon: 'document-attach-outline',
-      onPress: () => push(StackNav.Agreement),
+      onPress: () => navigate(StackNav.Agreement),
       primaryOnly: true,
     },
   ];
 
-  return items.filter(item => !item.primaryOnly || primary);
+  return items.filter(item => {
+    if (item.primaryOnly && !primary) {
+      return false;
+    }
+    if (item.parentCounterOnly && !parentCounter) {
+      return false;
+    }
+    if (item.hideForParentCounter && parentCounter) {
+      return false;
+    }
+    return true;
+  });
 }

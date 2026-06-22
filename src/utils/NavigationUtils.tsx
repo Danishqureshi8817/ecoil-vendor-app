@@ -1,4 +1,4 @@
-import {StackNav, TabNav} from '@/navigations/NavigationKeys';
+import { StackNav, TabNav } from '@/navigations/NavigationKeys';
 import {
   CommonActions,
   createNavigationContainerRef,
@@ -15,12 +15,12 @@ export function navigateToMainTab(
     return;
   }
   navigationRef.dispatch(
-    CommonActions.navigate({
-      name: StackNav.Main,
+    CommonActions.navigate(StackNav.Main, {
+      screen: StackNav.TabNav,
       params:
         params !== undefined
-          ? {screen: tabScreen, params}
-          : {screen: tabScreen},
+          ? { screen: tabScreen, params }
+          : { screen: tabScreen },
     }),
   );
 }
@@ -41,7 +41,7 @@ export async function resetAndNavigate(routeName: string, index = 0) {
     navigationRef.dispatch(
       CommonActions.reset({
         index,
-        routes: [{name: routeName}],
+        routes: [{ name: routeName }],
       }),
     );
   }
@@ -59,4 +59,4 @@ export async function goBack() {
   }
 }
 
-export {TabNav};
+export { TabNav };

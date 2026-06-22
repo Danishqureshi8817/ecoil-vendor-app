@@ -1,20 +1,21 @@
 import CustomText from '@/components/global/CustomText';
-import {ApplicationDetailModal} from '@/components/external/ApplicationDetailModal';
-import {SecondaryButton} from '@/components/external/SecondaryButton';
-import type {VendorApplicationDetail, VendorApplicationRow} from '@/api/publicApi';
+import { ApplicationDetailModal } from '@/components/external/ApplicationDetailModal';
+import { SecondaryButton } from '@/components/external/SecondaryButton';
+import type { VendorApplicationDetail, VendorApplicationRow } from '@/api/publicApi';
 import publicService from '@/services/public-service';
-import {useAuthStore} from '@/states/authStore';
-import {TabNav} from '@/navigations/NavigationKeys';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
-import {externalUi} from '@/styles/externalUi';
-import {serviceUi} from '@/styles/serviceUi';
-import {screen} from '@/styles/ui';
-import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
-import {navigateToTab} from '@/utils/NavigationUtils';
-import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import {useQuery} from '@tanstack/react-query';
-import React, {useCallback, useMemo, useState} from 'react';
+import { useAuthStore } from '@/states/authStore';
+import { TabNav } from '@/navigations/NavigationKeys';
+import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
+import { externalUi } from '@/styles/externalUi';
+import { serviceUi } from '@/styles/serviceUi';
+import { screen } from '@/styles/ui';
+import { getApiErrorMessage } from '@/utils/getApiErrorMessage';
+import { navigateToTab } from '@/utils/NavigationUtils';
+import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
+import { ExternalLayout } from '@/layouts/ExternalLayout';
+import { useQuery } from '@tanstack/react-query';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -24,7 +25,9 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import {RFValue} from 'react-native-responsive-fontsize';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { Container } from '@/components/global/Container';
+import AppBar from '@/components/global/AppBar';
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -61,7 +64,7 @@ function RequestsActionCard({
       </CustomText>
       <View style={styles.actionBtnRow}>
         <Pressable
-          style={({pressed}) => [serviceUi.refreshBtn, pressed && styles.pressed]}
+          style={({ pressed }) => [serviceUi.refreshBtn, pressed && styles.pressed]}
           onPress={onRefresh}
           disabled={isRefreshing || isLoading}>
           <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.refreshText}>
@@ -69,7 +72,7 @@ function RequestsActionCard({
           </CustomText>
         </Pressable>
         <Pressable
-          style={({pressed}) => [styles.newRequestBtn, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.newRequestBtn, pressed && styles.pressed]}
           onPress={onNewRequest}>
           <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.newRequestText}>
             + New service request
@@ -80,10 +83,10 @@ function RequestsActionCard({
   );
 }
 
-function RequestsEmptyState({onBrowseServices}: {onBrowseServices: () => void}) {
+function RequestsEmptyState({ onBrowseServices }: { onBrowseServices: () => void }) {
   return (
     <View style={styles.emptyWrap}>
-      <Pressable onPress={onBrowseServices} style={({pressed}) => pressed && styles.pressed}>
+      <Pressable onPress={onBrowseServices} style={({ pressed }) => pressed && styles.pressed}>
         <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.browseLink}>
           Browse our services
         </CustomText>
@@ -150,7 +153,7 @@ export default function MyApplicationsScreen() {
   const [detail, setDetail] = useState<VendorApplicationDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  const {data: rows = [], isLoading, refetch, isRefetching, error} = useQuery({
+  const { data: rows = [], isLoading, refetch, isRefetching, error } = useQuery({
     queryKey: [publicService.queryKeys.myApplications, mobile],
     queryFn: () => publicService.getMyApplications(mobile),
     enabled: mobile.length > 0,
@@ -189,7 +192,7 @@ export default function MyApplicationsScreen() {
   const keyExtractor = useCallback((item: VendorApplicationRow) => item.id, []);
 
   const renderItem: ListRenderItem<VendorApplicationRow> = useCallback(
-    ({item}) => (
+    ({ item }) => (
       <ApplicationListCard row={item} onViewDetails={() => void openDetail(item)} />
     ),
     [mobile],
@@ -249,34 +252,39 @@ export default function MyApplicationsScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        style={[styles.list, screen.pageBg]}
-        data={listData}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        ListHeaderComponent={listHeader}
-        ListEmptyComponent={listEmpty}
-        contentContainerStyle={contentContainerStyle}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={Colors.brand}
-            enabled={mobile.length > 0}
-          />
-        }
-      />
+    <Container fullScreen statusBarStyle='light-content'>
 
-      <ApplicationDetailModal
-        visible={detailOpen}
-        loading={detailLoading}
-        detail={detail}
-        submittedLabel={detail ? `Submitted ${formatDate(detail.createdAt)}` : undefined}
-        onClose={closeDetail}
-      />
-    </View>
+      <AppBar title='My Service Requests' leading='menu' />
+
+      <View style={styles.container}>
+        <FlatList
+          style={[styles.list, screen.pageBg]}
+          data={listData}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={listEmpty}
+          contentContainerStyle={contentContainerStyle}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={Colors.brand}
+              enabled={mobile.length > 0}
+            />
+          }
+        />
+
+        <ApplicationDetailModal
+          visible={detailOpen}
+          loading={detailLoading}
+          detail={detail}
+          submittedLabel={detail ? `Submitted ${formatDate(detail.createdAt)}` : undefined}
+          onClose={closeDetail}
+        />
+      </View>
+    </Container>
   );
 }
 
@@ -300,7 +308,7 @@ const styles = StyleSheet.create({
     padding: moderateScale(18),
     marginBottom: moderateScaleVertical(20),
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
@@ -366,6 +374,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.92,
-    transform: [{scale: 0.98}],
+    transform: [{ scale: 0.98 }],
   },
 });

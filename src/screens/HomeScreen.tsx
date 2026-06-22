@@ -1,5 +1,3 @@
-import type {CollectionRequestRow} from '@/api/collectionApi';
-import {collectionRequestLabel, collectionRequestStatus} from '@/api/collectionApi';
 import CustomText from '@/components/global/CustomText';
 import {
   HomeNextPickupIcon,
@@ -9,30 +7,30 @@ import {
   HomeThisMonthGreenPointsIcon,
   HomeThisMonthRequestCountIcon,
 } from '@/components/icon/icon';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
-import {theme} from '@/constants/theme';
-import useCollectionRequests from '@/hooks/vendor/use-collection-requests';
-import {useVendorCoins} from '@/hooks/vendor/use-scratch-cards';
-import {StackNav, TabNav} from '@/navigations/NavigationKeys';
-import type {PublicService} from '@/api/publicApi';
+import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
+import { theme } from '@/constants/theme';
+import useVendorDashboard from '@/hooks/vendor/use-vendor-dashboard';
+import { useVendorCoins } from '@/hooks/vendor/use-scratch-cards';
+import { StackNav, TabNav } from '@/navigations/NavigationKeys';
+import type { PublicService } from '@/api/publicApi';
+import type { VendorDashboardNotification } from '@/api/dashboardApi';
 import publicService from '@/services/public-service';
-import {useServiceNavigationStore} from '@/states/serviceNavigationStore';
-import {screen} from '@/styles/ui';
+import { useServiceNavigationStore } from '@/states/serviceNavigationStore';
 import {
-  computeHomeMetrics,
-  formatActivityTimestamp,
-  formatKg,
+  formatDashboardCount,
+  formatDashboardQty,
+  formatNextPickupDate,
+  formatNotificationBody,
   formatPoints,
-  sortRecentCollections,
 } from '@/utils/homeMetrics';
-import {getHomeServiceIcon} from '@/utils/homeServiceIconMap';
-import {navigateToTab, push} from '@/utils/NavigationUtils';
-import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
+import { ServiceIconImage } from '@/components/service/ServiceIconImage';
+import { navigateToTab, push } from '@/utils/NavigationUtils';
+import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import {useQuery} from '@tanstack/react-query';
-import React, {useMemo} from 'react';
-import {RFValue} from 'react-native-responsive-fontsize';
+import { useQuery } from '@tanstack/react-query';
+import React, { useMemo } from 'react';
+import { RFValue } from 'react-native-responsive-fontsize';
 import {
   ActivityIndicator,
   Image,
@@ -42,21 +40,24 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { Container } from '@/components/global/Container';
+import Body from '@/components/global/Body';
+import HomeHeader from '@/components/global/HomeHeader';
 
 const GREEN_CARD_BG = require('@/assets/images/bggreenpointcard.png');
 const GREEN_CARD_ART = require('@/assets/images/homeGreenPointBg.png');
 
 const HOME_SERVICES_LIMIT = 5;
 
-function ServiceTileIcon({serviceName}: {serviceName: string}) {
-  const Icon = getHomeServiceIcon(serviceName);
-  if (Icon) {
-    return <Icon width={moderateScale(36)} height={moderateScale(40)} />;
-  }
+function ServiceTileIcon({ service }: { service: PublicService }) {
   return (
-    <View style={styles.serviceEmptyIcon}>
-      <Ionicons name="ellipse-outline" size={moderateScale(30)} color={Colors.line} />
-    </View>
+    <ServiceIconImage
+      service={service}
+      width={moderateScale(36)}
+      height={moderateScale(40)}
+      emptyIconSize={moderateScale(30)}
+      borderRadius={moderateScale(6)}
+    />
   );
 }
 
@@ -88,41 +89,30 @@ function StatCard({
   );
 }
 
-function ActivityRow({row}: {row: CollectionRequestRow}) {
-  const status = collectionRequestStatus(row);
-  const statusLower = status.toLowerCase();
-  const completed =
-    statusLower.includes('complete') ||
-    statusLower.includes('done') ||
-    statusLower.includes('closed');
-
-  const iconName = completed ? 'checkmark-circle' : 'bus-outline';
-  const iconColor = completed ? Colors.brand : Colors.accent;
-  const iconBg = completed ? Colors.brandSoft : Colors.accentSoft;
-
-  const badgeStyle = completed ? styles.badgeCompleted : styles.badgeNew;
-  const badgeText = completed ? 'Completed' : status === '—' ? 'New' : status;
+function NotificationActivityRow({ item }: { item: VendorDashboardNotification }) {
+  const title = item.title?.trim() || 'Activity';
+  const body = formatNotificationBody(item.notification);
+  const completed = title.toLowerCase().includes('complete');
+  const badgeText = completed ? 'Completed' : 'Update';
 
   return (
     <View style={styles.activityRow}>
-      <View style={[styles.activityIcon, {backgroundColor: '#E6EDE7'}]}>
-        {completed ? <HomeRecentDonePickupIcon /> : <HomeRecentTruckIcon  />}
+      <View style={[styles.activityIcon, { backgroundColor: '#E6EDE7' }]}>
+        {completed ? <HomeRecentDonePickupIcon /> : <HomeRecentTruckIcon />}
       </View>
       <View style={styles.activityBody}>
         <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} numberOfLine={1}>
-          {collectionRequestLabel(row)}
+          {title}
         </CustomText>
-        <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.activitySub} numberOfLine={2}>
-          {completed
-            ? 'Pickup request has been completed successfully.'
-            : 'A new pickup request has been submitted.'}
+        <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.activitySub} numberOfLine={3}>
+          {body || '—'}
         </CustomText>
       </View>
       <View style={styles.activityMeta}>
         <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.activityTime} numberOfLine={2}>
-          {formatActivityTimestamp(row)}
+          {item.added_date?.trim() || '—'}
         </CustomText>
-        <View style={[styles.badge, badgeStyle]}>
+        <View style={[styles.badge, completed ? styles.badgeCompleted : styles.badgeNew]}>
           <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.badgeText} numberOfLine={1}>
             {badgeText}
           </CustomText>
@@ -133,16 +123,19 @@ function ActivityRow({row}: {row: CollectionRequestRow}) {
 }
 
 export default function HomeScreen() {
-  const {data: collections, isLoading: collectionsLoading} = useCollectionRequests();
-  const {data: coins, isLoading: coinsLoading} = useVendorCoins();
+  const { data: dashboard, isLoading: dashboardLoading } = useVendorDashboard();
+  const { data: coins, isLoading: coinsLoading } = useVendorCoins();
 
-  const {data: services = [], isLoading: servicesLoading} = useQuery({
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: [publicService.queryKeys.services],
     queryFn: () => publicService.getServices(),
   });
 
-  const metrics = useMemo(() => computeHomeMetrics(collections), [collections]);
-  const recentActivity = useMemo(() => sortRecentCollections(collections, 5), [collections]);
+  const counters = dashboard?.counters;
+  const recentNotifications = useMemo(
+    () => (dashboard?.notifications ?? []).slice(0, 5),
+    [dashboard?.notifications],
+  );
   const homeServices = useMemo(
     () => services.slice(0, HOME_SERVICES_LIMIT),
     [services],
@@ -154,162 +147,172 @@ export default function HomeScreen() {
   }
 
   const greenPoints = coins?.coinTotal ?? null;
-  const monthPoints = '00';
+  const monthPoints = coins?.currentMonthCoins ?? null;
 
   return (
-    <ScrollView
-      contentContainerStyle={[screen.scroll,{backgroundColor:'#FDFDFD'}]}
-      showsVerticalScrollIndicator={false}>
-      <View style={styles.greenCardWrap}>
-        <ImageBackground
-          source={GREEN_CARD_BG}
-          style={styles.greenCardTop}
-          imageStyle={styles.greenCardBgImage}
-          resizeMode="cover">
-          <View style={styles.greenCardTopRow}>
-            <View style={styles.greenCardCopy}>
-              <View style={styles.greenLabelRow}>
-                <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold} style={styles.greenLabel}>
-                  Total Green Points
-                </CustomText>
-                <Ionicons name="information-circle-outline" size={15} color="rgba(255,255,255,0.92)" />
+    <Container
+      backgroundColor={Colors.bg}
+      fullScreen
+      statusBarStyle="light-content"
+      statusBarBackgroundColor="transparent"
+    >
+      <HomeHeader onNotificationPress={() => push(StackNav.MyRewards)} />
+      <Body contentContainerStyle={{ paddingHorizontal: moderateScale(15), paddingTop: moderateScaleVertical(15) }}>
+
+
+        {/* <ScrollView
+          contentContainerStyle={[screen.scroll, { backgroundColor: '#FDFDFD' }]}
+          showsVerticalScrollIndicator={false}> */}
+
+        <View style={styles.greenCardWrap}>
+          <ImageBackground
+            source={GREEN_CARD_BG}
+            style={styles.greenCardTop}
+            imageStyle={styles.greenCardBgImage}
+            resizeMode="cover">
+            <View style={styles.greenCardTopRow}>
+              <View style={styles.greenCardCopy}>
+                <View style={styles.greenLabelRow}>
+                  <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold} style={styles.greenLabel}>
+                    Total Green Points
+                  </CustomText>
+                  <Ionicons name="information-circle-outline" size={15} color="rgba(255,255,255,0.92)" />
+                </View>
+                {coinsLoading ? (
+                  <ActivityIndicator color={Colors.white} style={styles.pointsLoader} />
+                ) : (
+                  <CustomText variant="h1" fontFamily={Fonts.montserrat.bold} style={styles.greenPoints}>
+                    {formatPoints(greenPoints)}
+                  </CustomText>
+                )}
+                <Pressable
+                  style={({ pressed }) => [styles.redeemBtn, pressed && styles.pressed]}
+                  onPress={() => push(StackNav.MyRewards)}>
+                  <Ionicons name="gift-outline" size={15} color={Colors.black} />
+                  <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.redeemText}>
+                    Redeem Now
+                  </CustomText>
+                </Pressable>
               </View>
-              {coinsLoading ? (
-                <ActivityIndicator color={Colors.white} style={styles.pointsLoader} />
-              ) : (
-                <CustomText variant="h1" fontFamily={Fonts.montserrat.bold} style={styles.greenPoints}>
-                  {formatPoints(greenPoints)}
-                </CustomText>
-              )}
-              <Pressable
-                style={({pressed}) => [styles.redeemBtn, pressed && styles.pressed]}
-                onPress={() => push(StackNav.MyRewards)}>
-                <Ionicons name="gift-outline" size={15} color={Colors.black} />
-                <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.redeemText}>
-                  Redeem Now
-                </CustomText>
-              </Pressable>
-            </View>
-            <View style={styles.greenCardArtWrap}>
-              <View style={{}}>
-                <Image
-                  source={GREEN_CARD_ART}
-                  style={styles.greenCardArt}
-                  resizeMode='stretch'
-                />
+              <View style={styles.greenCardArtWrap}>
+                <View style={{}}>
+                  <Image
+                    source={GREEN_CARD_ART}
+                    style={styles.greenCardArt}
+                    resizeMode='stretch'
+                  />
+                </View>
               </View>
             </View>
+          </ImageBackground>
+          <View style={styles.oilBar}>
+            <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.oilBarLabel}>
+              Total Oil Collection
+            </CustomText>
+            <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} style={styles.oilBarValue}>
+              {dashboardLoading ? '—' : formatDashboardQty(counters?.TotalPickedQty)}
+            </CustomText>
           </View>
-        </ImageBackground>
-        <View style={styles.oilBar}>
-          <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.oilBarLabel}>
-            Total Oil Collection
-          </CustomText>
-          <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} style={styles.oilBarValue}>
-            {collectionsLoading ? '—' : formatKg(metrics.totalOilKg)}
-          </CustomText>
         </View>
-      </View>
 
-      <View style={styles.statsGrid}>
-        <StatCard
-          icon={<HomeThisMonthCollectQuantityIcon width={22} height={28} />}
-          label="This Month Collected Quantity"
-          value={collectionsLoading ? '—' : formatKg(metrics.monthOilKg)}
-        />
-        <StatCard
-          icon={<HomeThisMonthGreenPointsIcon width={28} height={28} />}
-          label="Green Points Earned This month"
-          value={coinsLoading ? '—' : monthPoints}
-        />
-        <StatCard
-          icon={<HomeThisMonthRequestCountIcon width={26} height={26} />}
-          label="Currently Open Request Count"
-          value={collectionsLoading ? '—' : String(metrics.openRequestCount)}
-        />
-        <StatCard
-          icon={<HomeNextPickupIcon width={26} height={26} />}
-          label="Next Pickup Scheduled Date"
-          value={collectionsLoading ? '—' : metrics.nextPickupLabel}
-        />
-      </View>
+        <View style={styles.statsGrid}>
+          <StatCard
+            icon={<HomeThisMonthCollectQuantityIcon width={22} height={28} />}
+            label="This Month Collected Quantity"
+            value={dashboardLoading ? '—' : formatDashboardQty(counters?.MonthPickedQty)}
+          />
+          <StatCard
+            icon={<HomeThisMonthGreenPointsIcon width={28} height={28} />}
+            label="Green Points Earned This month"
+            value={coinsLoading ? '—' : formatPoints(monthPoints)}
+          />
+          <StatCard
+            icon={<HomeThisMonthRequestCountIcon width={26} height={26} />}
+            label="Currently Open Request Count"
+            value={dashboardLoading ? '—' : formatDashboardCount(counters?.OpenRequests)}
+          />
+          <StatCard
+            icon={<HomeNextPickupIcon width={26} height={26} />}
+            label="Next Pickup Scheduled Date"
+            value={dashboardLoading ? '—' : formatNextPickupDate(counters?.NextPickUpDate)}
+          />
+        </View>
 
-      <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.sectionTitle}>
-        Our Services
-      </CustomText>
+        <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.sectionTitle}>
+          Our Services
+        </CustomText>
 
-      <View style={styles.servicesGrid}>
-        {servicesLoading ? (
-          <ActivityIndicator color={Colors.brand} style={styles.servicesLoader} />
-        ) : (
-          <>
-            {homeServices.map(service => (
+        <View style={styles.servicesGrid}>
+          {servicesLoading ? (
+            <ActivityIndicator color={Colors.brand} style={styles.servicesLoader} />
+          ) : (
+            <>
+              {homeServices.map(service => (
+                <Pressable
+                  key={service.id}
+                  style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
+                  onPress={() => handleHomeServicePress(service)}>
+                  <ServiceTileIcon service={service} />
+                  <CustomText
+                    variant="h7"
+                    fontFamily={Fonts.montserrat.semiBold}
+                    style={styles.serviceLabel}
+                    numberOfLine={3}>
+                    {service.name}
+                  </CustomText>
+                </Pressable>
+              ))}
               <Pressable
-                key={service.id}
-                style={({pressed}) => [styles.serviceTile, pressed && styles.pressed]}
-                onPress={() => handleHomeServicePress(service)}>
-                <ServiceTileIcon serviceName={service.name} />
+                style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
+                onPress={() => {
+                  useServiceNavigationStore.getState().clearPendingService();
+                  navigateToTab(TabNav.Services);
+                }}>
+                <View style={styles.viewAllCircle}>
+                  <Ionicons name="arrow-forward" size={22} color={Colors.brand} />
+                </View>
                 <CustomText
                   variant="h7"
                   fontFamily={Fonts.montserrat.semiBold}
                   style={styles.serviceLabel}
-                  numberOfLine={3}>
-                  {service.name}
+                  numberOfLine={2}>
+                  See all services
                 </CustomText>
               </Pressable>
-            ))}
-            <Pressable
-              style={({pressed}) => [styles.serviceTile, pressed && styles.pressed]}
-              onPress={() => {
-                useServiceNavigationStore.getState().clearPendingService();
-                navigateToTab(TabNav.Services);
-              }}>
-              <View style={styles.viewAllCircle}>
-                <Ionicons name="arrow-forward" size={22} color={Colors.brand} />
-              </View>
-              <CustomText
-                variant="h7"
-                fontFamily={Fonts.montserrat.semiBold}
-                style={styles.serviceLabel}
-                numberOfLine={2}>
-                See all services
-              </CustomText>
-            </Pressable>
-          </>
+            </>
+          )}
+        </View>
+
+        <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.sectionTitle}>
+          Recent Activity
+        </CustomText>
+
+        {dashboardLoading ? (
+          <ActivityIndicator color={Colors.brand} style={styles.activityLoader} />
+        ) : recentNotifications.length === 0 ? (
+          <View style={styles.activityEmpty}>
+            <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.activitySub}>
+              No recent activity yet.
+            </CustomText>
+          </View>
+        ) : (
+          recentNotifications.map((item, index) => (
+            <NotificationActivityRow
+              key={`${item.added_date ?? 'activity'}-${index}`}
+              item={item}
+            />
+          ))
         )}
-      </View>
 
-      <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.sectionTitle}>
-        Recent Activity
-      </CustomText>
-
-      {collectionsLoading ? (
-        <ActivityIndicator color={Colors.brand} style={styles.activityLoader} />
-      ) : recentActivity.length === 0 ? (
-        <View style={styles.activityEmpty}>
-          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.activitySub}>
-            No recent activity yet.
+        <View style={styles.footer}>
+          <Ionicons name="leaf" size={20} color={Colors.brand} />
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.footerText}>
+            EVERY DROP COUNTS TOWARDS A GREENER TOMORROW.
           </CustomText>
         </View>
-      ) : (
-        recentActivity.map((row, index) => {
-          const id =
-            row.id ??
-            row.request_id ??
-            row.collection_request_id ??
-            row.coll_req_id ??
-            index;
-          return <ActivityRow key={String(id)} row={row} />;
-        })
-      )}
-
-      <View style={styles.footer}>
-        <Ionicons name="leaf" size={20} color={Colors.brand} />
-        <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.footerText}>
-          EVERY DROP COUNTS TOWARDS A GREENER TOMORROW.
-        </CustomText>
-      </View>
-    </ScrollView>
+        {/* </ScrollView> */}
+      </Body>
+    </Container>
   );
 }
 
@@ -320,16 +323,22 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...theme.shadow,
     backgroundColor: '#E2F5E8',
+    borderWidth: 0,
+    // borderColor: 'red',
   },
   greenCardTop: {
     // minHeight: moderateScaleVertical(164),
     overflow: 'hidden',
     justifyContent: 'flex-end',
-  },
-  greenCardBgImage: {
-   borderRadius: moderateScale(14),
     borderWidth: moderateScale(4),
     borderColor: '#57AB6F',
+    borderRadius: moderateScale(14),
+  },
+  greenCardBgImage: {
+    // borderRadius: moderateScale(14),
+    // borderWidth: moderateScale(4),
+    // borderColor: '#57AB6F',
+    // borderColor: 'red',
     overflow: 'hidden',
   },
   greenCardTopRow: {
@@ -338,7 +347,7 @@ const styles = StyleSheet.create({
 
   },
   greenCardArtWrap: {
-    width: '44%',
+    width: '42%',
     // height: moderateScaleVertical(158),
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -348,7 +357,7 @@ const styles = StyleSheet.create({
   },
   greenCardArt: {
     width: moderateScale(160),
-    height: moderateScale(135),
+    height: moderateScale(140),
   },
   greenCardCopy: {
     flex: 1,
@@ -388,7 +397,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(16),
     paddingVertical: moderateScaleVertical(7),
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
@@ -589,6 +598,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.92,
-    transform: [{scale: 0.98}],
+    transform: [{ scale: 0.98 }],
   },
 });

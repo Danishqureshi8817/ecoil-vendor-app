@@ -6,10 +6,12 @@ import OnboardingScreen from '@/screens/OnboardingScreen';
 import Login from '@/screens/Login';
 import CollectRequestListScreen from '@/screens/CollectRequestListScreen';
 import CollectRequestDetailScreen from '@/screens/CollectRequestDetailScreen';
+import CounterCollectionDetailScreen from '@/screens/CounterCollectionDetailScreen';
 import MyCertificatesScreen from '@/screens/MyCertificatesScreen';
 import MyRewardsScreen from '@/screens/MyRewardsScreen';
 import PaymentDetailsScreen from '@/screens/PaymentDetailsScreen';
 import AgreementScreen from '@/screens/AgreementScreen';
+import MyApplicationsScreen from '@/screens/MyApplicationsScreen';
 import { navigationRef } from '@/utils/NavigationUtils';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -27,24 +29,16 @@ export default function AppNavigator() {
         <Stack.Screen name={StackNav.Onboarding} component={OnboardingScreen} />
         <Stack.Screen name={StackNav.Login} component={Login} />
         <Stack.Screen name={StackNav.Main} component={DrawerNavigator} />
-        <Stack.Screen
-          name={StackNav.CollectRequestList}
-          component={CollectRequestListScreen}
-        />
+
         <Stack.Screen
           name={StackNav.CollectRequestDetail}
           component={CollectRequestDetailScreen}
         />
         <Stack.Screen
-          name={StackNav.MyCertificates}
-          component={MyCertificatesScreen}
+          name={StackNav.CountersCollectionDetail}
+          component={CounterCollectionDetailScreen}
         />
-        <Stack.Screen name={StackNav.MyRewards} component={MyRewardsScreen} />
-        <Stack.Screen
-          name={StackNav.PaymentDetails}
-          component={PaymentDetailsScreen}
-        />
-        <Stack.Screen name={StackNav.Agreement} component={AgreementScreen} />
+
       </Stack.Navigator>
       <CheckInternet />
     </NavigationContainer>

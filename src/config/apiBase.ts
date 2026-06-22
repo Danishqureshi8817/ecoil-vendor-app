@@ -10,7 +10,7 @@ const PRODUCTION_ORIGIN = 'https://vendor-api.ecoil.in';
  * Android emulator cannot reach the dev machine via `localhost`.
  * Map to the host loopback alias used by the Android emulator.
  */
-function remapHostForDevice(origin: string): string {
+export function remapHostForDevice(origin: string): string {
   if (Platform.OS !== 'android') {
     return origin;
   }

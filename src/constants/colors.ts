@@ -4,7 +4,7 @@ export const Colors = {
   black: '#1a1a2e',
   muted: '#64748b',
   line: '#e8ecf0',
-  bg: '#f4f6f8',
+  bg: '#FDFDFD',
   brand: '#047857',
   brandDark: '#065f46',
   brandMid: '#059669',
@@ -26,6 +26,7 @@ export const Colors = {
   borderColor: '#e8ecf0',
   placeHolderColor: '#94a3b8',
   primary: '#047857',
+  drawerLogoutBg: '#F4F6F8',
 
   /** Onboarding / auth intro screens (Figma) */
   onboardingBg: '#f7fbf8',

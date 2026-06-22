@@ -4,20 +4,20 @@ import {
   CertificateTableHeader,
   TABLE_MIN_WIDTH,
 } from '@/components/external/CertificateRowCard';
-import {EmptyState} from '@/components/ui/EmptyState';
-import type {CertificateRow} from '@/api/certificatesApi';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
+import { EmptyState } from '@/components/ui/EmptyState';
+import type { CertificateRow } from '@/api/certificatesApi';
+import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
 import useCertificates from '@/hooks/vendor/use-certificates';
-import {ExternalLayout} from '@/layouts/ExternalLayout';
-import {StackNav} from '@/navigations/NavigationKeys';
-import {useAuthStore} from '@/states/authStore';
-import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
-import {clearSession} from '@/utils/sessionStorage';
-import {buildVendorNavItems} from '@/utils/vendorNavItems';
-import {resetAndNavigate} from '@/utils/NavigationUtils';
-import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import React, {useCallback, useRef} from 'react';
+import { ExternalLayout } from '@/layouts/ExternalLayout';
+import { StackNav } from '@/navigations/NavigationKeys';
+import { useAuthStore } from '@/states/authStore';
+import { getApiErrorMessage } from '@/utils/getApiErrorMessage';
+import { clearSession } from '@/utils/sessionStorage';
+import { buildVendorNavItems } from '@/utils/vendorNavItems';
+import { resetAndNavigate } from '@/utils/NavigationUtils';
+import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
+import React, { useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -29,11 +29,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import {RFValue} from 'react-native-responsive-fontsize';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { Container } from '@/components/global/Container';
+import AppBar from '@/components/global/AppBar';
 
 export default function MyCertificatesScreen() {
   const user = useAuthStore(s => s.user);
-  const {data, isLoading, refetch, isRefetching, error} = useCertificates();
+  const { data, isLoading, refetch, isRefetching, error } = useCertificates();
   const rows = data ?? [];
   const headerScrollRef = useRef<ScrollView>(null);
 
@@ -48,7 +50,7 @@ export default function MyCertificatesScreen() {
   const handleBodyHorizontalScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const x = event.nativeEvent.contentOffset.x;
-      headerScrollRef.current?.scrollTo({x, animated: false});
+      headerScrollRef.current?.scrollTo({ x, animated: false });
     },
     [],
   );
@@ -59,21 +61,18 @@ export default function MyCertificatesScreen() {
   );
 
   const renderItem: ListRenderItem<CertificateRow> = useCallback(
-    ({item}) => <CertificateRowCard row={item} />,
+    ({ item }) => <CertificateRowCard row={item} />,
     [],
   );
 
   const showTable = !isLoading && !error && rows.length > 0;
 
   return (
-    <ExternalLayout
-      title="Certificates"
-      activeKey={StackNav.MyCertificates}
-      navItems={navItems}
-      onLogout={handleLogout}
-      headerHideAvatar
-      headerCenterTitle>
-      <View style={styles.container}>
+
+    <Container fullScreen statusBarStyle='light-content'>
+
+      <AppBar title='Certificates' leading='menu' />
+      <View style={styles.containerWrapper}>
         {isLoading ? (
           <View style={styles.emptyBody}>
             <ActivityIndicator size="large" color={Colors.brand} />
@@ -142,12 +141,12 @@ export default function MyCertificatesScreen() {
           </View>
         ) : null}
       </View>
-    </ExternalLayout>
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  containerWrapper: {
     flex: 1,
     backgroundColor: Colors.white,
   },
