@@ -19,6 +19,7 @@ import { vendorUserId } from '@/utils/vendorUser';
 import { buildVendorNavItems } from '@/utils/vendorNavItems';
 import { resetAndNavigate } from '@/utils/NavigationUtils';
 import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
+import Ionicons from '@react-native-vector-icons/ionicons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -88,16 +89,19 @@ function PaymentCard({ row, index }: { row: PaymentDetailRow; index: number }) {
         );
       })}
       {row.payment_ref_2_url ? (
-        <Pressable
-          onPress={() => void Linking.openURL(row.payment_ref_2_url!)}
-          style={styles.receiptLink}>
-          <CustomText
-            variant="h7"
-            fontFamily={Fonts.montserrat.semiBold}
-            style={styles.receiptLinkText}>
-            View receipt
-          </CustomText>
-        </Pressable>
+        <View style={styles.receiptRow}>
+          <Pressable
+            onPress={() => void Linking.openURL(row.payment_ref_2_url!)}
+            style={({pressed}) => [styles.receiptBtn, pressed && styles.receiptBtnPressed]}>
+            <Ionicons name="document-text-outline" size={moderateScale(14)} color={Colors.white} />
+            <CustomText
+              variant="h7"
+              fontFamily={Fonts.montserrat.semiBold}
+              style={styles.receiptBtnText}>
+              View receipt
+            </CustomText>
+          </Pressable>
+        </View>
       ) : null}
     </View>
   );
@@ -162,9 +166,9 @@ export default function PaymentDetailsScreen() {
 
   const renderItem: ListRenderItem<PaymentDetailRow> = useCallback(
     ({ item, index }) => (
-      <View style={styles.listItem}>
+      // <View style={styles.listItem}>
         <PaymentCard row={item} index={index} />
-      </View>
+      // </View>
     ),
     [],
   );
@@ -345,7 +349,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   listItem: {
-    paddingHorizontal: moderateScale(16),
+    // paddingHorizontal: moderateScale(16),
+    // backgroundColor:'red'
   },
   errorWrap: {
     paddingHorizontal: moderateScale(16),
@@ -354,10 +359,24 @@ const styles = StyleSheet.create({
   paymentCard: {
     marginBottom: moderateScaleVertical(12),
   },
-  receiptLink: {
-    marginTop: moderateScaleVertical(8),
+  receiptRow: {
+    marginTop: moderateScaleVertical(12),
+    alignItems: 'flex-end',
   },
-  receiptLinkText: {
-    color: Colors.brand,
+  receiptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(6),
+    backgroundColor: Colors.buttonPrimary,
+    paddingVertical: moderateScaleVertical(9),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(999),
+  },
+  receiptBtnPressed: {
+    opacity: 0.92,
+  },
+  receiptBtnText: {
+    color: Colors.white,
+    fontSize: RFValue(10),
   },
 });

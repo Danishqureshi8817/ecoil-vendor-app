@@ -174,7 +174,7 @@ export default function CollectRequestListScreen() {
           data={listData}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
-          ListHeaderComponent={listHeader}
+          // ListHeaderComponent={listHeader}
           ListEmptyComponent={listEmpty}
           contentContainerStyle={[screen.scroll, styles.listContent]}
           showsVerticalScrollIndicator={false}

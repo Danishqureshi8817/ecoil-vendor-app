@@ -1,15 +1,18 @@
 import CustomText from '@/components/global/CustomText';
 import { Colors } from '@/constants/colors';
 import { Fonts } from '@/constants/fonts';
+import { mergeProfileUser, submitVendorProfile } from '@/api/profileApi';
 import { useAuthStore } from '@/states/authStore';
-import { screen } from '@/styles/ui';
+import { getApiErrorMessage } from '@/utils/getApiErrorMessage';
+import { patchStoredUser } from '@/utils/sessionStorage';
+import { vendorUserId } from '@/utils/vendorUser';
 import { goBack } from '@/utils/NavigationUtils';
 import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
 import { useToastMessage } from '@/utils/useToastMessage';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
-  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -29,68 +32,58 @@ export default function ProfileScreen() {
   const setUser = useAuthStore(s => s.setUser);
   const { toastSuccess, toastError } = useToastMessage();
 
-  // Form states
-  const [name, setName] = useState(user?.name || '');
-  const [mobile, setMobile] = useState(user?.mobile || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [designation, setDesignation] = useState('');
-  const [password, setPassword] = useState('••••••••••••••');
+  const storedMobile = user?.mobile?.trim() ?? '';
 
-  const [isPasswordEditable, setIsPasswordEditable] = useState(false);
-  const [hidePassword, setHidePassword] = useState(true);
+  const [name, setName] = useState(user?.name?.trim() ?? '');
+  const [email, setEmail] = useState(user?.email?.trim() ?? '');
+  const [designation, setDesignation] = useState(
+    () => String(user?.designation ?? '').trim(),
+  );
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  async function handleSave() {
     if (!name.trim()) {
       toastError('Contact Person name cannot be empty');
       return;
     }
-    if (!mobile.trim()) {
-      toastError('Contact Person Mobile cannot be empty');
+    if (!user) {
+      toastError('Please sign in again');
+      return;
+    }
+    const userId = vendorUserId(user);
+    if (!userId || !storedMobile) {
+      toastError('Profile is incomplete. Please sign in again.');
       return;
     }
 
-    // Save profile updates to local Zustad store
-    if (user) {
-      setUser({
-        ...user,
-        name: name.trim(),
-        mobile: mobile.trim(),
-        email: email.trim(),
-      });
-    }
+    const payload = {
+      id: userId,
+      mobile: storedMobile,
+      name: name.trim(),
+      designation: designation.trim(),
+      email: email.trim(),
+    };
 
-    toastSuccess('Profile updated successfully');
-    setTimeout(() => goBack(), 800);
-  };
-
-  const handlePasswordEdit = () => {
-    if (isPasswordEditable) {
-      // Done editing password
-      setIsPasswordEditable(false);
-      setHidePassword(true);
-      toastSuccess('Password updated locally');
-    } else {
-      // Start editing
-      setPassword('');
-      setIsPasswordEditable(true);
-      setHidePassword(false);
+    setSaving(true);
+    try {
+      await submitVendorProfile(payload);
+      const nextUser = mergeProfileUser(user, payload);
+      patchStoredUser(nextUser);
+      setUser(nextUser);
+      toastSuccess('Profile updated successfully');
+      setTimeout(() => goBack(), 800);
+    } catch (err) {
+      toastError(getApiErrorMessage(err, 'Could not update profile'));
+    } finally {
+      setSaving(false);
     }
-  };
+  }
 
   return (
     <Container fullScreen statusBarStyle="light-content">
       <AppBar title="Profile" leading="menu" />
 
-      {/* <ScrollView
-        style={screen.pageBg}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      > */}
       <Body>
-
-
-        {/* Banner with Profile icon */}
         <View style={styles.bannerRow}>
           <View style={styles.avatarContainer}>
             <Image source={PROFILE_TOP_ICON} style={styles.avatarImg} resizeMode="contain" />
@@ -100,12 +93,11 @@ export default function ProfileScreen() {
               View / Change Profile
             </CustomText>
             <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.bannerSubtitle}>
-              Update your contact information and password.
+              Update your contact information.
             </CustomText>
           </View>
         </View>
 
-        {/* Inputs Box Card Container */}
         <View style={styles.cardContainer}>
           <OutlineInput
             label="Contact Person"
@@ -116,10 +108,10 @@ export default function ProfileScreen() {
 
           <OutlineInput
             label="Contact Person Mobile"
-            value={mobile}
-            onChangeText={setMobile}
-            placeholder="Enter mobile number"
+            value={storedMobile}
+            placeholder="Mobile number"
             keyboardType="numeric"
+            editable={false}
           />
 
           <OutlineInput
@@ -137,37 +129,6 @@ export default function ProfileScreen() {
             placeholder="Enter designation"
           />
 
-          {/* Password Input */}
-          <OutlineInput
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Enter new password"
-            secureTextEntry={hidePassword}
-            editable={isPasswordEditable}
-            rightElement={
-              <View style={styles.passwordRight}>
-                <TouchableOpacity
-                  onPress={() => setHidePassword(!hidePassword)}
-                  style={styles.eyeBtn}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={hidePassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={Colors.black}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handlePasswordEdit} activeOpacity={0.7}>
-                  <CustomText style={styles.editBtnText}>
-                    {isPasswordEditable ? 'Done' : 'Edit'}
-                  </CustomText>
-                </TouchableOpacity>
-              </View>
-            }
-          />
-
-          {/* Account Security Blue Box */}
           <View style={styles.securityBox}>
             <View style={styles.shieldIconWrap}>
               <SecurityIcon />
@@ -177,28 +138,40 @@ export default function ProfileScreen() {
                 Keep your account secure.
               </CustomText>
               <CustomText style={styles.securitySub}>
-                Use a strong password and keep it confidential.
+                Mobile number cannot be changed here. Contact support if you need help.
               </CustomText>
             </View>
           </View>
         </View>
 
-        {/* Save / Cancel Bottom Actions */}
         <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.85}>
-            <Ionicons name="save-outline" size={18} color={Colors.white} style={{ marginRight: 8 }} />
-            <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold} style={styles.saveBtnText}>
-              Save
-            </CustomText>
+          <TouchableOpacity
+            style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+            onPress={() => void handleSave()}
+            disabled={saving}
+            activeOpacity={0.85}>
+            {saving ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <>
+                <Ionicons name="save-outline" size={18} color={Colors.white} style={{ marginRight: 8 }} />
+                <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold} style={styles.saveBtnText}>
+                  Save
+                </CustomText>
+              </>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.cancelBtn} onPress={() => goBack()} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.cancelBtn}
+            onPress={() => goBack()}
+            disabled={saving}
+            activeOpacity={0.8}>
             <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold} style={styles.cancelBtnText}>
               Cancel
             </CustomText>
           </TouchableOpacity>
         </View>
-        {/* </ScrollView> */}
       </Body>
     </Container>
   );
@@ -210,45 +183,36 @@ function OutlineInput({
   onChangeText,
   placeholder,
   keyboardType = 'default',
-  secureTextEntry,
   editable = true,
-  rightElement,
 }: {
   label: string;
   value: string;
   onChangeText?: (text: string) => void;
   placeholder?: string;
   keyboardType?: 'default' | 'numeric' | 'email-address';
-  secureTextEntry?: boolean;
   editable?: boolean;
-  rightElement?: React.ReactNode;
 }) {
   return (
     <View style={styles.inputContainer}>
       <View style={styles.inputLabelBg}>
         <CustomText style={styles.inputLabelText}>{label}</CustomText>
       </View>
-      <View style={styles.inputRow}>
+      <View style={[styles.inputRow, !editable && styles.inputRowDisabled]}>
         <TextInput
-          style={styles.textInput}
+          style={[styles.textInput, !editable && styles.textInputDisabled]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={Colors.placeHolderColor}
           keyboardType={keyboardType}
-          secureTextEntry={secureTextEntry}
           editable={editable}
         />
-        {rightElement && <View style={styles.rightElementWrap}>{rightElement}</View>}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    paddingBottom: moderateScaleVertical(32),
-  },
   bannerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -319,6 +283,10 @@ const styles = StyleSheet.create({
     height: '100%',
     paddingHorizontal: moderateScale(12),
   },
+  inputRowDisabled: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: moderateScale(6),
+  },
   textInput: {
     flex: 1,
     fontSize: RFValue(12),
@@ -326,25 +294,8 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.montserrat.medium,
     padding: 0,
   },
-  rightElementWrap: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: moderateScale(8),
-  },
-  passwordRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: moderateScale(12),
-  },
-  eyeBtn: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  editBtnText: {
-    color: '#007D41',
-    fontFamily: Fonts.montserrat.semiBold,
-    fontSize: RFValue(12),
-    textDecorationLine: 'underline',
+  textInputDisabled: {
+    color: Colors.muted,
   },
   securityBox: {
     flexDirection: 'row',
@@ -386,6 +337,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+  },
+  saveBtnDisabled: {
+    opacity: 0.75,
   },
   saveBtnText: {
     color: Colors.white,

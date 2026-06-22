@@ -43,6 +43,7 @@ import {
 import { Container } from '@/components/global/Container';
 import Body from '@/components/global/Body';
 import HomeHeader from '@/components/global/HomeHeader';
+import {MetricLoadingLottie} from '@/components/global/MetricLoadingLottie';
 
 const GREEN_CARD_BG = require('@/assets/images/bggreenpointcard.png');
 const GREEN_CARD_ART = require('@/assets/images/homeGreenPointBg.png');
@@ -65,10 +66,12 @@ function StatCard({
   icon,
   label,
   value,
+  loading = false,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  loading?: boolean;
 }) {
   return (
     <View style={styles.statCard}>
@@ -82,9 +85,13 @@ function StatCard({
           {label}
         </CustomText>
       </View>
-      <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.statValue}>
-        {value}
-      </CustomText>
+      {loading ? (
+        <MetricLoadingLottie size="sm" style={styles.statValueLoader} />
+      ) : (
+        <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.statValue}>
+          {value}
+        </CustomText>
+      )}
     </View>
   );
 }
@@ -123,8 +130,8 @@ function NotificationActivityRow({ item }: { item: VendorDashboardNotification }
 }
 
 export default function HomeScreen() {
-  const { data: dashboard, isLoading: dashboardLoading } = useVendorDashboard();
-  const { data: coins, isLoading: coinsLoading } = useVendorCoins();
+  const {data: dashboard, isPending: dashboardPending} = useVendorDashboard();
+  const {data: coins, isPending: coinsPending} = useVendorCoins();
 
   const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: [publicService.queryKeys.services],
@@ -178,8 +185,8 @@ export default function HomeScreen() {
                   </CustomText>
                   <Ionicons name="information-circle-outline" size={15} color="rgba(255,255,255,0.92)" />
                 </View>
-                {coinsLoading ? (
-                  <ActivityIndicator color={Colors.white} style={styles.pointsLoader} />
+                {coinsPending ? (
+                  <MetricLoadingLottie tint="light" size="lg" style={styles.pointsLoader} />
                 ) : (
                   <CustomText variant="h1" fontFamily={Fonts.montserrat.bold} style={styles.greenPoints}>
                     {formatPoints(greenPoints)}
@@ -209,9 +216,13 @@ export default function HomeScreen() {
             <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.oilBarLabel}>
               Total Oil Collection
             </CustomText>
-            <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} style={styles.oilBarValue}>
-              {dashboardLoading ? '—' : formatDashboardQty(counters?.TotalPickedQty)}
-            </CustomText>
+            {dashboardPending ? (
+              <MetricLoadingLottie size="sm" style={styles.oilBarLoader} />
+            ) : (
+              <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} style={styles.oilBarValue}>
+                {formatDashboardQty(counters?.TotalPickedQty)}
+              </CustomText>
+            )}
           </View>
         </View>
 
@@ -219,22 +230,26 @@ export default function HomeScreen() {
           <StatCard
             icon={<HomeThisMonthCollectQuantityIcon width={22} height={28} />}
             label="This Month Collected Quantity"
-            value={dashboardLoading ? '—' : formatDashboardQty(counters?.MonthPickedQty)}
+            value={formatDashboardQty(counters?.MonthPickedQty)}
+            loading={dashboardPending}
           />
           <StatCard
             icon={<HomeThisMonthGreenPointsIcon width={28} height={28} />}
             label="Green Points Earned This month"
-            value={coinsLoading ? '—' : formatPoints(monthPoints)}
+            value={formatPoints(monthPoints)}
+            loading={coinsPending}
           />
           <StatCard
             icon={<HomeThisMonthRequestCountIcon width={26} height={26} />}
             label="Currently Open Request Count"
-            value={dashboardLoading ? '—' : formatDashboardCount(counters?.OpenRequests)}
+            value={formatDashboardCount(counters?.OpenRequests)}
+            loading={dashboardPending}
           />
           <StatCard
             icon={<HomeNextPickupIcon width={26} height={26} />}
             label="Next Pickup Scheduled Date"
-            value={dashboardLoading ? '—' : formatNextPickupDate(counters?.NextPickUpDate)}
+            value={formatNextPickupDate(counters?.NextPickUpDate)}
+            loading={dashboardPending}
           />
         </View>
 
@@ -287,7 +302,7 @@ export default function HomeScreen() {
           Recent Activity
         </CustomText>
 
-        {dashboardLoading ? (
+        {dashboardPending ? (
           <ActivityIndicator color={Colors.brand} style={styles.activityLoader} />
         ) : recentNotifications.length === 0 ? (
           <View style={styles.activityEmpty}>
@@ -383,8 +398,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   pointsLoader: {
-    alignSelf: 'flex-start',
-    marginVertical: moderateScaleVertical(10),
+    marginTop: moderateScaleVertical(8),
+    marginBottom: moderateScaleVertical(4),
   },
   redeemBtn: {
     marginTop: moderateScaleVertical(10),
@@ -421,6 +436,9 @@ const styles = StyleSheet.create({
   oilBarValue: {
     color: Colors.drawerGradientEnd,
     fontSize: RFValue(12),
+  },
+  oilBarLoader: {
+    alignSelf: 'flex-end',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -461,6 +479,9 @@ const styles = StyleSheet.create({
     color: Colors.black,
     fontSize: RFValue(13),
     letterSpacing: -0.2,
+  },
+  statValueLoader: {
+    marginTop: moderateScaleVertical(8),
   },
   sectionTitle: {
     marginBottom: moderateScaleVertical(12),

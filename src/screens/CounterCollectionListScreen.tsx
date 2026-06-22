@@ -249,7 +249,7 @@ export default function CounterCollectionListScreen() {
           </View>
         </View>
 
-        <View style={[styles.searchRow, searchFocused && styles.searchRowFocused]}>
+        {/* <View style={[styles.searchRow, searchFocused && styles.searchRowFocused]}>
           <Ionicons
             name="search-outline"
             size={20}
@@ -266,7 +266,7 @@ export default function CounterCollectionListScreen() {
             autoCapitalize="none"
             autoCorrect={false}
           />
-        </View>
+        </View> */}
       </>
     ),
     [

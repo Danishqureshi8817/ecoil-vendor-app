@@ -23,6 +23,7 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { RFValue } from 'react-native-responsive-fontsize';
@@ -83,9 +84,15 @@ function RequestsActionCard({
   );
 }
 
-function RequestsEmptyState({ onBrowseServices }: { onBrowseServices: () => void }) {
+function RequestsEmptyState({
+  onBrowseServices,
+  minHeight,
+}: {
+  onBrowseServices: () => void;
+  minHeight: number;
+}) {
   return (
-    <View style={styles.emptyWrap}>
+    <View style={[styles.emptyWrapCentered, { minHeight }]}>
       <Pressable onPress={onBrowseServices} style={({ pressed }) => pressed && styles.pressed}>
         <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.browseLink}>
           Browse our services
@@ -147,6 +154,7 @@ function ApplicationListCard({
 }
 
 export default function MyApplicationsScreen() {
+  const { height: windowHeight } = useWindowDimensions();
   const user = useAuthStore(s => s.user);
   const mobile = user?.mobile?.trim() ?? '';
   const [detailOpen, setDetailOpen] = useState(false);
@@ -161,6 +169,11 @@ export default function MyApplicationsScreen() {
 
   const listData = !isLoading && !error && mobile ? rows : [];
   const isEmptyList = listData.length === 0;
+
+  const emptyListMinHeight = Math.max(
+    windowHeight - moderateScaleVertical(300),
+    moderateScaleVertical(200),
+  );
 
   const goToServices = useCallback(() => {
     navigateToTab(TabNav.Services);
@@ -239,8 +252,10 @@ export default function MyApplicationsScreen() {
         </View>
       );
     }
-    return <RequestsEmptyState onBrowseServices={goToServices} />;
-  }, [mobile, isLoading, error, goToServices]);
+    return (
+      <RequestsEmptyState onBrowseServices={goToServices} minHeight={emptyListMinHeight} />
+    );
+  }, [mobile, isLoading, error, goToServices, emptyListMinHeight]);
 
   const contentContainerStyle = useMemo(
     () => [
@@ -349,7 +364,13 @@ const styles = StyleSheet.create({
   },
   emptyWrap: {
     alignItems: 'center',
-    paddingTop: moderateScaleVertical(48),
+    justifyContent: 'center',
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScaleVertical(24),
+  },
+  emptyWrapCentered: {
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: moderateScale(16),
   },
   browseLink: {
