@@ -1,4 +1,5 @@
 import CustomText from '@/components/global/CustomText';
+import { KnparisesDatePickerField } from '@/components/global/KnparisesDatePickerField';
 import { Colors } from '@/constants/colors';
 import { Fonts } from '@/constants/fonts';
 import type { ServiceFormPayload, ServiceFormQuestion } from '@/api/publicApi';
@@ -36,7 +37,7 @@ function guessPrefill(
     return '';
   }
   // Dropdowns & checkboxes must start empty — options are service-specific.
-  if (questionType === 'DROPDOWN' || questionType === 'CHECKBOX') {
+  if (questionType === 'DROPDOWN' || questionType === 'CHECKBOX' || questionType === 'DATE') {
     return '';
   }
 
@@ -81,6 +82,7 @@ function guessPrefill(
 export function ServiceDynamicForm({ form, user, saving, onSubmit }: Props) {
   const { toastError } = useToastMessage();
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
+  const [dateAnswers, setDateAnswers] = useState<Record<string, string>>({});
   const [dropdownAnswers, setDropdownAnswers] = useState<Record<string, string>>({});
   const [checkboxAnswers, setCheckboxAnswers] = useState<Record<string, string[]>>({});
   const [dropdownModalId, setDropdownModalId] = useState<string | null>(null);
@@ -95,12 +97,15 @@ export function ServiceDynamicForm({ form, user, saving, onSubmit }: Props) {
 
   useEffect(() => {
     const text: Record<string, string> = {};
+    const dates: Record<string, string> = {};
     const dropdown: Record<string, string> = {};
     const checks: Record<string, string[]> = {};
     for (const q of sortedQuestions) {
       const pre = guessPrefill(q.label, user, q.type);
       if (q.type === 'TEXT') {
         text[q.id] = pre;
+      } else if (q.type === 'DATE') {
+        dates[q.id] = '';
       } else if (q.type === 'DROPDOWN') {
         dropdown[q.id] = pre;
       } else {
@@ -108,6 +113,7 @@ export function ServiceDynamicForm({ form, user, saving, onSubmit }: Props) {
       }
     }
     setTextAnswers(text);
+    setDateAnswers(dates);
     setDropdownAnswers(dropdown);
     setCheckboxAnswers(checks);
   }, [form.serviceId, sortedQuestions, user]);
@@ -130,6 +136,8 @@ export function ServiceDynamicForm({ form, user, saving, onSubmit }: Props) {
       let value = '';
       if (q.type === 'TEXT') {
         value = textAnswers[q.id]?.trim() ?? '';
+      } else if (q.type === 'DATE') {
+        value = dateAnswers[q.id]?.trim() ?? '';
       } else if (q.type === 'DROPDOWN') {
         value = dropdownAnswers[q.id]?.trim() ?? '';
       } else {
@@ -163,6 +171,18 @@ export function ServiceDynamicForm({ form, user, saving, onSubmit }: Props) {
           onFocus={() => setFocusedField(q.id)}
           onBlur={() => setFocusedField(null)}
           placeholderTextColor={Colors.placeHolderColor}
+        />
+      );
+    }
+
+    if (q.type === 'DATE') {
+      return (
+        <KnparisesDatePickerField
+          label={q.label}
+          value={dateAnswers[q.id] ?? ''}
+          onChange={v => setDateAnswers({ ...dateAnswers, [q.id]: v })}
+          hideLabel
+          variant="outlined"
         />
       );
     }

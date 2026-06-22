@@ -55,7 +55,7 @@ export async function fetchPublicSuppliersByCity(
   return data;
 }
 
-export type FormQuestionType = 'TEXT' | 'DROPDOWN' | 'CHECKBOX';
+export type FormQuestionType = 'TEXT' | 'DROPDOWN' | 'CHECKBOX' | 'DATE';
 
 export type ServiceFormQuestion = {
   id: string;

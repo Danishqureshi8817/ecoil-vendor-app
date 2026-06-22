@@ -3,7 +3,7 @@ import React from 'react';
 import { StackNav, TabNav } from '@/navigations/NavigationKeys';
 import { useAuthStore } from '@/states/authStore';
 import type { ExternalVendorUser } from '@/types/vendor';
-import { navigate, navigateToTab } from '@/utils/NavigationUtils';
+import { navigate, navigateToTab, resetAndNavigate } from '@/utils/NavigationUtils';
 import { isParentCounter, isPrimaryVendor } from '@/utils/vendorUser';
 
 export type NavItem = {
@@ -30,7 +30,7 @@ export function buildVendorNavItems(
       key: TabNav.Home,
       label: 'Dashboard',
       icon: 'grid-outline',
-      onPress: () => navigateToTab(TabNav.Home),
+      onPress: () => resetAndNavigate(StackNav.TabNav, 0),
     },
     {
       key: StackNav.MyServiceRequests,
@@ -55,6 +55,15 @@ export function buildVendorNavItems(
       hideForParentCounter: true,
     },
     {
+      key: StackNav.CollectionRequest,
+      label: 'New Collection Request',
+      icon: 'list-circle-outline',
+      onPress: () => {
+        navigate(StackNav.CollectionRequest);
+      },
+      hideForParentCounter: true,
+    },
+    {
       key: StackNav.PaymentDetails,
       label: 'Payment Details',
       icon: 'wallet-outline',
@@ -73,13 +82,13 @@ export function buildVendorNavItems(
       icon: 'star-outline',
       onPress: () => navigate(StackNav.MyRewards),
     },
-    {
-      key: StackNav.Agreement,
-      label: 'Agreement',
-      icon: 'document-attach-outline',
-      onPress: () => navigate(StackNav.Agreement),
-      primaryOnly: true,
-    },
+    // {
+    //   key: StackNav.Agreement,
+    //   label: 'Agreement',
+    //   icon: 'document-attach-outline',
+    //   onPress: () => navigate(StackNav.Agreement),
+    //   primaryOnly: true,
+    // },
   ];
 
   return items.filter(item => {
