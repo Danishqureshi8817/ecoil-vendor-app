@@ -25,7 +25,7 @@ import {
   formatPoints,
 } from '@/utils/homeMetrics';
 import { ServiceIconImage } from '@/components/service/ServiceIconImage';
-import { navigateToTab, push } from '@/utils/NavigationUtils';
+import { navigate, navigateToTab, push } from '@/utils/NavigationUtils';
 import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useQuery } from '@tanstack/react-query';
@@ -194,7 +194,7 @@ export default function HomeScreen() {
                 )}
                 <Pressable
                   style={({ pressed }) => [styles.redeemBtn, pressed && styles.pressed]}
-                  onPress={() => push(StackNav.MyRewards)}>
+                  onPress={() => navigate(StackNav.MyRewards)}>
                   <Ionicons name="gift-outline" size={15} color={Colors.black} />
                   <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.redeemText}>
                     Redeem Now

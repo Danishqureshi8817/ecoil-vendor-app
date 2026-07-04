@@ -16,11 +16,6 @@ export const CERT_TABLE_COLUMNS: {key: DownloadKey; label: string}[] = [
   {key: 'ruco_pdf_url', label: 'RUCO Certificate'},
 ];
 
-export const MONTH_COL_WIDTH = moderateScale(118);
-export const CERT_COL_WIDTH = moderateScale(148);
-export const TABLE_MIN_WIDTH =
-  MONTH_COL_WIDTH + CERT_COL_WIDTH * CERT_TABLE_COLUMNS.length;
-
 async function openPdf(url: string) {
   if (!url) {
     return;
@@ -68,55 +63,33 @@ function CertActionButtons({url}: {url: string}) {
   );
 }
 
-export function CertificateTableHeader() {
+export function CertificateRowCard({row}: {row: CertificateRow}) {
   return (
-    <View style={styles.headerRow}>
-      <View style={[styles.monthCol, styles.headerCell]}>
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Ionicons name="calendar-outline" size={moderateScale(18)} color={Colors.brand} />
         <CustomText
-          variant="h7"
-          fontFamily={Fonts.montserrat.semiBold}
-          style={styles.headerText}
-          numberOfLine={2}>
-          Month-Year
+          variant="h5"
+          fontFamily={Fonts.montserrat.bold}
+          style={styles.monthText}>
+          {row.month_year}
         </CustomText>
       </View>
+
       {CERT_TABLE_COLUMNS.map((col, index) => (
         <View
           key={col.key}
           style={[
-            styles.certCol,
-            styles.headerCell,
-            index < CERT_TABLE_COLUMNS.length - 1 && styles.colDivider,
+            styles.certSection,
+            index < CERT_TABLE_COLUMNS.length - 1 && styles.sectionDivider,
           ]}>
           <CustomText
             variant="h7"
             fontFamily={Fonts.montserrat.semiBold}
-            style={styles.headerText}
+            style={styles.certLabel}
             numberOfLine={2}>
             {col.label}
           </CustomText>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-export function CertificateRowCard({row}: {row: CertificateRow}) {
-  return (
-    <View style={styles.dataRow}>
-      <View style={styles.monthCol}>
-        <CustomText
-          variant="h6"
-          fontFamily={Fonts.montserrat.bold}
-          style={styles.monthText}
-          numberOfLine={2}>
-          {row.month_year}
-        </CustomText>
-      </View>
-      {CERT_TABLE_COLUMNS.map((col, index) => (
-        <View
-          key={col.key}
-          style={[styles.certCol, index < CERT_TABLE_COLUMNS.length - 1 && styles.colDivider]}>
           <CertActionButtons url={row[col.key]} />
         </View>
       ))}
@@ -125,54 +98,50 @@ export function CertificateRowCard({row}: {row: CertificateRow}) {
 }
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    backgroundColor: Colors.bg,
-    minWidth: TABLE_MIN_WIDTH,
-  },
-  dataRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
+  card: {
     backgroundColor: Colors.white,
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+    borderColor: Colors.line,
+    marginBottom: moderateScaleVertical(12),
+    overflow: 'hidden',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(8),
+    backgroundColor: Colors.bg,
+    paddingVertical: moderateScaleVertical(12),
+    paddingHorizontal: moderateScale(14),
     borderBottomWidth: 1,
     borderBottomColor: Colors.line,
-    minWidth: TABLE_MIN_WIDTH,
-  },
-  headerCell: {
-    justifyContent: 'center',
-    paddingVertical: moderateScaleVertical(14),
-    paddingHorizontal: moderateScale(10),
-  },
-  monthCol: {
-    width: MONTH_COL_WIDTH,
-    justifyContent: 'center',
-    paddingVertical: moderateScaleVertical(14),
-    paddingHorizontal: moderateScale(10),
-  },
-  certCol: {
-    width: CERT_COL_WIDTH,
-    justifyContent: 'center',
-    paddingVertical: moderateScaleVertical(12),
-    paddingHorizontal: moderateScale(8),
-  },
-  colDivider: {
-    borderRightWidth: 1,
-    borderRightColor: Colors.line,
-  },
-  headerText: {
-    color: Colors.black,
-    fontSize: RFValue(11),
-    lineHeight: RFValue(15),
   },
   monthText: {
     color: Colors.black,
-    fontSize: RFValue(13),
-    lineHeight: RFValue(18),
+    fontSize: RFValue(15),
+  },
+  certSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: moderateScale(10),
+    paddingVertical: moderateScaleVertical(12),
+    paddingHorizontal: moderateScale(14),
+  },
+  sectionDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.line,
+  },
+  certLabel: {
+    flex: 1,
+    color: Colors.black,
+    fontSize: RFValue(12),
+    lineHeight: RFValue(17),
   },
   actions: {
-    gap: moderateScaleVertical(8),
-    alignItems: 'stretch',
+    flexDirection: 'row',
+    gap: moderateScale(8),
+    alignItems: 'center',
   },
   downloadBtn: {
     flexDirection: 'row',
@@ -182,7 +151,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.buttonPrimary,
     borderRadius: moderateScale(999),
     paddingVertical: moderateScaleVertical(8),
-    paddingHorizontal: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
   },
   downloadText: {
     color: Colors.white,
@@ -196,7 +165,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.drawerIconBgColor,
     borderRadius: moderateScale(999),
     paddingVertical: moderateScaleVertical(8),
-    paddingHorizontal: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
   },
   viewBtnDisabled: {
     backgroundColor: Colors.line,

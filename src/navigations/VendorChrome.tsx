@@ -89,7 +89,7 @@ export function VendorChrome({ children }: Props) {
   const shellTitle = useServiceBackHeader
     ? serviceFlowHeader.title
     : onHomeTab
-      ? user?.firm_name?.trim() || user?.name?.trim() || 'Dashboard'
+      ? user?.name?.trim() || user?.firm_name?.trim() || 'Dashboard'
       : getTitle(activeTab);
 
   return (

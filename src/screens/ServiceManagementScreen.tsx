@@ -17,11 +17,11 @@ import publicService from '@/services/public-service';
 import { useServiceNavigationStore } from '@/states/serviceNavigationStore';
 import { useAuthStore } from '@/states/authStore';
 import { useServiceFlowHeaderStore } from '@/states/serviceFlowHeaderStore';
-import { TabNav } from '@/navigations/NavigationKeys';
+import { StackNav, TabNav } from '@/navigations/NavigationKeys';
 import { screen } from '@/styles/ui';
 import { serviceUi } from '@/styles/serviceUi';
-import { navigateToTab } from '@/utils/NavigationUtils';
-import { vendorUserCity } from '@/utils/vendorUser';
+import { navigate, navigateToTab } from '@/utils/NavigationUtils';
+import { vendorUserCity, vendorUserId } from '@/utils/vendorUser';
 import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
 import { useToastMessage } from '@/utils/useToastMessage';
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -365,9 +365,19 @@ export default function ServiceManagementScreen() {
     setSaving(true);
     setError('');
     try {
+      const userId = vendorUserId(user);
+      const realVendorId =
+        user.vendor_id != null && String(user.vendor_id) !== ''
+          ? String(user.vendor_id)
+          : undefined;
       await publicService.submitApplication(selected.id, {
+        vendorUserId: userId ? String(userId) : undefined,
+        realVendorId,
         vendorName: user.name || 'Vendor',
         vendorMobile: user.mobile || mobile,
+        storeCode: user.store_code ? String(user.store_code) : undefined,
+        firmName: user.firm_name ? String(user.firm_name) : undefined,
+        vendorCity: vendorUserCity(user) || undefined,
         answers,
       });
       await queryClient.invalidateQueries({
@@ -375,7 +385,7 @@ export default function ServiceManagementScreen() {
       });
       toastSuccess('Application submitted successfully');
       backToServices();
-      navigateToTab(TabNav.Requests);
+      navigate(StackNav.MyServiceRequests);
     } catch (err) {
       setError(getPublicApiError(err, 'Could not submit application'));
     } finally {

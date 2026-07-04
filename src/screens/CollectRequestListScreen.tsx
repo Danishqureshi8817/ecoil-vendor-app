@@ -24,6 +24,7 @@ import {
   RefreshControl,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { RFValue } from 'react-native-responsive-fontsize';
@@ -57,10 +58,16 @@ function matchesSearch(row: CollectionRequestRow, query: string): boolean {
 }
 
 export default function CollectRequestListScreen() {
+  const { height: windowHeight } = useWindowDimensions();
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const { data, isLoading, refetch, isRefetching, error } = useCollectionRequests();
   const rows = data ?? [];
+
+  const emptyListMinHeight = Math.max(
+    windowHeight - moderateScaleVertical(300),
+    moderateScaleVertical(200),
+  );
 
   const filteredRows = useMemo(
     () => rows.filter(row => matchesSearch(row, search)),
@@ -110,7 +117,7 @@ export default function CollectRequestListScreen() {
   const listEmpty = useCallback(() => {
     if (isLoading) {
       return (
-        <View style={styles.emptyWrap}>
+        <View style={[styles.emptyWrapCentered, { minHeight: emptyListMinHeight }]}>
           <ActivityIndicator size="large" color={Colors.brand} />
           <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.emptySub}>
             Loading requests…
@@ -120,7 +127,7 @@ export default function CollectRequestListScreen() {
     }
     if (error) {
       return (
-        <View style={styles.emptyWrap}>
+        <View style={[styles.emptyWrapCentered, { minHeight: emptyListMinHeight }]}>
           <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.errorText}>
             Could not load collection requests.
           </CustomText>
@@ -129,7 +136,7 @@ export default function CollectRequestListScreen() {
     }
     if (search.trim() && filteredRows.length === 0) {
       return (
-        <View style={styles.emptyWrap}>
+        <View style={[styles.emptyWrapCentered, { minHeight: emptyListMinHeight }]}>
           <EmptyState
             icon="search-outline"
             title="No matching requests"
@@ -139,7 +146,7 @@ export default function CollectRequestListScreen() {
       );
     }
     return (
-      <View style={styles.emptyWrap}>
+      <View style={[styles.emptyWrapCentered, { minHeight: emptyListMinHeight }]}>
         <Pressable onPress={goToNewCollectRequest}>
           <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.emptyLink}>
             Create your first request
@@ -150,7 +157,7 @@ export default function CollectRequestListScreen() {
         </CustomText>
       </View>
     );
-  }, [isLoading, error, search, filteredRows.length]);
+  }, [isLoading, error, search, filteredRows.length, emptyListMinHeight]);
 
   const listData = !isLoading && !error ? filteredRows : [];
 
@@ -225,9 +232,10 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.montserrat.regular,
     paddingVertical: moderateScaleVertical(10),
   },
-  emptyWrap: {
+  emptyWrapCentered: {
+    flexGrow: 1,
     alignItems: 'center',
-    paddingVertical: moderateScaleVertical(48),
+    justifyContent: 'center',
     paddingHorizontal: moderateScale(16),
   },
   emptyLink: {

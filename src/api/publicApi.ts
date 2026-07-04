@@ -96,6 +96,7 @@ export function isServiceFormAvailable(form: ServiceFormPayload): boolean {
 
 export type VendorApplicationRow = {
   id: string;
+  requestNo: number | null;
   serviceId: string;
   serviceName: string;
   vendorId: string;
@@ -140,8 +141,13 @@ export async function submitPublicServiceApplication(
   serviceId: string,
   payload: {
     vendorId?: string;
+    vendorUserId?: string;
+    realVendorId?: string;
     vendorName: string;
     vendorMobile: string;
+    storeCode?: string;
+    firmName?: string;
+    vendorCity?: string;
     answers: {questionId: string; value: string}[];
   },
 ): Promise<{id?: string; message?: string}> {

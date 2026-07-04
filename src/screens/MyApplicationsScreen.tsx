@@ -134,7 +134,7 @@ function ApplicationListCard({
           Application ID
         </CustomText>
         <CustomText variant="h7" style={externalUi.metaDd}>
-          {row.id.slice(0, 8)}…
+          {row.requestNo != null ? `SR-${row.requestNo}` : `${row.id.slice(0, 8)}…`}
         </CustomText>
       </View>
       <View style={externalUi.metaRow}>

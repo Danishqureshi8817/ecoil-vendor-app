@@ -39,7 +39,7 @@ function HomeHeader({
   const user = useAuthStore(s => s.user);
 
   const displayGreeting = greeting ?? getGreeting();
-  const displayFirmName = firmName ?? (user?.firm_name?.trim() || user?.name?.trim() || 'Store Manager');
+  const displayFirmName = firmName ?? (user?.name?.trim() || user?.firm_name?.trim() || 'Store Manager');
 
   function handleMenuPress() {
     if (onMenuPress) {

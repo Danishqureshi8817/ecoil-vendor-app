@@ -69,9 +69,24 @@ function PaymentEmptyState() {
 function PaymentCard({ row, index }: { row: PaymentDetailRow; index: number }) {
   return (
     <View style={[externalUi.listCard, styles.paymentCard]}>
-      <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold}>
-        Payment #{index + 1}
-      </CustomText>
+      <View style={styles.cardHeaderRow}>
+        <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold}>
+          Payment #{index + 1}
+        </CustomText>
+        <View style={styles.verifiedBadge}>
+          <Ionicons
+            name="checkmark-circle"
+            size={moderateScale(14)}
+            color={Colors.brand}
+          />
+          <CustomText
+            variant="h7"
+            fontFamily={Fonts.montserrat.semiBold}
+            style={styles.verifiedText}>
+            Paid
+          </CustomText>
+        </View>
+      </View>
       {FIELDS.map(({ label, key }) => {
         const value = row[key];
         if (value == null || value === '') {
@@ -358,6 +373,24 @@ const styles = StyleSheet.create({
   },
   paymentCard: {
     marginBottom: moderateScaleVertical(12),
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(4),
+    backgroundColor: Colors.drawerIconBgColor,
+    paddingVertical: moderateScaleVertical(4),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(999),
+  },
+  verifiedText: {
+    color: Colors.brand,
+    fontSize: RFValue(10),
   },
   receiptRow: {
     marginTop: moderateScaleVertical(12),
