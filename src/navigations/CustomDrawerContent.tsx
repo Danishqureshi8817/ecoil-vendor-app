@@ -38,7 +38,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
   const activeTab = useNavigationState(state => {
     return getActiveRouteName(state);
   });
-  console.log('DRAWER PROPS', props.navigation);
+  // console.log('DRAWER PROPS', props.navigation);
 
   const initials = (user?.name || 'V')
     .split(/\s+/)

@@ -262,6 +262,7 @@ export default function MyRewardsScreen() {
       await redeemMutation.mutateAsync({
         vendorId: vid,
         vendorName,
+        vendorEmail: user?.email ? String(user.email) : undefined,
         coinAmount: coinTotal,
         description: redeemDesc.trim(),
       });

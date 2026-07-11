@@ -26,6 +26,10 @@ export type CollectionRequestRow = Record<string, unknown> & {
   entered_volume?: string | number;
   empty_drums_qty?: string | number;
   empty_drums?: string | number;
+  dropped_drums_qty?: string | number;
+  actual_empty_drums_qty?: string | number;
+  empty_drums_qty_temp?: string | number;
+  total_dropDrum_qty?: string | number;
   notes_for_team?: string;
   notes?: string;
   created_at?: string;
@@ -231,9 +235,28 @@ export function collectionRequestLabel(row: CollectionRequestRow): string {
   return 'Collection request';
 }
 
+export function collectionDroppedDrumsQty(row: CollectionRequestRow): string {
+  const raw =
+    row.drop_drums_total_qty  ??
+    row.actual_empty_drums_qty ??
+    row.empty_drums_qty_temp ??
+    row.total_dropDrum_qty;
+  if (raw == null || raw === '') {
+    return '—';
+  }
+  return String(raw);
+}
+
 export function collectionRequestStatus(row: CollectionRequestRow): string {
   const s = row.request_status_name ?? row.request_status ?? row.status ?? row.state;
-  return s != null ? String(s) : '—';
+  if (s == null) {
+    return '—';
+  }
+  const status = String(s).trim();
+  if (/delivered\s+to\s+warehouse/i.test(status)) {
+    return 'Completed';
+  }
+  return status;
 }
 
 export function collectionRequestId(row: CollectionRequestRow): string | null {

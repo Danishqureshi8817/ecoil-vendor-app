@@ -30,7 +30,12 @@ export function buildVendorNavItems(
       key: TabNav.Home,
       label: 'Dashboard',
       icon: 'grid-outline',
-      onPress: () => resetAndNavigate(StackNav.TabNav, 0),
+      onPress: () =>{{ navigate(StackNav.TabNav,{
+        screen: TabNav.Home,
+      })}
+    resetAndNavigate(StackNav.TabNav, 0)
+    }
+
     },
     {
       key: StackNav.MyServiceRequests,

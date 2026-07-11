@@ -72,6 +72,7 @@ class VendorService {
   redeemCoins = (payload: {
     vendorId: string | number;
     vendorName: string;
+    vendorEmail?: string;
     coinAmount: number;
     description: string;
   }) => redeemVendorCoins(payload);

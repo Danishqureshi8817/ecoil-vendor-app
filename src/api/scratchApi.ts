@@ -151,6 +151,7 @@ export async function fetchVendorTransactions(
 export async function redeemVendorCoins(payload: {
   vendorId: string | number;
   vendorName: string;
+  vendorEmail?: string;
   coinAmount: number;
   description: string;
 }): Promise<RedeemResult> {

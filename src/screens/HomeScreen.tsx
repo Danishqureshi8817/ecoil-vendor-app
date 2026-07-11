@@ -47,8 +47,9 @@ import {MetricLoadingLottie} from '@/components/global/MetricLoadingLottie';
 
 const GREEN_CARD_BG = require('@/assets/images/bggreenpointcard.png');
 const GREEN_CARD_ART = require('@/assets/images/homeGreenPointBg.png');
+const OIL_REQUEST_IMG = require('@/assets/images/oilRequest.png');
 
-const HOME_SERVICES_LIMIT = 5;
+const HOME_SERVICES_LIMIT = 4;
 
 function ServiceTileIcon({ service }: { service: PublicService }) {
   return (
@@ -258,6 +259,22 @@ export default function HomeScreen() {
         </CustomText>
 
         <View style={styles.servicesGrid}>
+          <Pressable
+            style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
+            onPress={() => navigate(StackNav.CollectionRequest)}>
+            <Image
+              source={OIL_REQUEST_IMG}
+              style={styles.oilRequestIcon}
+              resizeMode="contain"
+            />
+            <CustomText
+              variant="h7"
+              fontFamily={Fonts.montserrat.semiBold}
+              style={styles.serviceLabel}
+              numberOfLine={3}>
+              Oil Collection Request
+            </CustomText>
+          </Pressable>
           {servicesLoading ? (
             <ActivityIndicator color={Colors.brand} style={styles.servicesLoader} />
           ) : (
@@ -281,7 +298,7 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
                 onPress={() => {
                   useServiceNavigationStore.getState().clearPendingService();
-                  navigateToTab(TabNav.Services);
+                  navigate(TabNav.Services)
                 }}>
                 <View style={styles.viewAllCircle}>
                   <Ionicons name="arrow-forward" size={22} color={Colors.brand} />
@@ -516,6 +533,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: Colors.black,
     fontSize: RFValue(9),
+  },
+  oilRequestIcon: {
+    width: moderateScale(40),
+    height: moderateScale(44),
   },
   serviceEmptyIcon: {
     width: moderateScale(44),

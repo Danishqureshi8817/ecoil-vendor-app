@@ -42,8 +42,6 @@ const FIELDS: { label: string; key: keyof PaymentDetailRow }[] = [
   { label: 'Branch', key: 'branch_name' },
   { label: 'Store code', key: 'store_code' },
   { label: 'Volume (kg)', key: 'weight' },
-  { label: 'Oil rate', key: 'oil_rate' },
-  { label: 'GST', key: 'gst_amount' },
   { label: 'Amount', key: 'amount' },
   { label: 'Pickup', key: 'pickup_date' },
   { label: 'Payment date', key: 'payment_date' },

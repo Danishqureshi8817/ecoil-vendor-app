@@ -5,6 +5,7 @@ import {GreenTruckIcon} from '@/components/icon/icon';
 import {ErrorBanner} from '@/components/ui/ErrorBanner';
 import {
   collectionChallanUrl,
+  collectionDroppedDrumsQty,
   collectionRequestId,
   collectionRequestStatus,
   fetchCollectionRequestById,
@@ -149,12 +150,55 @@ function DownloadButton({label, onPress}: {label: string; onPress: () => void}) 
   );
 }
 
+function SecurityCodeRow({
+  code,
+  visible,
+  onToggleVisible,
+}: {
+  code: string | null;
+  visible: boolean;
+  onToggleVisible: () => void;
+}) {
+  const hasCode = code != null && code.trim() !== '';
+  const displayValue = !hasCode ? '—' : visible ? code : '****';
+
+  return (
+    <View style={styles.detailRow}>
+      <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.detailLabel}>
+        Security Code
+      </CustomText>
+      <View style={styles.securityValueRow}>
+        <CustomText
+          variant="h7"
+          fontFamily={Fonts.montserrat.medium}
+          style={styles.detailValue}
+          numberOfLine={1}>
+          {displayValue}
+        </CustomText>
+        {hasCode ? (
+          <Pressable
+            onPress={onToggleVisible}
+            hitSlop={12}
+            accessibilityLabel={visible ? 'Hide security code' : 'Show security code'}>
+            <Ionicons
+              name={visible ? 'eye-off-outline' : 'eye-outline'}
+              size={moderateScale(18)}
+              color={Colors.brand}
+            />
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
 export default function CollectRequestDetailScreen({route}: Props) {
   const {id} = route.params;
   const user = useAuthStore(s => s.user);
   const [row, setRow] = useState<CollectionRequestRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showSecurityCode, setShowSecurityCode] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -173,6 +217,10 @@ export default function CollectRequestDetailScreen({route}: Props) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setShowSecurityCode(false);
+  }, [id]);
 
   if (loading) {
     return (
@@ -232,11 +280,11 @@ export default function CollectRequestDetailScreen({route}: Props) {
       : null;
   const gatePassUrl = gatePassRaw ? gatePassImageUrl(gatePassRaw) : '';
   const challanUrl = collectionChallanUrl(id);
-  const securityCode =
+  const securityCodeRaw =
     row.security_code != null && String(row.security_code).trim() !== ''
-      ? '****'
-      : '—';
-
+      ? String(row.security_code).trim()
+      : null;
+  console.log('row', row);
   return (
     <Container
       backgroundColor={Colors.bg}
@@ -290,15 +338,22 @@ export default function CollectRequestDetailScreen({route}: Props) {
             label="Empty Drums Required"
             value={String(row.empty_drums_qty ?? row.empty_drums ?? '—')}
           />
+          <DetailRow
+            label="Dropped Drums Qty"
+            value={String(row.drop_drums_total_qty ?? '—')}
+          />
         </DetailCard>
 
         <DetailCard
           icon={<GreenTruckIcon />}
           title="Logistics Details">
-          <DetailRow label="Logistic Manager" value={String(row.logistic_manager ?? '—')} />
           <DetailRow label="Collection Hero" value={String(row.assigned_to_name ?? '—')} />
           <DetailRow label="Vehicle No" value={String(row.vehicle_no ?? '—')} />
-          <DetailRow label="Security Code" value={securityCode} />
+          <SecurityCodeRow
+            code={securityCodeRaw}
+            visible={showSecurityCode}
+            onToggleVisible={() => setShowSecurityCode(v => !v)}
+          />
           <View style={styles.detailRow}>
             <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.detailLabel}>
               Gate Pass
@@ -414,6 +469,13 @@ const styles = StyleSheet.create({
   },
   detailValueHighlight: {
     color: Colors.brand,
+  },
+  securityValueRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: moderateScale(8),
   },
   downloadBtn: {
     flexDirection: 'row',
