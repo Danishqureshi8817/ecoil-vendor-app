@@ -27,6 +27,8 @@ export type CollectionRequestRow = Record<string, unknown> & {
   empty_drums_qty?: string | number;
   empty_drums?: string | number;
   dropped_drums_qty?: string | number;
+  drop_drums_total_qty?: string | number;
+  drop_drums?: DropDrumItem[];
   actual_empty_drums_qty?: string | number;
   empty_drums_qty_temp?: string | number;
   total_dropDrum_qty?: string | number;
@@ -40,6 +42,13 @@ export type CollectionRequestRow = Record<string, unknown> & {
   vehicle_no?: string;
   security_code?: string;
   gate_pass?: string;
+};
+
+export type DropDrumItem = {
+  drum_quantity?: string | number;
+  drum_type_id?: string | number;
+  from_warehouse_id?: string | number;
+  drum_type_name?: string;
 };
 
 export type CollectionRequestType = 0 | 1 | 2;
@@ -237,7 +246,7 @@ export function collectionRequestLabel(row: CollectionRequestRow): string {
 
 export function collectionDroppedDrumsQty(row: CollectionRequestRow): string {
   const raw =
-    row.drop_drums_total_qty  ??
+    row.drop_drums_total_qty ??
     row.actual_empty_drums_qty ??
     row.empty_drums_qty_temp ??
     row.total_dropDrum_qty;
@@ -245,6 +254,17 @@ export function collectionDroppedDrumsQty(row: CollectionRequestRow): string {
     return '—';
   }
   return String(raw);
+}
+
+/** Normalize drop_drums list from collection request detail. */
+export function collectionDropDrums(row: CollectionRequestRow): DropDrumItem[] {
+  const raw = row.drop_drums;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.filter(
+    (item): item is DropDrumItem => item != null && typeof item === 'object',
+  );
 }
 
 export function collectionRequestStatus(row: CollectionRequestRow): string {

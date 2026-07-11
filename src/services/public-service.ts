@@ -1,6 +1,7 @@
 import {
   fetchMyApplicationDetail,
   fetchMyApplications,
+  fetchPublicHomeBanners,
   fetchPublicServiceForm,
   fetchPublicServices,
   fetchPublicSuppliersByCity,
@@ -10,12 +11,15 @@ import {
 class PublicService {
   queryKeys = {
     services: 'publicServices',
+    homeBanners: 'publicHomeBanners',
     serviceForm: 'publicServiceForm',
     myApplications: 'myApplications',
     suppliers: 'publicSuppliers',
   };
 
   getServices = (q?: string) => fetchPublicServices(q);
+
+  getHomeBanners = () => fetchPublicHomeBanners();
 
   getServiceForm = (serviceId: string) => fetchPublicServiceForm(serviceId);
 

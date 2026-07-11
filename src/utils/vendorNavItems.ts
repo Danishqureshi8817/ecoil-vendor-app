@@ -87,6 +87,12 @@ export function buildVendorNavItems(
       icon: 'star-outline',
       onPress: () => navigate(StackNav.MyRewards),
     },
+    {
+      key: StackNav.ContactUs,
+      label: 'Contact Us',
+      icon: 'call-outline',
+      onPress: () => navigate(StackNav.ContactUs),
+    },
     // {
     //   key: StackNav.Agreement,
     //   label: 'Agreement',

@@ -15,6 +15,7 @@ import HomeScreen from '@/screens/HomeScreen';
 import ExternalTabBar from './ExternalTabBar';
 import CollectRequestScreen from '@/screens/CollectRequestScreen';
 import CounterCollectionListScreen from '@/screens/CounterCollectionListScreen';
+import ContactUsScreen from '@/screens/ContactUsScreen';
 
 const Drawer = createDrawerNavigator();
 const DRAWER_WIDTH = Math.min(width * 0.75, 320);
@@ -47,7 +48,7 @@ export default function DrawerNavigator() {
         name={StackNav.MyServiceRequests}
         component={MyApplicationsScreen}
       />
-      < Drawer.Screen
+      <Drawer.Screen
         name={StackNav.MyCertificates}
         component={MyCertificatesScreen}
       />
@@ -57,6 +58,7 @@ export default function DrawerNavigator() {
         component={PaymentDetailsScreen}
       />
       <Drawer.Screen name={StackNav.Agreement} component={AgreementScreen} />
+      <Drawer.Screen name={StackNav.ContactUs} component={ContactUsScreen} />
     </Drawer.Navigator>
   );
 }

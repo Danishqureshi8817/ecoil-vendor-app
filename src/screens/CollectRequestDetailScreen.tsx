@@ -6,6 +6,7 @@ import {ErrorBanner} from '@/components/ui/ErrorBanner';
 import {
   collectionChallanUrl,
   collectionDroppedDrumsQty,
+  collectionDropDrums,
   collectionRequestId,
   collectionRequestStatus,
   fetchCollectionRequestById,
@@ -338,10 +339,33 @@ export default function CollectRequestDetailScreen({route}: Props) {
             label="Empty Drums Required"
             value={String(row.empty_drums_qty ?? row.empty_drums ?? '—')}
           />
-          <DetailRow
-            label="Dropped Drums Qty"
-            value={String(row.drop_drums_total_qty ?? '—')}
-          />
+          {(() => {
+            const dropDrums = collectionDropDrums(row);
+            if (dropDrums.length === 0) {
+              return (
+                <DetailRow
+                  label="Dropped Drums Qty"
+                  value={collectionDroppedDrumsQty(row)}
+                />
+              );
+            }
+            return dropDrums.flatMap((drum, index) => [
+              <DetailRow
+                key={`drum-type-${drum.drum_type_id ?? index}`}
+                label="Drum Type"
+                value={String(drum.drum_type_name ?? '—').trim() || '—'}
+              />,
+              <DetailRow
+                key={`drum-qty-${drum.drum_type_id ?? index}`}
+                label="Dropped Drums Qty"
+                value={
+                  drum.drum_quantity != null && String(drum.drum_quantity).trim() !== ''
+                    ? String(drum.drum_quantity)
+                    : '—'
+                }
+              />,
+            ]);
+          })()}
         </DetailCard>
 
         <DetailCard

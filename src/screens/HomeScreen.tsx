@@ -44,6 +44,7 @@ import { Container } from '@/components/global/Container';
 import Body from '@/components/global/Body';
 import HomeHeader from '@/components/global/HomeHeader';
 import {MetricLoadingLottie} from '@/components/global/MetricLoadingLottie';
+import { HomeBannerCarousel } from '@/components/home/HomeBannerCarousel';
 
 const GREEN_CARD_BG = require('@/assets/images/bggreenpointcard.png');
 const GREEN_CARD_ART = require('@/assets/images/homeGreenPointBg.png');
@@ -137,6 +138,11 @@ export default function HomeScreen() {
   const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: [publicService.queryKeys.services],
     queryFn: () => publicService.getServices(),
+  });
+
+  const { data: homeBanners = [] } = useQuery({
+    queryKey: [publicService.queryKeys.homeBanners],
+    queryFn: () => publicService.getHomeBanners(),
   });
 
   const counters = dashboard?.counters;
@@ -253,6 +259,8 @@ export default function HomeScreen() {
             loading={dashboardPending}
           />
         </View>
+
+        <HomeBannerCarousel banners={homeBanners} />
 
         <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.sectionTitle}>
           Our Services

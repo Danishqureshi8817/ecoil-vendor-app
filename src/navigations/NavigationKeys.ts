@@ -23,7 +23,8 @@ export const StackNav = {
   Agreement: 'Agreement',
   MyServiceRequests: 'MyServiceRequests',
   TabNav: 'TabNav',
-  CollectionRequest: 'CollectionRequest'
+  CollectionRequest: 'CollectionRequest',
+  ContactUs: 'ContactUs',
 } as const;
 
 export type RootStackParamList = {
@@ -41,6 +42,7 @@ export type RootStackParamList = {
   [StackNav.PaymentDetails]: undefined;
   [StackNav.Agreement]: undefined;
   [StackNav.MyServiceRequests]: undefined;
+  [StackNav.ContactUs]: undefined;
 };
 
 export type MainTabParamList = {

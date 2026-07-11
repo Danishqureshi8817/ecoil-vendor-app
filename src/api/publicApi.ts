@@ -23,7 +23,6 @@ export type PublicService = {
   id: string;
   name: string;
   icon?: string | null;
-  icon?: string | null;
   iconUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -79,6 +78,21 @@ export async function fetchPublicServices(q?: string): Promise<PublicService[]> 
     params: q?.trim() ? {q: q.trim()} : {},
   });
   return data;
+}
+
+export type PublicHomeBanner = {
+  id: string;
+  title: string | null;
+  linkUrl: string | null;
+  sortOrder: number;
+  /** File name on backend file_upload/ — preferred for building image URL. */
+  image?: string | null;
+  imageUrl: string;
+};
+
+export async function fetchPublicHomeBanners(): Promise<PublicHomeBanner[]> {
+  const {data} = await publicApi.get<PublicHomeBanner[]>('/home-banners');
+  return Array.isArray(data) ? data : [];
 }
 
 export async function fetchPublicServiceForm(
