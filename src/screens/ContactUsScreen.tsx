@@ -13,7 +13,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {RFValue} from 'react-native-responsive-fontsize';
 
 const PHONE = '18008903841';
-const EMAIL = 'info@ecoil.in';
+const EMAIL = 'vendorsupport@knparises.com';
 const ADDRESS =
   'Cabin No. 17, 4th Floor, Creware Coworks, Business Park, Near Khatu Shyam Ji Temple, Iskcon Road, New Sanganer Road, Jaipur, Rajasthan – 302020';
 
