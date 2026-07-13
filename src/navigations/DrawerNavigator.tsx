@@ -16,6 +16,7 @@ import ExternalTabBar from './ExternalTabBar';
 import CollectRequestScreen from '@/screens/CollectRequestScreen';
 import CounterCollectionListScreen from '@/screens/CounterCollectionListScreen';
 import ContactUsScreen from '@/screens/ContactUsScreen';
+import PrivacyPolicyScreen from '@/screens/PrivacyPolicyScreen';
 
 const Drawer = createDrawerNavigator();
 const DRAWER_WIDTH = Math.min(width * 0.75, 320);
@@ -59,6 +60,7 @@ export default function DrawerNavigator() {
       />
       <Drawer.Screen name={StackNav.Agreement} component={AgreementScreen} />
       <Drawer.Screen name={StackNav.ContactUs} component={ContactUsScreen} />
+      <Drawer.Screen name={StackNav.PrivacyPolicy} component={PrivacyPolicyScreen} />
     </Drawer.Navigator>
   );
 }

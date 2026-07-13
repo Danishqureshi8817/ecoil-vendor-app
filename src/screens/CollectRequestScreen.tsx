@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     width: '100%',
-    height: moderateScale(74),
+    height: moderateScale(90),
   },
   sectionHeader: {
     paddingHorizontal: moderateScale(16),

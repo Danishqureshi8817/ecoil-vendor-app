@@ -25,6 +25,7 @@ export const StackNav = {
   TabNav: 'TabNav',
   CollectionRequest: 'CollectionRequest',
   ContactUs: 'ContactUs',
+  PrivacyPolicy: 'PrivacyPolicy',
 } as const;
 
 export type RootStackParamList = {
@@ -43,6 +44,7 @@ export type RootStackParamList = {
   [StackNav.Agreement]: undefined;
   [StackNav.MyServiceRequests]: undefined;
   [StackNav.ContactUs]: undefined;
+  [StackNav.PrivacyPolicy]: undefined;
 };
 
 export type MainTabParamList = {

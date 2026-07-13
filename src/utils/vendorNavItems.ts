@@ -93,6 +93,12 @@ export function buildVendorNavItems(
       icon: 'call-outline',
       onPress: () => navigate(StackNav.ContactUs),
     },
+    {
+      key: StackNav.PrivacyPolicy,
+      label: 'Privacy Policy',
+      icon: 'shield-checkmark-outline',
+      onPress: () => navigate(StackNav.PrivacyPolicy),
+    },
     // {
     //   key: StackNav.Agreement,
     //   label: 'Agreement',
