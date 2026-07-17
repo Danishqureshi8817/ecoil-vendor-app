@@ -10,7 +10,6 @@
 		0C80B921A6F3F58F76C31292 /* libPods-Ecoil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-Ecoil.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3387C7FFF67877BB5DD94AC2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		A1B2C3D4E5F60718293A0003 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A0004 /* GoogleService-Info.plist */; };
 		583B2B8AD05F4E55998CAE94 /* Montserrat-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D549E3D43E2E431986D03F78 /* Montserrat-ExtraBold.ttf */; };
 		67C6EE6A741E4B689CF75D3D /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B5B4F3CC0F5149A68912B362 /* Inter-Regular.ttf */; };
 		6A82CA80D24E4C65A5B9B0EB /* Montserrat-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A989755E104418DBC46686B /* Montserrat-Light.ttf */; };
@@ -18,6 +17,7 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		93875E5DC6124BB1995E7D41 /* Inter-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 499777CAD412468EAB5C6056 /* Inter-Light.ttf */; };
+		A1B2C3D4E5F60718293A0003 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A0004 /* GoogleService-Info.plist */; };
 		A308AFFEB12146E8B4AA2611 /* Inter-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5684EAC540E14678BF644A84 /* Inter-Medium.ttf */; };
 		A3FD584A4E134BCF8D9EEBA1 /* Inika-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8F8948F47B7846EE9AF5B6B5 /* Inika-Bold.ttf */; };
 		B5B4CF8DB10D4973A2D040D1 /* Montserrat-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FB3569F6792840F0B5036CC3 /* Montserrat-Bold.ttf */; };
@@ -164,6 +164,7 @@
 				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
 				E235C05ADACE081382539298 /* [CP] Copy Pods Resources */,
 				9687A64348F4F88DD5B7BC56 /* [CP-User] [RNFB] Core Configuration */,
+				4658D9E7D0F45D1AA519EDC2 /* [CP-User] [RNFB] Crashlytics Configuration */,
 			);
 			buildRules = (
 			);
@@ -264,6 +265,20 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Ecoil/Pods-Ecoil-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		4658D9E7D0F45D1AA519EDC2 /* [CP-User] [RNFB] Crashlytics Configuration */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
+				"$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "[CP-User] [RNFB] Crashlytics Configuration";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/usr/bin/env bash\n#\n# Copyright (c) 2016-present Invertase Limited & Contributors\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this library except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#   http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n#\nset -e\n\nif [[ ${PODS_ROOT} ]]; then\n  echo \"info: Exec FirebaseCrashlytics Run from Pods\"\n  \"${PODS_ROOT}/FirebaseCrashlytics/run\"\nelse\n  echo \"info: Exec FirebaseCrashlytics Run from framework\"\n  \"${PROJECT_DIR}/FirebaseCrashlytics.framework/run\"\nfi\n";
 		};
 		9687A64348F4F88DD5B7BC56 /* [CP-User] [RNFB] Core Configuration */ = {
 			isa = PBXShellScriptBuildPhase;

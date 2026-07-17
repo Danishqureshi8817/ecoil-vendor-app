@@ -1,7 +1,10 @@
 import AppNavigator from '@/navigations/AppNavigator';
+import ErrorBoundary from '@/components/global/ErrorBoundary';
 import {QueryProvider} from '@/providers/QueryProvider';
 import {PushNotificationProvider} from '@/providers/PushNotificationProvider';
-import React from 'react';
+import {initCrashReporting, setCrashUser} from '@/services/crashReporting';
+import {useAuthStore} from '@/states/authStore';
+import React, {useEffect} from 'react';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -18,21 +21,40 @@ const TOAST_ICONS = {
 const CLOSE_ICON = <Ionicons name="close-outline" size={22} color="#FFFFFF" />;
 
 function App() {
+  const userId = useAuthStore(s => {
+    const u = s.user;
+    if (!u) {
+      return null;
+    }
+    const raw = u.id ?? u.user_id ?? u.mobile ?? u.email;
+    return raw != null ? String(raw) : null;
+  });
+
+  useEffect(() => {
+    void initCrashReporting();
+  }, []);
+
+  useEffect(() => {
+    setCrashUser(userId);
+  }, [userId]);
+
   return (
     <GestureHandlerRootView style={{flex: 1}}>
-      <ToastProvider
-        position="bottom"
-        showCloseIcon
-        icons={TOAST_ICONS}
-        closeIcon={CLOSE_ICON}
-      />
-      <SafeAreaProvider>
-        <QueryProvider>
-          <PushNotificationProvider>
-            <AppNavigator />
-          </PushNotificationProvider>
-        </QueryProvider>
-      </SafeAreaProvider>
+      <ErrorBoundary>
+        <ToastProvider
+          position="bottom"
+          showCloseIcon
+          icons={TOAST_ICONS}
+          closeIcon={CLOSE_ICON}
+        />
+        <SafeAreaProvider>
+          <QueryProvider>
+            <PushNotificationProvider>
+              <AppNavigator />
+            </PushNotificationProvider>
+          </QueryProvider>
+        </SafeAreaProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }

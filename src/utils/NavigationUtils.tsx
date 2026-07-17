@@ -3,9 +3,26 @@ import {
   CommonActions,
   createNavigationContainerRef,
   StackActions,
+  type NavigationState,
+  type PartialState,
 } from '@react-navigation/native';
 
 export const navigationRef = createNavigationContainerRef();
+
+type NavState = NavigationState | PartialState<NavigationState> | undefined;
+
+/** Deepest active route name — used for Crashlytics screen attribute. */
+export function getActiveRouteName(state: NavState): string {
+  if (!state || !('routes' in state) || !state.routes?.length) {
+    return 'unknown';
+  }
+  const index = state.index ?? state.routes.length - 1;
+  const route = state.routes[index];
+  if (route?.state) {
+    return getActiveRouteName(route.state);
+  }
+  return route?.name ?? 'unknown';
+}
 
 export function navigateToMainTab(
   tabScreen: string,

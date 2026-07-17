@@ -33,6 +33,7 @@ import React, { useMemo } from 'react';
 import { RFValue } from 'react-native-responsive-fontsize';
 import {
   ActivityIndicator,
+  Button,
   Image,
   ImageBackground,
   Pressable,
@@ -171,6 +172,7 @@ export default function HomeScreen() {
       statusBarBackgroundColor="transparent"
     >
       <HomeHeader onNotificationPress={() => push(StackNav.MyRewards)} />
+
       <Body contentContainerStyle={{ paddingHorizontal: moderateScale(15), paddingTop: moderateScaleVertical(15) }}>
 
 

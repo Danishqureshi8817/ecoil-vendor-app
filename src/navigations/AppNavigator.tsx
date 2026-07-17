@@ -6,11 +6,15 @@ import OnboardingScreen from '@/screens/OnboardingScreen';
 import Login from '@/screens/Login';
 import CollectRequestDetailScreen from '@/screens/CollectRequestDetailScreen';
 import CounterCollectionDetailScreen from '@/screens/CounterCollectionDetailScreen';
-import { navigationRef } from '@/utils/NavigationUtils';
+import {
+  getActiveRouteName,
+  navigationRef,
+} from '@/utils/NavigationUtils';
 import useInAppUpdate from '@/utils/useInAppUpdate';
+import { setCrashScreen } from '@/services/crashReporting';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import type { RootStackParamList } from '@/navigations/NavigationKeys';
 import DrawerNavigator from './DrawerNavigator';
 
@@ -18,9 +22,28 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   const { updateRequired, liveVersion, onUpdatePress } = useInAppUpdate();
+  const routeNameRef = useRef<string | undefined>(undefined);
+
+  const onReady = useCallback(() => {
+    const name = getActiveRouteName(navigationRef.getRootState());
+    routeNameRef.current = name;
+    setCrashScreen(name);
+  }, []);
+
+  const onStateChange = useCallback(() => {
+    const previous = routeNameRef.current;
+    const current = getActiveRouteName(navigationRef.getRootState());
+    if (previous !== current) {
+      routeNameRef.current = current;
+      setCrashScreen(current);
+    }
+  }, []);
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={onReady}
+      onStateChange={onStateChange}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name={StackNav.Splash} component={Splash} />
         <Stack.Screen name={StackNav.Onboarding} component={OnboardingScreen} />
