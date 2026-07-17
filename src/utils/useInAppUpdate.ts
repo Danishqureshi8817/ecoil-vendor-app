@@ -1,9 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
-import {Linking, Platform} from 'react-native';
-import InAppUpdates, {
-  IAUUpdateKind,
-  StartUpdateOptions,
-} from 'sp-react-native-in-app-updates';
+import {Linking, Platform, TurboModuleRegistry} from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import useAppSettings from '@/hooks/useAppSettings';
 
@@ -55,20 +51,43 @@ async function openStore() {
   }
 }
 
-/** Android Play in-app update flow (native Google Play UI). */
+/**
+ * Android Play in-app update.
+ * Lazy-loads native module so missing/unlinked SpInAppUpdates does not crash the app.
+ */
 async function startAndroidInAppUpdate() {
+  if (Platform.OS !== 'android') {
+    return;
+  }
+
   try {
-    const inAppUpdates = new InAppUpdates(false);
+    const native = TurboModuleRegistry.get('SpInAppUpdates');
+    if (!native) {
+      console.log(
+        '[InAppUpdate] SpInAppUpdates native module not linked yet — rebuild Android app',
+      );
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('sp-react-native-in-app-updates') as {
+      default: new (isDebug: boolean) => {
+        checkNeedsUpdate: () => Promise<{shouldUpdate: boolean}>;
+        startUpdate: (options: {updateType: number}) => Promise<void>;
+      };
+      IAUUpdateKind: {IMMEDIATE: number; FLEXIBLE: number};
+    };
+
+    const inAppUpdates = new mod.default(false);
     const result = await inAppUpdates.checkNeedsUpdate();
     if (!result.shouldUpdate) {
       return;
     }
-    const updateOptions: StartUpdateOptions = {
-      updateType: IAUUpdateKind.IMMEDIATE,
-    };
-    await inAppUpdates.startUpdate(updateOptions);
+    await inAppUpdates.startUpdate({
+      updateType: mod.IAUUpdateKind.IMMEDIATE,
+    });
   } catch (err) {
-    console.log('Android In-App Update Error:', err);
+    console.log('[InAppUpdate] Android In-App Update Error:', err);
   }
 }
 
@@ -87,6 +106,15 @@ const useInAppUpdate = (): InAppUpdateState => {
   const {data: settings} = useAppSettings();
   const androidInAppStarted = useRef(false);
 
+  // useEffect(() => {
+  //   console.log('[InAppUpdate] current app version', {
+  //     platform: Platform.OS,
+  //     currentVersion: DeviceInfo.getVersion(),
+  //     buildNumber: DeviceInfo.getBuildNumber(),
+  //     bundleId: DeviceInfo.getBundleId(),
+  //   });
+  // }, []);
+
   const liveVersion = useMemo(() => {
     if (!settings) {
       return '';
@@ -101,8 +129,17 @@ const useInAppUpdate = (): InAppUpdateState => {
       return false;
     }
     const currentVersion = DeviceInfo.getVersion();
-    return isUpdateRequired(currentVersion, liveVersion);
-  }, [liveVersion]);
+    const required = isUpdateRequired(currentVersion, liveVersion);
+    console.log('[InAppUpdate] version check', {
+      platform: Platform.OS,
+      currentVersion,
+      liveVersion,
+      settingsAndroid: settings?.app_android_version,
+      settingsIos: settings?.app_ios_version,
+      updateRequired: required,
+    });
+    return required;
+  }, [liveVersion, settings?.app_android_version, settings?.app_ios_version]);
 
   useEffect(() => {
     if (
