@@ -17,7 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { clearSession } from '@/utils/sessionStorage';
-import { resetAndNavigate } from '@/utils/NavigationUtils';
+import { navigate, resetAndNavigate } from '@/utils/NavigationUtils';
 import { StackNav, TabNav } from '@/navigations/NavigationKeys';
 import { useNavigationState, useNavigation, DrawerActions } from '@react-navigation/native';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
@@ -98,7 +98,10 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
             <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.profileRole} numberOfLine={1}>
               {roleLabel}
             </CustomText>
-            <TouchableOpacity style={styles.profileLink} activeOpacity={0.8}>
+            <TouchableOpacity onPress={() => {
+              props.navigation.closeDrawer();
+              navigate(TabNav.Profile);
+            }} style={styles.profileLink} activeOpacity={0.8}>
               <CustomText
                 variant="h7"
                 fontFamily={Fonts.montserrat.regular}
