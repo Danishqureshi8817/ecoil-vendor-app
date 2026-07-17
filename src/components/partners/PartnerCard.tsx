@@ -111,16 +111,18 @@ export function PartnerCard({row}: Props) {
                 void Linking.openURL(`tel:${tel}`);
               }
             }}>
-            <LinearGradient
-              colors={[Colors.brandDark, Colors.brand]}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.callBtn}>
+            <View style={[styles.callBtn, {overflow: 'hidden'}]}>
+              <LinearGradient
+                colors={[Colors.brandDark, Colors.brand]}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={StyleSheet.absoluteFill}
+              />
               <Ionicons name="call" size={16} color={Colors.white} />
               <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.callText}>
                 Call
               </CustomText>
-            </LinearGradient>
+            </View>
           </Pressable>
         </View>
       </View>

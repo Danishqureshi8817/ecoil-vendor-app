@@ -51,15 +51,14 @@ async function requestAndroidNotificationPermission(): Promise<boolean> {
 }
 
 export async function requestPushPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android') {
-    return false;
+  if (Platform.OS === 'android') {
+    const androidGranted = await requestAndroidNotificationPermission();
+    if (!androidGranted) {
+      return false;
+    }
   }
 
-  const androidGranted = await requestAndroidNotificationPermission();
-  if (!androidGranted) {
-    return false;
-  }
-
+  // iOS + Android: Firebase Messaging permission prompt / status
   const authStatus = await messaging().requestPermission();
   return (
     authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
@@ -68,13 +67,14 @@ export async function requestPushPermission(): Promise<boolean> {
 }
 
 export async function fetchAndStoreFcmToken(): Promise<string | null> {
-  if (Platform.OS !== 'android') {
-    return null;
-  }
-
   const hasPermission = await requestPushPermission();
   if (!hasPermission) {
     return null;
+  }
+
+  // iOS: ensure APNs registration before requesting FCM token
+  if (Platform.OS === 'ios') {
+    await messaging().registerDeviceForRemoteMessages();
   }
 
   const token = await messaging().getToken();

@@ -203,7 +203,7 @@ export default function HomeScreen() {
                   style={({ pressed }) => [styles.redeemBtn, pressed && styles.pressed]}
                   onPress={() => navigate(StackNav.MyRewards)}>
                   <Ionicons name="gift-outline" size={15} color={Colors.black} />
-                  <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.redeemText}>
+                  <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.redeemText}>
                     Redeem Now
                   </CustomText>
                 </Pressable>

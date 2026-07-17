@@ -81,15 +81,17 @@ export function ApplicationDetailModal({
               </ScrollView>
 
               <Pressable style={styles.closeWrap} onPress={onClose}>
-                <LinearGradient
-                  colors={[Colors.brandDark, Colors.brand]}
-                  start={{x: 0, y: 0}}
-                  end={{x: 1, y: 1}}
-                  style={styles.closeActionBtn}>
+                <View style={styles.closeActionBtn}>
+                  <LinearGradient
+                    colors={[Colors.brandDark, Colors.brand]}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                    style={StyleSheet.absoluteFill}
+                  />
                   <CustomText variant="h5" style={externalUi.submitBtnText}>
                     Close
                   </CustomText>
-                </LinearGradient>
+                </View>
               </Pressable>
             </>
           ) : null}

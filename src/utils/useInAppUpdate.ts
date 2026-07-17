@@ -1,110 +1,130 @@
-import { useEffect, useRef } from 'react';
-import { Platform, Alert, Linking } from 'react-native';
-import InAppUpdates, { IAUUpdateKind, StartUpdateOptions } from 'sp-react-native-in-app-updates';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {Linking, Platform} from 'react-native';
+import InAppUpdates, {
+  IAUUpdateKind,
+  StartUpdateOptions,
+} from 'sp-react-native-in-app-updates';
 import DeviceInfo from 'react-native-device-info';
-import useGetSetting from '@/hooks/home/get-setting';
+import useAppSettings from '@/hooks/useAppSettings';
 
 const IOS_APP_STORE_ID = '6502945020';
 const IOS_APP_STORE_URL = `itms-apps://apps.apple.com/app/id${IOS_APP_STORE_ID}`;
 const IOS_APP_STORE_WEB_URL = `https://apps.apple.com/app/id${IOS_APP_STORE_ID}`;
 
-/**
- * Returns true when liveVersion is greater than currentVersion.
- */
-export const isUpdateRequired = (currentVersion: string, liveVersion: string): boolean => {
-  const current = currentVersion.split('.').map(Number);
-  const live = liveVersion.split('.').map(Number);
+const ANDROID_PACKAGE = 'com.arises.knp';
+const ANDROID_PLAY_URL = `market://details?id=${ANDROID_PACKAGE}`;
+const ANDROID_PLAY_WEB_URL = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
+
+/** Returns true when liveVersion is greater than currentVersion. */
+export const isUpdateRequired = (
+  currentVersion: string,
+  liveVersion: string,
+): boolean => {
+  const current = currentVersion.split('.').map(part => Number(part) || 0);
+  const live = liveVersion.split('.').map(part => Number(part) || 0);
 
   for (let i = 0; i < Math.max(current.length, live.length); i++) {
     const currentPart = current[i] || 0;
     const livePart = live[i] || 0;
 
-    if (livePart > currentPart) return true;
-    if (livePart < currentPart) return false;
+    if (livePart > currentPart) {
+      return true;
+    }
+    if (livePart < currentPart) {
+      return false;
+    }
   }
 
   return false;
 };
 
-const openIOSAppStore = async () => {
-  try {
-    await Linking.openURL(IOS_APP_STORE_URL);
-  } catch (error) {
-    console.log('iOS App Store open error:', error);
-    await Linking.openURL(IOS_APP_STORE_WEB_URL);
+async function openStore() {
+  if (Platform.OS === 'ios') {
+    try {
+      await Linking.openURL(IOS_APP_STORE_URL);
+    } catch {
+      await Linking.openURL(IOS_APP_STORE_WEB_URL);
+    }
+    return;
   }
-};
 
-const showIOSUpdateAlert = (liveVersion: string) => {
-  Alert.alert(
-    'Update Available',
-    `A new version (${liveVersion}) is available on the App Store. Please update to get the latest features and improvements.`,
-    [
-      {
-        text: 'Update Now',
-        onPress: () => {
-          openIOSAppStore();
-        },
-      },
-      {
-        text: 'Later',
-        style: 'cancel',
-      },
-    ],
-    { cancelable: false },
-  );
+  try {
+    await Linking.openURL(ANDROID_PLAY_URL);
+  } catch {
+    await Linking.openURL(ANDROID_PLAY_WEB_URL);
+  }
+}
+
+/** Android Play in-app update flow (native Google Play UI). */
+async function startAndroidInAppUpdate() {
+  try {
+    const inAppUpdates = new InAppUpdates(false);
+    const result = await inAppUpdates.checkNeedsUpdate();
+    if (!result.shouldUpdate) {
+      return;
+    }
+    const updateOptions: StartUpdateOptions = {
+      updateType: IAUUpdateKind.IMMEDIATE,
+    };
+    await inAppUpdates.startUpdate(updateOptions);
+  } catch (err) {
+    console.log('Android In-App Update Error:', err);
+  }
+}
+
+export type InAppUpdateState = {
+  updateRequired: boolean;
+  liveVersion: string;
+  onUpdatePress: () => void;
 };
 
 /**
- * Check Android Play Store for updates
+ * Compares installed app version with settings API versions.
+ * Shows a fixed update modal on both platforms when outdated.
+ * On Android also triggers Play Store in-app update when available.
  */
-const checkAndroidUpdate = async () => {
-  try {
-    const inAppUpdates = new InAppUpdates(false); // false = not debug mode
+const useInAppUpdate = (): InAppUpdateState => {
+  const {data: settings} = useAppSettings();
+  const androidInAppStarted = useRef(false);
 
-    // Check for available updates on Google Play
-    const result = await inAppUpdates.checkNeedsUpdate();
-    
-    if (result.shouldUpdate) {
-      const updateOptions: StartUpdateOptions = {
-        updateType: IAUUpdateKind.IMMEDIATE, // or FLEXIBLE
-      };
-      inAppUpdates.startUpdate(updateOptions);
+  const liveVersion = useMemo(() => {
+    if (!settings) {
+      return '';
     }
-  } catch (err) {
-    console.log('Android In-App Update Error: ', err);
-    // Silently fail - don't interrupt user experience
-  }
-};
+    return Platform.OS === 'ios'
+      ? settings.app_ios_version?.trim() || ''
+      : settings.app_android_version?.trim() || '';
+  }, [settings]);
 
-const useInAppUpdate = () => {
-  const { data: settingData } = useGetSetting();
-  const hasShownIOSUpdateAlert = useRef(false);
+  const updateRequired = useMemo(() => {
+    if (!liveVersion) {
+      return false;
+    }
+    const currentVersion = DeviceInfo.getVersion();
+    return isUpdateRequired(currentVersion, liveVersion);
+  }, [liveVersion]);
 
   useEffect(() => {
-    if (Platform.OS === 'android') {
-      checkAndroidUpdate();
+    if (
+      Platform.OS !== 'android' ||
+      !updateRequired ||
+      androidInAppStarted.current
+    ) {
+      return;
     }
+    androidInAppStarted.current = true;
+    void startAndroidInAppUpdate();
+  }, [updateRequired]);
+
+  const onUpdatePress = useCallback(() => {
+    void openStore();
   }, []);
 
-  useEffect(() => {
-    if (Platform.OS !== 'ios' || hasShownIOSUpdateAlert.current) {
-      return;
-    }
-
-    const liveVersion = 
-      settingData?.data?.result?.[0]?.generalSettings?.app_version_ios;
-
-    if (!liveVersion) {
-      return;
-    }
-
-    const currentVersion = DeviceInfo.getVersion();
-    if (isUpdateRequired(currentVersion, liveVersion)) {
-      hasShownIOSUpdateAlert.current = true;
-      showIOSUpdateAlert(liveVersion);
-    }
-  }, [settingData]);
+  return {
+    updateRequired,
+    liveVersion,
+    onUpdatePress,
+  };
 };
 
 export default useInAppUpdate;

@@ -169,6 +169,17 @@ export async function submitPublicServiceApplication(
   return data as {id?: string; message?: string};
 }
 
+export type PublicAppSettings = {
+  app_android_version: string;
+  app_ios_version: string;
+  updated_at: string | null;
+};
+
+export async function fetchPublicSettings(): Promise<PublicAppSettings> {
+  const {data} = await publicApi.get<PublicAppSettings>('/settings');
+  return data;
+}
+
 export function getPublicApiError(err: unknown, fallback: string): string {
   return getApiErrorMessage(err, fallback);
 }

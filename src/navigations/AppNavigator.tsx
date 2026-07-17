@@ -1,18 +1,13 @@
 import CheckInternet from '@/components/global/CheckInternet';
+import ForceUpdateModal from '@/components/global/ForceUpdateModal';
 import { StackNav } from '@/navigations/NavigationKeys';
-import MainScreen from '@/navigations/MainScreen';
 import Splash from '@/screens/Splash';
 import OnboardingScreen from '@/screens/OnboardingScreen';
 import Login from '@/screens/Login';
-import CollectRequestListScreen from '@/screens/CollectRequestListScreen';
 import CollectRequestDetailScreen from '@/screens/CollectRequestDetailScreen';
 import CounterCollectionDetailScreen from '@/screens/CounterCollectionDetailScreen';
-import MyCertificatesScreen from '@/screens/MyCertificatesScreen';
-import MyRewardsScreen from '@/screens/MyRewardsScreen';
-import PaymentDetailsScreen from '@/screens/PaymentDetailsScreen';
-import AgreementScreen from '@/screens/AgreementScreen';
-import MyApplicationsScreen from '@/screens/MyApplicationsScreen';
 import { navigationRef } from '@/utils/NavigationUtils';
+import useInAppUpdate from '@/utils/useInAppUpdate';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
@@ -22,6 +17,8 @@ import DrawerNavigator from './DrawerNavigator';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
+  const { updateRequired, liveVersion, onUpdatePress } = useInAppUpdate();
+
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -38,9 +35,13 @@ export default function AppNavigator() {
           name={StackNav.CountersCollectionDetail}
           component={CounterCollectionDetailScreen}
         />
-
       </Stack.Navigator>
       <CheckInternet />
+      <ForceUpdateModal
+        visible={updateRequired}
+        liveVersion={liveVersion}
+        onUpdate={onUpdatePress}
+      />
     </NavigationContainer>
   );
 }

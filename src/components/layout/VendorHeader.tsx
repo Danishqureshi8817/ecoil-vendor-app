@@ -50,11 +50,14 @@ export function VendorHeader({
         backgroundColor="transparent"
         translucent={Platform.OS === 'android'}
       />
-      <LinearGradient
-        colors={[...HEADER_GRADIENT.colors]}
-        start={HEADER_GRADIENT.start}
-        end={HEADER_GRADIENT.end}
+      <View
         style={[styles.gradient, {paddingTop: insets.top + moderateScaleVertical(8)}]}>
+        <LinearGradient
+          colors={[...HEADER_GRADIENT.colors]}
+          start={HEADER_GRADIENT.start}
+          end={HEADER_GRADIENT.end}
+          style={StyleSheet.absoluteFill}
+        />
         <TouchableOpacity
           onPress={onLeadingPress}
           style={styles.menuBtn}
@@ -98,7 +101,7 @@ export function VendorHeader({
             </CustomText>
           </View>
         )}
-      </LinearGradient>
+      </View>
     </>
   );
 }

@@ -59,11 +59,14 @@ function AppBar({
         backgroundColor="transparent"
         translucent={Platform.OS === 'android'}
       /> */}
-      <LinearGradient
-        colors={[...HEADER_GRADIENT.colors]}
-        start={HEADER_GRADIENT.start}
-        end={HEADER_GRADIENT.end}
+      <View
         style={[styles.gradient, { paddingTop: moderateScaleVertical(insets.top) }]}>
+        <LinearGradient
+          colors={[...HEADER_GRADIENT.colors]}
+          start={HEADER_GRADIENT.start}
+          end={HEADER_GRADIENT.end}
+          style={StyleSheet.absoluteFill}
+        />
 
         {/* Leading button — back, menu, or close */}
         <TouchableOpacity
@@ -95,7 +98,7 @@ function AppBar({
         ) : (
           <View style={styles.sideSpacer} />
         )}
-      </LinearGradient>
+      </View>
     </>
   );
 }

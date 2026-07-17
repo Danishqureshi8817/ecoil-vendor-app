@@ -69,14 +69,17 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
 
   return (
     <View style={[styles.drawer, { paddingBottom: insets.bottom + moderateScaleVertical(12) }]}>
-      <LinearGradient
-        colors={[...HEADER_GRADIENT.colors]}
-        start={HEADER_GRADIENT.start}
-        end={HEADER_GRADIENT.end}
+      <View
         style={[
           styles.drawerHeader,
           { paddingTop: insets.top + moderateScaleVertical(16) },
         ]}>
+        <LinearGradient
+          colors={[...HEADER_GRADIENT.colors]}
+          start={HEADER_GRADIENT.start}
+          end={HEADER_GRADIENT.end}
+          style={StyleSheet.absoluteFill}
+        />
         <View style={styles.profileRow}>
           <View style={styles.logoRing}>
             <View style={styles.logoCircle}>
@@ -114,7 +117,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
             </TouchableOpacity>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         style={styles.drawerNav}

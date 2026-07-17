@@ -1,5 +1,5 @@
 import {Colors} from '@/constants/colors';
-import {Fonts, FontWeights} from '@/constants/fonts';
+import {Fonts} from '@/constants/fonts';
 import React from 'react';
 import {StyleSheet, Text, TextStyle} from 'react-native';
 import {RFValue} from 'react-native-responsive-fontsize';
@@ -12,28 +12,6 @@ interface Props {
   children?: React.ReactNode;
   numberOfLine?: number;
 }
-
-const getFontWeightFromFamily = (
-  fontFamily: string | undefined,
-): TextStyle['fontWeight'] => {
-  if (!fontFamily) {
-    return undefined;
-  }
-  const f = fontFamily.toLowerCase();
-  if (f.includes('light')) {
-    return FontWeights.light;
-  }
-  if (f.includes('medium')) {
-    return FontWeights.medium;
-  }
-  if (f.includes('semibold')) {
-    return FontWeights.semiBold;
-  }
-  if (f.includes('bold')) {
-    return FontWeights.bold;
-  }
-  return FontWeights.regular;
-};
 
 const CustomText: React.FC<Props> = ({
   variant = 'body',
@@ -55,6 +33,7 @@ const CustomText: React.FC<Props> = ({
   };
   const computedFontSize = RFValue(fontSize || sizes[variant] || 14);
 
+  // Custom font files already encode weight; iOS double-bolds if fontWeight is also set.
   return (
     <Text
       style={[
@@ -63,7 +42,6 @@ const CustomText: React.FC<Props> = ({
           color: Colors.black,
           fontSize: computedFontSize,
           fontFamily,
-          fontWeight: getFontWeightFromFamily(fontFamily),
         },
         style,
       ]}

@@ -50,10 +50,7 @@ function HomeHeader({
   }
 
   return (
-    <LinearGradient
-      colors={[...HEADER_GRADIENT.colors]}
-      start={HEADER_GRADIENT.start}
-      end={HEADER_GRADIENT.end}
+    <View
       style={[
         styles.gradient,
         {
@@ -62,6 +59,12 @@ function HomeHeader({
         },
       ]}
     >
+      <LinearGradient
+        colors={[...HEADER_GRADIENT.colors]}
+        start={HEADER_GRADIENT.start}
+        end={HEADER_GRADIENT.end}
+        style={StyleSheet.absoluteFill}
+      />
       {/* Left Menu Button */}
       <TouchableOpacity
         onPress={handleMenuPress}
@@ -108,7 +111,7 @@ function HomeHeader({
           </View>
         )}
       </TouchableOpacity> */}
-    </LinearGradient>
+    </View>
   );
 }
 
