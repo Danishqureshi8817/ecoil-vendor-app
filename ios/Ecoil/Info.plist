@@ -46,8 +46,6 @@
 	<string>Ecoil may save images related to your collection requests to your photo library when needed.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Ecoil needs microphone access if you record video while capturing collection-related documents with the camera.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Ecoil uses your location to identify pickup address and make oil collection operations faster and more accurate.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

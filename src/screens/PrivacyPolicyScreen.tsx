@@ -9,7 +9,6 @@ import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import React from 'react';
 import {Linking, Pressable, StyleSheet, View} from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import {RFValue} from 'react-native-responsive-fontsize';
 
 const EMAIL = 'arises.org@gmail.com';
@@ -38,11 +37,6 @@ const PERMISSION_ITEMS: {
   body: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
 }[] = [
-  {
-    title: 'Location',
-    body: 'To identify your pickup location.',
-    icon: 'location-outline',
-  },
   {
     title: 'Camera',
     body: 'To capture images related to collection requests.',
@@ -149,22 +143,30 @@ export default function PrivacyPolicyScreen() {
   return (
     <Container fullScreen statusBarStyle="light-content">
       <AppBar title="Privacy Policy" leading="menu" />
-      <Body contentContainerStyle={styles.content}>
-        <LinearGradient
-          colors={['#E8F5EC', '#F7FBF8', Colors.white]}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={styles.hero}>
+      <Body contentContainerStyle={styles.content} backgroundColor="#F3F6F4">
+        <View style={styles.heroCard}>
           <View style={styles.heroTop}>
             <View style={styles.heroBadge}>
-              <Ionicons name="shield-checkmark-outline" size={moderateScale(15)} color={Colors.brand} />
-              <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.heroBadgeText}>
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={moderateScale(14)}
+                color={Colors.brand}
+              />
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.montserrat.semiBold}
+                style={styles.heroBadgeText}
+                numberOfLines={1}>
                 Your privacy matters
               </CustomText>
             </View>
             <View style={styles.updatedPill}>
-              <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.updatedText}>
-                July 2026
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.montserrat.medium}
+                style={styles.updatedText}
+                numberOfLines={1}>
+                Updated July 2026
               </CustomText>
             </View>
           </View>
@@ -176,7 +178,7 @@ export default function PrivacyPolicyScreen() {
             This policy explains how we collect, use, and protect your information in the Ecoil
             Mobile Application (Android & iOS) and on our website.
           </CustomText>
-        </LinearGradient>
+        </View>
 
         <PolicyCard icon="document-text-outline" title="Information We Collect">
           <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.lead}>
@@ -185,7 +187,11 @@ export default function PrivacyPolicyScreen() {
           <View style={styles.chipWrap}>
             {COLLECT_ITEMS.map(item => (
               <View key={item} style={styles.chip}>
-                <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.chipText}>
+                <CustomText
+                  variant="h7"
+                  fontFamily={Fonts.montserrat.medium}
+                  style={styles.chipText}
+                  numberOfLines={2}>
                   {item}
                 </CustomText>
               </View>
@@ -303,42 +309,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(16),
     paddingTop: moderateScaleVertical(14),
     paddingBottom: moderateScaleVertical(40),
+    flexGrow: 1,
   },
-  hero: {
-    borderRadius: moderateScale(18),
-    padding: moderateScale(18),
-    marginBottom: moderateScaleVertical(16),
+  heroCard: {
+    backgroundColor: Colors.white,
+    borderRadius: moderateScale(16),
     borderWidth: 1,
     borderColor: '#D8EDE0',
-    overflow: 'hidden',
+    padding: moderateScale(16),
+    marginBottom: moderateScaleVertical(14),
+    ...theme.shadow,
   },
   heroTop: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: moderateScale(8),
     marginBottom: moderateScaleVertical(12),
+    rowGap: moderateScaleVertical(8),
+    columnGap: moderateScale(8),
   },
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: moderateScale(6),
-    backgroundColor: Colors.white,
+    flexShrink: 1,
+    maxWidth: '100%',
+    backgroundColor: '#F4FBF6',
     paddingHorizontal: moderateScale(10),
-    paddingVertical: moderateScaleVertical(5),
+    paddingVertical: moderateScaleVertical(6),
     borderRadius: moderateScale(20),
     borderWidth: 1,
     borderColor: '#D1E7D9',
+    gap: moderateScale(6),
   },
   heroBadgeText: {
     color: Colors.brandDark,
     fontSize: RFValue(10),
+    flexShrink: 1,
   },
   updatedPill: {
     backgroundColor: Colors.brandSoft,
     paddingHorizontal: moderateScale(10),
-    paddingVertical: moderateScaleVertical(5),
+    paddingVertical: moderateScaleVertical(6),
     borderRadius: moderateScale(20),
+    flexShrink: 0,
   },
   updatedText: {
     color: Colors.brandDark,
@@ -359,8 +372,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: moderateScale(16),
     borderWidth: 1,
-    borderColor: Colors.line,
-    padding: moderateScale(14),
+    borderColor: '#E8ECF0',
+    padding: moderateScale(16),
     marginBottom: moderateScaleVertical(12),
     ...theme.shadow,
   },
@@ -397,7 +410,9 @@ const styles = StyleSheet.create({
   chipWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: moderateScale(8),
+    alignItems: 'flex-start',
+    marginHorizontal: moderateScale(-4),
+    marginTop: moderateScaleVertical(-4),
   },
   chip: {
     backgroundColor: '#F4FBF6',
@@ -405,7 +420,10 @@ const styles = StyleSheet.create({
     borderColor: '#D8EDE0',
     borderRadius: moderateScale(20),
     paddingHorizontal: moderateScale(12),
-    paddingVertical: moderateScaleVertical(6),
+    paddingVertical: moderateScaleVertical(7),
+    marginHorizontal: moderateScale(4),
+    marginTop: moderateScaleVertical(8),
+    maxWidth: '100%',
   },
   chipText: {
     color: Colors.brandDark,

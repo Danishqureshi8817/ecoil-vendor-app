@@ -7,7 +7,6 @@ import {Modal, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {RFValue} from 'react-native-responsive-fontsize';
 
 const POLICY_POINTS = [
-  'Ecoil Partner app collects location data of some of its users to make operations easy & faster & requires permissions for the same.',
   'Ecoil Partner app requires some sort of document & image uploads like GatePass, Certificate etc. wherever applicable & requires permissions for the same.',
   'Ecoil Partner app requires camera access in order to take pic of GatePass to upload in the system wherever applicable & requires permissions for the same.',
 ];
