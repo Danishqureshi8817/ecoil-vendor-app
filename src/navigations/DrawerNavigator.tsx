@@ -17,6 +17,10 @@ import CollectRequestScreen from '@/screens/CollectRequestScreen';
 import CounterCollectionListScreen from '@/screens/CounterCollectionListScreen';
 import ContactUsScreen from '@/screens/ContactUsScreen';
 import PrivacyPolicyScreen from '@/screens/PrivacyPolicyScreen';
+import ScrapRequestsScreen from '@/screens/ScrapRequestsScreen';
+import CreateScrapRequestScreen from '@/screens/CreateScrapRequestScreen';
+import WasteRequestsScreen from '@/screens/WasteRequestsScreen';
+import CreateWasteRequestScreen from '@/screens/CreateWasteRequestScreen';
 
 const Drawer = createDrawerNavigator();
 const DRAWER_WIDTH = Math.min(width * 0.75, 320);
@@ -44,6 +48,22 @@ export default function DrawerNavigator() {
       <Drawer.Screen
         name={StackNav.CountersCollectionList}
         component={CounterCollectionListScreen}
+      />
+      <Drawer.Screen
+        name={StackNav.ScrapRequests}
+        component={ScrapRequestsScreen}
+      />
+      <Drawer.Screen
+        name={StackNav.CreateScrapRequest}
+        component={CreateScrapRequestScreen}
+      />
+      <Drawer.Screen
+        name={StackNav.WasteRequests}
+        component={WasteRequestsScreen}
+      />
+      <Drawer.Screen
+        name={StackNav.CreateWasteRequest}
+        component={CreateWasteRequestScreen}
       />
       <Drawer.Screen
         name={StackNav.MyServiceRequests}

@@ -16,6 +16,7 @@ import { StackNav, TabNav } from '@/navigations/NavigationKeys';
 import type { PublicService } from '@/api/publicApi';
 import type { VendorDashboardNotification } from '@/api/dashboardApi';
 import publicService from '@/services/public-service';
+import { useAuthStore } from '@/states/authStore';
 import { useServiceNavigationStore } from '@/states/serviceNavigationStore';
 import {
   formatDashboardCount,
@@ -27,17 +28,17 @@ import {
 import { ServiceIconImage } from '@/components/service/ServiceIconImage';
 import { navigate, navigateToTab, push } from '@/utils/NavigationUtils';
 import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
+import { isScrapVendor } from '@/utils/vendorUser';
 import Ionicons from '@react-native-vector-icons/ionicons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { RFValue } from 'react-native-responsive-fontsize';
 import {
   ActivityIndicator,
-  Button,
   Image,
   ImageBackground,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -133,18 +134,38 @@ function NotificationActivityRow({ item }: { item: VendorDashboardNotification }
 }
 
 export default function HomeScreen() {
-  const {data: dashboard, isPending: dashboardPending} = useVendorDashboard();
-  const {data: coins, isPending: coinsPending} = useVendorCoins();
+  const user = useAuthStore(s => s.user);
+  const scrapVendor = isScrapVendor(user);
+  const {
+    data: dashboard,
+    isPending: dashboardPending,
+    refetch: refetchDashboard,
+  } = useVendorDashboard();
+  const {
+    data: coins,
+    isPending: coinsPending,
+    refetch: refetchCoins,
+  } = useVendorCoins();
 
   const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: [publicService.queryKeys.services],
     queryFn: () => publicService.getServices(),
+    enabled: !scrapVendor,
   });
 
   const { data: homeBanners = [] } = useQuery({
     queryKey: [publicService.queryKeys.homeBanners],
     queryFn: () => publicService.getHomeBanners(),
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      void refetchDashboard();
+      if (!scrapVendor) {
+        void refetchCoins();
+      }
+    }, [refetchDashboard, refetchCoins, scrapVendor]),
+  );
 
   const counters = dashboard?.counters;
   const recentNotifications = useMemo(
@@ -155,14 +176,55 @@ export default function HomeScreen() {
     () => services.slice(0, HOME_SERVICES_LIMIT),
     [services],
   );
+  const scrapCategoryStats = useMemo(() => {
+    const byCat = counters?.WeightByCategories;
+    if (!byCat || typeof byCat !== 'object') {
+      return [];
+    }
+    return Object.entries(byCat).map(([name, stats]) => ({
+      name,
+      pickedToday: stats?.PickedToday,
+      pickedThisMonth: stats?.PickedThisMonth,
+    }));
+  }, [counters?.WeightByCategories]);
 
   function handleHomeServicePress(service: PublicService) {
     useServiceNavigationStore.getState().openService(service.id);
     navigateToTab(TabNav.Services);
   }
 
-  const greenPoints = coins?.coinTotal ?? null;
-  const monthPoints = coins?.currentMonthCoins ?? null;
+  // Prefer scratch-wallet coins; fall back to dashboard carbon credits when coins are empty.
+  const greenPoints = useMemo(() => {
+    const fromCoins = coins?.coinTotal;
+    if (fromCoins != null && !Number.isNaN(Number(fromCoins)) && Number(fromCoins) > 0) {
+      return Number(fromCoins);
+    }
+    const fromDash = parseFloat(
+      String(counters?.CarbonCreditTotalPicked ?? '')
+        .replace(/,/g, '')
+        .trim(),
+    );
+    if (Number.isFinite(fromDash)) {
+      return fromDash;
+    }
+    return fromCoins != null ? Number(fromCoins) : null;
+  }, [coins?.coinTotal, counters?.CarbonCreditTotalPicked]);
+
+  const monthPoints = useMemo(() => {
+    const fromCoins = coins?.currentMonthCoins;
+    if (fromCoins != null && !Number.isNaN(Number(fromCoins)) && Number(fromCoins) > 0) {
+      return Number(fromCoins);
+    }
+    const fromDash = parseFloat(
+      String(counters?.CarbonCreditMonth ?? '')
+        .replace(/,/g, '')
+        .trim(),
+    );
+    if (Number.isFinite(fromDash)) {
+      return fromDash;
+    }
+    return fromCoins != null ? Number(fromCoins) : null;
+  }, [coins?.currentMonthCoins, counters?.CarbonCreditMonth]);
 
   return (
     <Container
@@ -175,11 +237,6 @@ export default function HomeScreen() {
 
       <Body contentContainerStyle={{ paddingHorizontal: moderateScale(15), paddingTop: moderateScaleVertical(15) }}>
 
-
-        {/* <ScrollView
-          contentContainerStyle={[screen.scroll, { backgroundColor: '#FDFDFD' }]}
-          showsVerticalScrollIndicator={false}> */}
-
         <View style={styles.greenCardWrap}>
           <ImageBackground
             source={GREEN_CARD_BG}
@@ -190,25 +247,35 @@ export default function HomeScreen() {
               <View style={styles.greenCardCopy}>
                 <View style={styles.greenLabelRow}>
                   <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold} style={styles.greenLabel}>
-                    Total Green Points
+                    {scrapVendor ? 'Total Pickedup Weight' : 'Total Green Points'}
                   </CustomText>
                   <Ionicons name="information-circle-outline" size={15} color="rgba(255,255,255,0.92)" />
                 </View>
-                {coinsPending ? (
+                {scrapVendor ? (
+                  dashboardPending ? (
+                    <MetricLoadingLottie tint="light" size="lg" style={styles.pointsLoader} />
+                  ) : (
+                    <CustomText variant="h1" fontFamily={Fonts.montserrat.bold} style={styles.greenPoints}>
+                      {formatDashboardQty(counters?.TotalPickedWeight)}
+                    </CustomText>
+                  )
+                ) : coinsPending ? (
                   <MetricLoadingLottie tint="light" size="lg" style={styles.pointsLoader} />
                 ) : (
                   <CustomText variant="h1" fontFamily={Fonts.montserrat.bold} style={styles.greenPoints}>
                     {formatPoints(greenPoints)}
                   </CustomText>
                 )}
-                <Pressable
-                  style={({ pressed }) => [styles.redeemBtn, pressed && styles.pressed]}
-                  onPress={() => navigate(StackNav.MyRewards)}>
-                  <Ionicons name="gift-outline" size={15} color={Colors.black} />
-                  <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.redeemText}>
-                    Redeem Now
-                  </CustomText>
-                </Pressable>
+                {!scrapVendor ? (
+                  <Pressable
+                    style={({ pressed }) => [styles.redeemBtn, pressed && styles.pressed]}
+                    onPress={() => navigate(StackNav.MyRewards)}>
+                    <Ionicons name="gift-outline" size={15} color={Colors.black} />
+                    <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.redeemText}>
+                      Redeem Now
+                    </CustomText>
+                  </Pressable>
+                ) : null}
               </View>
               <View style={styles.greenCardArtWrap}>
                 <View style={{}}>
@@ -221,138 +288,223 @@ export default function HomeScreen() {
               </View>
             </View>
           </ImageBackground>
-          <View style={styles.oilBar}>
-            <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.oilBarLabel}>
-              Total Oil Collection
-            </CustomText>
-            {dashboardPending ? (
-              <MetricLoadingLottie size="sm" style={styles.oilBarLoader} />
-            ) : (
-              <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} style={styles.oilBarValue}>
-                {formatDashboardQty(counters?.TotalPickedQty)}
-              </CustomText>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.statsGrid}>
-          <StatCard
-            icon={<HomeThisMonthCollectQuantityIcon width={22} height={28} />}
-            label="This Month Collected Quantity"
-            value={formatDashboardQty(counters?.MonthPickedQty)}
-            loading={dashboardPending}
-          />
-          <StatCard
-            icon={<HomeThisMonthGreenPointsIcon width={28} height={28} />}
-            label="Green Points Earned This month"
-            value={formatPoints(monthPoints)}
-            loading={coinsPending}
-          />
-          <StatCard
-            icon={<HomeThisMonthRequestCountIcon width={26} height={26} />}
-            label="Currently Open Request Count"
-            value={formatDashboardCount(counters?.OpenRequests)}
-            loading={dashboardPending}
-          />
-          <StatCard
-            icon={<HomeNextPickupIcon width={26} height={26} />}
-            label="Next Pickup Scheduled Date"
-            value={formatNextPickupDate(counters?.NextPickUpDate)}
-            loading={dashboardPending}
-          />
-        </View>
-
-        <HomeBannerCarousel banners={homeBanners} />
-
-        <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.sectionTitle}>
-          Our Services
-        </CustomText>
-
-        <View style={styles.servicesGrid}>
-          <Pressable
-            style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
-            onPress={() => navigate(StackNav.CollectionRequest)}>
-            <Image
-              source={OIL_REQUEST_IMG}
-              style={styles.oilRequestIcon}
-              resizeMode="contain"
-            />
-            <CustomText
-              variant="h7"
-              fontFamily={Fonts.montserrat.semiBold}
-              style={styles.serviceLabel}
-              numberOfLine={3}>
-              Oil Collection Request
-            </CustomText>
-          </Pressable>
-          {servicesLoading ? (
-            <ActivityIndicator color={Colors.brand} style={styles.servicesLoader} />
-          ) : (
-            <>
-              {homeServices.map(service => (
-                <Pressable
-                  key={service.id}
-                  style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
-                  onPress={() => handleHomeServicePress(service)}>
-                  <ServiceTileIcon service={service} />
-                  <CustomText
-                    variant="h7"
-                    fontFamily={Fonts.montserrat.semiBold}
-                    style={styles.serviceLabel}
-                    numberOfLine={3}>
-                    {service.name}
+          {scrapVendor ? (
+            <View style={styles.oilBarStack}>
+              <View style={styles.oilBar}>
+                <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.oilBarLabel}>
+                  Total Scrap Collection
+                </CustomText>
+                {dashboardPending ? (
+                  <MetricLoadingLottie size="sm" style={styles.oilBarLoader} />
+                ) : (
+                  <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} style={styles.oilBarValue}>
+                    {formatDashboardQty(counters?.TotalPickedScrap)}
                   </CustomText>
-                </Pressable>
-              ))}
+                )}
+              </View>
+              <View style={[styles.oilBar, styles.oilBarDivider]}>
+                <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.oilBarLabel}>
+                  Total Waste Collected
+                </CustomText>
+                {dashboardPending ? (
+                  <MetricLoadingLottie size="sm" style={styles.oilBarLoader} />
+                ) : (
+                  <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} style={styles.oilBarValue}>
+                    {formatDashboardQty(counters?.TotalPickedWaste)}
+                  </CustomText>
+                )}
+              </View>
+            </View>
+          ) : (
+            <View style={styles.oilBar}>
+              <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.oilBarLabel}>
+                Total Oil Collection
+              </CustomText>
+              {dashboardPending ? (
+                <MetricLoadingLottie size="sm" style={styles.oilBarLoader} />
+              ) : (
+                <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} style={styles.oilBarValue}>
+                  {formatDashboardQty(counters?.TotalPickedQty)}
+                </CustomText>
+              )}
+            </View>
+          )}
+        </View>
+
+        {scrapVendor ? (
+          <>
+            <View style={styles.statsGrid}>
+              <StatCard
+                icon={<HomeThisMonthRequestCountIcon width={26} height={26} />}
+                label="Completed Requests"
+                value={formatDashboardCount(counters?.CompletedRequests)}
+                loading={dashboardPending}
+              />
+              <StatCard
+                icon={<HomeThisMonthRequestCountIcon width={26} height={26} />}
+                label="Pending Requests"
+                value={formatDashboardCount(counters?.PendingRequests)}
+                loading={dashboardPending}
+              />
+              <StatCard
+                icon={<HomeThisMonthCollectQuantityIcon width={22} height={28} />}
+                label="Weight Picked Today"
+                value={formatDashboardQty(counters?.WeightPickedToday)}
+                loading={dashboardPending}
+              />
+              <StatCard
+                icon={<HomeThisMonthCollectQuantityIcon width={22} height={28} />}
+                label="Weight Picked This Month"
+                value={formatDashboardQty(counters?.WeightPickedThisMonth)}
+                loading={dashboardPending}
+              />
+            </View>
+
+            <HomeBannerCarousel banners={homeBanners} />
+
+            {scrapCategoryStats.map(category => (
+              <View key={category.name} style={styles.categoryBlock}>
+                <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.sectionTitle}>
+                  {category.name}
+                </CustomText>
+                <View style={styles.statsGrid}>
+                  <StatCard
+                    icon={<HomeThisMonthCollectQuantityIcon width={22} height={28} />}
+                    label="Picked Today"
+                    value={formatDashboardQty(category.pickedToday)}
+                    loading={dashboardPending}
+                  />
+                  <StatCard
+                    icon={<HomeThisMonthCollectQuantityIcon width={22} height={28} />}
+                    label="Picked This Month"
+                    value={formatDashboardQty(category.pickedThisMonth)}
+                    loading={dashboardPending}
+                  />
+                </View>
+              </View>
+            ))}
+          </>
+        ) : (
+          <>
+            <View style={styles.statsGrid}>
+              <StatCard
+                icon={<HomeThisMonthCollectQuantityIcon width={22} height={28} />}
+                label="This Month Collected Quantity"
+                value={formatDashboardQty(counters?.MonthPickedQty)}
+                loading={dashboardPending}
+              />
+              <StatCard
+                icon={<HomeThisMonthGreenPointsIcon width={28} height={28} />}
+                label="Green Points Earned This month"
+                value={formatPoints(monthPoints)}
+                loading={coinsPending}
+              />
+              <StatCard
+                icon={<HomeThisMonthRequestCountIcon width={26} height={26} />}
+                label="Currently Open Request Count"
+                value={formatDashboardCount(counters?.OpenRequests)}
+                loading={dashboardPending}
+              />
+              <StatCard
+                icon={<HomeNextPickupIcon width={26} height={26} />}
+                label="Next Pickup Scheduled Date"
+                value={formatNextPickupDate(counters?.NextPickUpDate)}
+                loading={dashboardPending}
+              />
+            </View>
+
+            <HomeBannerCarousel banners={homeBanners} />
+
+            <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.sectionTitle}>
+              Our Services
+            </CustomText>
+
+            <View style={styles.servicesGrid}>
               <Pressable
                 style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
-                onPress={() => {
-                  useServiceNavigationStore.getState().clearPendingService();
-                  navigate(TabNav.Services)
-                }}>
-                <View style={styles.viewAllCircle}>
-                  <Ionicons name="arrow-forward" size={22} color={Colors.brand} />
-                </View>
+                onPress={() => navigate(StackNav.CollectionRequest)}>
+                <Image
+                  source={OIL_REQUEST_IMG}
+                  style={styles.oilRequestIcon}
+                  resizeMode="contain"
+                />
                 <CustomText
                   variant="h7"
                   fontFamily={Fonts.montserrat.semiBold}
                   style={styles.serviceLabel}
-                  numberOfLine={2}>
-                  See all services
+                  numberOfLine={3}>
+                  Oil Collection Request
                 </CustomText>
               </Pressable>
-            </>
-          )}
-        </View>
+              {servicesLoading ? (
+                <ActivityIndicator color={Colors.brand} style={styles.servicesLoader} />
+              ) : (
+                <>
+                  {homeServices.map(service => (
+                    <Pressable
+                      key={service.id}
+                      style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
+                      onPress={() => handleHomeServicePress(service)}>
+                      <ServiceTileIcon service={service} />
+                      <CustomText
+                        variant="h7"
+                        fontFamily={Fonts.montserrat.semiBold}
+                        style={styles.serviceLabel}
+                        numberOfLine={3}>
+                        {service.name}
+                      </CustomText>
+                    </Pressable>
+                  ))}
+                  <Pressable
+                    style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
+                    onPress={() => {
+                      useServiceNavigationStore.getState().clearPendingService();
+                      navigate(TabNav.Services)
+                    }}>
+                    <View style={styles.viewAllCircle}>
+                      <Ionicons name="arrow-forward" size={22} color={Colors.brand} />
+                    </View>
+                    <CustomText
+                      variant="h7"
+                      fontFamily={Fonts.montserrat.semiBold}
+                      style={styles.serviceLabel}
+                      numberOfLine={2}>
+                      See all services
+                    </CustomText>
+                  </Pressable>
+                </>
+              )}
+            </View>
 
-        <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.sectionTitle}>
-          Recent Activity
-        </CustomText>
-
-        {dashboardPending ? (
-          <ActivityIndicator color={Colors.brand} style={styles.activityLoader} />
-        ) : recentNotifications.length === 0 ? (
-          <View style={styles.activityEmpty}>
-            <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.activitySub}>
-              No recent activity yet.
+            <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.sectionTitle}>
+              Recent Activity
             </CustomText>
-          </View>
-        ) : (
-          recentNotifications.map((item, index) => (
-            <NotificationActivityRow
-              key={`${item.added_date ?? 'activity'}-${index}`}
-              item={item}
-            />
-          ))
-        )}
 
-        <View style={styles.footer}>
-          <Ionicons name="leaf" size={20} color={Colors.brand} />
-          <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.footerText}>
-            EVERY DROP COUNTS TOWARDS A GREENER TOMORROW.
-          </CustomText>
-        </View>
-        {/* </ScrollView> */}
+            {dashboardPending ? (
+              <ActivityIndicator color={Colors.brand} style={styles.activityLoader} />
+            ) : recentNotifications.length === 0 ? (
+              <View style={styles.activityEmpty}>
+                <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.activitySub}>
+                  No recent activity yet.
+                </CustomText>
+              </View>
+            ) : (
+              recentNotifications.map((item, index) => (
+                <NotificationActivityRow
+                  key={`${item.added_date ?? 'activity'}-${index}`}
+                  item={item}
+                />
+              ))
+            )}
+
+            <View style={styles.footer}>
+              <Ionicons name="leaf" size={20} color={Colors.brand} />
+              <CustomText variant="h7" fontFamily={Fonts.montserrat.medium} style={styles.footerText}>
+                EVERY DROP COUNTS TOWARDS A GREENER TOMORROW.
+              </CustomText>
+            </View>
+          </>
+        )}
       </Body>
     </Container>
   );
@@ -448,6 +600,9 @@ const styles = StyleSheet.create({
     color: Colors.black,
     fontSize: RFValue(11),
   },
+  oilBarStack: {
+    backgroundColor: '#E2F5E8',
+  },
   oilBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -455,6 +610,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2F5E8',
     paddingHorizontal: moderateScale(16),
     paddingVertical: moderateScaleVertical(11),
+  },
+  oilBarDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0, 100, 55, 0.18)',
   },
   oilBarLabel: {
     color: Colors.drawerGradientEnd,
@@ -472,6 +631,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: moderateScale(10),
     marginBottom: moderateScaleVertical(20),
+  },
+  categoryBlock: {
+    marginBottom: moderateScaleVertical(4),
   },
   statCard: {
     width: '48%',

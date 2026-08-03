@@ -15,14 +15,15 @@ export function useScratchCards(status: ScratchCardStatus) {
   });
 }
 
-export function useVendorCoins() {
+export function useVendorCoins(options?: {enabled?: boolean}) {
   const user = useAuthStore(s => s.user);
   const vid = vendorUserId(user);
+  const enabled = options?.enabled ?? true;
 
   return useQuery({
     queryKey: [vendorService.queryKeys.vendorCoins, vid],
     queryFn: () => vendorService.getVendorCoins(vid),
-    enabled: Boolean(vid),
+    enabled: Boolean(vid) && enabled,
   });
 }
 

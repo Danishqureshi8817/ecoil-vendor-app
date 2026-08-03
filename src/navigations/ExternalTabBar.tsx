@@ -1,7 +1,7 @@
 import { VendorTabBar } from '@/navigations/VendorTabBar';
 import { TabNav } from '@/navigations/NavigationKeys';
 import { moderateScaleVertical } from '@/utils/responsiveSize';
-import { isParentCounter } from '@/utils/vendorUser';
+import { isParentCounter, isScrapVendor } from '@/utils/vendorUser';
 import { useAuthStore } from '@/states/authStore';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
@@ -20,6 +20,7 @@ type Props = { onTabChange?: (name: string) => void };
 export default function ExternalTabBar({ onTabChange }: Props) {
   const user = useAuthStore(s => s.user);
   const parentCounter = isParentCounter(user);
+  const scrapVendor = isScrapVendor(user);
 
   return (
     <Tab.Navigator
@@ -43,24 +44,28 @@ export default function ExternalTabBar({ onTabChange }: Props) {
         component={HomeScreen}
         options={{ tabBarLabel: 'Home' }}
       />
-      <Tab.Screen
-        name={TabNav.Services}
-        component={ServiceManagementScreen}
-        options={{ tabBarLabel: 'Services' }}
-      />
-      {parentCounter ? (
+      {!scrapVendor ? (
         <Tab.Screen
-          name={TabNav.CountersCollection}
-          component={CounterCollectionListScreen}
-          options={{ tabBarLabel: 'Counters' }}
+          name={TabNav.Services}
+          component={ServiceManagementScreen}
+          options={{ tabBarLabel: 'Services' }}
         />
-      ) : (
-        <Tab.Screen
-          name={TabNav.Requests}
-          component={CollectRequestListScreen}
-          options={{ tabBarLabel: 'Requests' }}
-        />
-      )}
+      ) : null}
+      {!scrapVendor ? (
+        parentCounter ? (
+          <Tab.Screen
+            name={TabNav.CountersCollection}
+            component={CounterCollectionListScreen}
+            options={{ tabBarLabel: 'Counters' }}
+          />
+        ) : (
+          <Tab.Screen
+            name={TabNav.Requests}
+            component={CollectRequestListScreen}
+            options={{ tabBarLabel: 'Requests' }}
+          />
+        )
+      ) : null}
       <Tab.Screen
         name={TabNav.Profile}
         component={ProfileScreen}

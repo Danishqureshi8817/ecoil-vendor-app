@@ -4,6 +4,11 @@ import type {KnparisesEnvelope} from '@/types/vendor';
 import {getStoredToken} from '@/utils/sessionStorage';
 import {unwrapKnparises} from '@/utils/knparises';
 
+export type ScrapCategoryWeightStats = {
+  PickedToday?: string | number;
+  PickedThisMonth?: string | number;
+};
+
 export type VendorDashboardCounters = {
   ThisMonthRequests?: string;
   TodayRequests?: string;
@@ -22,6 +27,15 @@ export type VendorDashboardCounters = {
   CarbonCreditYear?: string;
   CarbonCreditTotalPicked?: string;
   FollowupCounts?: number | string;
+  /** Scrap vendor (type 99) counters */
+  TotalPickedWeight?: string | number;
+  TotalPickedScrap?: string | number;
+  TotalPickedWaste?: string | number;
+  CompletedRequests?: string | number;
+  PendingRequests?: string | number;
+  WeightPickedToday?: string | number;
+  WeightPickedThisMonth?: string | number;
+  WeightByCategories?: Record<string, ScrapCategoryWeightStats>;
 };
 
 export type VendorDashboardNotification = {

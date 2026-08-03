@@ -11,5 +11,6 @@ export default function useVendorDashboard() {
     queryKey: [vendorService.queryKeys.vendorDashboard, params],
     queryFn: () => vendorService.getDashboard(params),
     enabled: Boolean(params.user_id && params.vendor_id),
+    staleTime: 0,
   });
 }

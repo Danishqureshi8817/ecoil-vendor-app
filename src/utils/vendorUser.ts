@@ -84,3 +84,34 @@ export function isParentCounter(
   const flag = user.is_parent_counter ?? user.isParentCounter;
   return flag === 1 || flag === '1' || String(flag ?? '').trim() === '1';
 }
+
+/** Login `user.type` — typically 2 (oil) or 99 (scrap). */
+export function vendorUserType(
+  user: ExternalVendorUser | null | undefined,
+): number {
+  if (!user) {
+    return 0;
+  }
+  const raw =
+    user.type ??
+    user.user_type ??
+    user.usertype ??
+    user.UserType ??
+    user.userType;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Oil / existing vendor portal (login type = 2). */
+export function isOilVendor(
+  user: ExternalVendorUser | null | undefined,
+): boolean {
+  return vendorUserType(user) === 2;
+}
+
+/** Scrap collection vendor (login type = 99). */
+export function isScrapVendor(
+  user: ExternalVendorUser | null | undefined,
+): boolean {
+  return vendorUserType(user) === 99;
+}

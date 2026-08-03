@@ -1,4 +1,6 @@
 import type {CounterCollectionRow} from '@/api/reportsApi';
+import type {ScrapRequestRow} from '@/api/scrapApi';
+import type {WasteRequestRow} from '@/api/wasteApi';
 
 export const TabNav = {
   Home: 'Home',
@@ -17,6 +19,12 @@ export const StackNav = {
   CollectRequestDetail: 'CollectRequestDetail',
   CountersCollectionList: 'CountersCollectionList',
   CountersCollectionDetail: 'CountersCollectionDetail',
+  ScrapRequests: 'ScrapRequests',
+  CreateScrapRequest: 'CreateScrapRequest',
+  ProcessScrapRequest: 'ProcessScrapRequest',
+  WasteRequests: 'WasteRequests',
+  CreateWasteRequest: 'CreateWasteRequest',
+  ProcessWasteRequest: 'ProcessWasteRequest',
   MyCertificates: 'MyCertificates',
   MyRewards: 'MyRewards',
   PaymentDetails: 'PaymentDetails',
@@ -38,6 +46,12 @@ export type RootStackParamList = {
   [StackNav.CollectRequestList]: undefined;
   [StackNav.CollectRequestDetail]: { id: string };
   [StackNav.CountersCollectionDetail]: { row: CounterCollectionRow };
+  [StackNav.ScrapRequests]: undefined;
+  [StackNav.CreateScrapRequest]: { request?: ScrapRequestRow } | undefined;
+  [StackNav.ProcessScrapRequest]: { request: ScrapRequestRow };
+  [StackNav.WasteRequests]: undefined;
+  [StackNav.CreateWasteRequest]: { request?: WasteRequestRow } | undefined;
+  [StackNav.ProcessWasteRequest]: { request: WasteRequestRow };
   [StackNav.MyCertificates]: undefined;
   [StackNav.MyRewards]: undefined;
   [StackNav.PaymentDetails]: undefined;
