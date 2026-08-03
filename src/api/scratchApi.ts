@@ -39,6 +39,7 @@ export type VendorCoins = {
   vendorId: string;
   vendorName: string;
   coinTotal: number;
+  currentMonthCoins?: number;
   minRedeemAmount?: number;
   redeemEligible?: boolean;
   coinsNeededForRedeem?: number;
@@ -127,7 +128,12 @@ export async function fetchVendorCoins(
     {vendorId},
     {headers: bearerHeaders(), timeout: 60_000},
   );
-  return data ?? {vendorId: String(vendorId), vendorName: '', coinTotal: 0};
+  return data ?? {
+    vendorId: String(vendorId),
+    vendorName: '',
+    coinTotal: 0,
+    currentMonthCoins: 0,
+  };
 }
 
 export async function fetchVendorTransactions(
@@ -145,6 +151,7 @@ export async function fetchVendorTransactions(
 export async function redeemVendorCoins(payload: {
   vendorId: string | number;
   vendorName: string;
+  vendorEmail?: string;
   coinAmount: number;
   description: string;
 }): Promise<RedeemResult> {

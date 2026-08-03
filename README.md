@@ -30,20 +30,20 @@ npm run android
 
 ## API configuration
 
-Edit `src/config/env.ts`. In **`__DEV__`** (same as web dashboard proxies):
+Edit `src/config/apiBase.ts`:
 
-| API | Dev URL | Production |
-|-----|---------|------------|
-| Public (services, applications) | `http://localhost:3000/api/public` | `vendor-api.ecoil.in` |
-| Vendor (login, collections) | `http://dev1.knparises.com/api` | `https://vendor-api.ecoil.in` |
+| Constant | Example | Purpose |
+|----------|---------|---------|
+| `CONFIG_API_ORIGIN` | `https://vendor-api.ecoil.in` | Backend base URL |
+| `CONFIG_SERVICE_ICON_BASE_URL` | `''` | Optional icon CDN; empty uses `{API_ORIGIN}/api/file-upload` |
 
-Run local Nest before testing services:
+Local NestJS: set `CONFIG_API_ORIGIN` to `http://localhost:3000` (Android emulator remaps to `10.0.2.2`).
 
 ```bash
 cd ecoil-vendor-backend && npm start
 ```
 
-**Physical device:** set `DEV_MACHINE_HOST` in `src/config/env.ts` to your Mac’s LAN IP (e.g. `192.168.29.24`).
+**Physical device:** use your Mac's LAN IP instead of `localhost` (e.g. `http://192.168.29.24:3000`).
 
 ## Screens
 

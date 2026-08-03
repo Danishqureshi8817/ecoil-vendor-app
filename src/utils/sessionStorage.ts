@@ -47,6 +47,21 @@ export function setSession(session: ExternalAuthSession) {
   }
 }
 
+export function patchStoredUser(updates: Partial<ExternalVendorUser>) {
+  const token = getStoredToken();
+  const user = getStoredUser();
+  if (!token || !user) {
+    return null;
+  }
+  const next = {...user, ...updates};
+  setSession({
+    token,
+    expiry: getStoredExpiry(),
+    user: next,
+  });
+  return next;
+}
+
 export function clearSession() {
   tokenStorage.remove(AUTH_KEYS.token);
   tokenStorage.remove(AUTH_KEYS.user);

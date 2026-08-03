@@ -6,18 +6,16 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import React from 'react';
 import {Platform, StatusBar, StyleSheet, TouchableOpacity, View} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { RFValue } from 'react-native-responsive-fontsize';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 /**
- * Same as vendor dashboard `.ext-hero-header`:
- * linear-gradient(135deg, brand-dark 0%, brand 55%, accent 100%)
+ * Vendor shell header — same green gradient as drawer profile card.
  */
 export const HEADER_GRADIENT = {
-  colors: [Colors.brandDark, Colors.brand, Colors.accent] as const,
-  locations: [0, 0.55, 1] as const,
+  colors: [Colors.drawerGradientStart, Colors.drawerGradientEnd] as const,
   start: {x: 0, y: 0},
   end: {x: 1, y: 1},
-  angle: 135,
 };
 
 type Props = {
@@ -26,9 +24,23 @@ type Props = {
   initials: string;
   leading?: 'menu' | 'back';
   onLeadingPress: () => void;
+  eyebrowText?: string;
+  hideAvatar?: boolean;
+  centerTitle?: boolean;
+  trailing?: React.ReactNode;
 };
 
-export function VendorHeader({title, firmName, initials, leading = 'menu', onLeadingPress}: Props) {
+export function VendorHeader({
+  title,
+  firmName,
+  initials,
+  leading = 'menu',
+  onLeadingPress,
+  eyebrowText,
+  hideAvatar = false,
+  centerTitle = false,
+  trailing,
+}: Props) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -38,14 +50,14 @@ export function VendorHeader({title, firmName, initials, leading = 'menu', onLea
         backgroundColor="transparent"
         translucent={Platform.OS === 'android'}
       />
-      <LinearGradient
-        colors={[...HEADER_GRADIENT.colors]}
-        locations={[...HEADER_GRADIENT.locations]}
-        start={HEADER_GRADIENT.start}
-        end={HEADER_GRADIENT.end}
-        useAngle
-        angle={HEADER_GRADIENT.angle}
+      <View
         style={[styles.gradient, {paddingTop: insets.top + moderateScaleVertical(8)}]}>
+        <LinearGradient
+          colors={[...HEADER_GRADIENT.colors]}
+          start={HEADER_GRADIENT.start}
+          end={HEADER_GRADIENT.end}
+          style={StyleSheet.absoluteFill}
+        />
         <TouchableOpacity
           onPress={onLeadingPress}
           style={styles.menuBtn}
@@ -58,26 +70,38 @@ export function VendorHeader({title, firmName, initials, leading = 'menu', onLea
           />
         </TouchableOpacity>
 
-        <View style={styles.headerText}>
-          <CustomText variant="h7" style={styles.eyebrow}>
-            ECOIL PARTNER
-          </CustomText>
-          <CustomText variant="h4" fontFamily={Fonts.inter.bold} style={styles.title} numberOfLine={1}>
+        <View style={[styles.headerText, centerTitle && styles.headerTextCentered]}>
+          {!centerTitle && eyebrowText ? (
+            <CustomText variant="h6" fontFamily={Fonts.montserrat.medium} style={styles.eyebrow}>
+              {eyebrowText}
+            </CustomText>
+          ) : null}
+          <CustomText
+            variant="h6"
+            fontFamily={Fonts.montserrat.semiBold}
+            style={[styles.title, centerTitle ? styles.titleCentered : undefined]}
+            numberOfLine={1}>
             {title}
           </CustomText>
-          {firmName ? (
-            <CustomText variant="h7" style={styles.firm} numberOfLine={1}>
+          {!centerTitle && firmName ? (
+            <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold} style={styles.firm} numberOfLine={1}>
               {firmName}
             </CustomText>
           ) : null}
         </View>
 
-        <View style={styles.avatar}>
-          <CustomText variant="h6" fontFamily={Fonts.inter.bold} style={styles.avatarText}>
-            {initials}
-          </CustomText>
-        </View>
-      </LinearGradient>
+        {trailing ? (
+          trailing
+        ) : hideAvatar ? (
+          <View style={styles.sideSpacer} />
+        ) : (
+          <View style={styles.avatar}>
+            <CustomText variant="h6" fontFamily={Fonts.montserrat.bold} style={styles.avatarText}>
+              {initials}
+            </CustomText>
+          </View>
+        )}
+      </View>
     </>
   );
 }
@@ -88,19 +112,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: moderateScale(16),
     paddingBottom: moderateScaleVertical(22),
-    shadowColor: Colors.brand,
+    shadowColor: Colors.drawerGradientEnd,
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.32,
     shadowRadius: 24,
     elevation: 8,
   },
   menuBtn: {
-    width: moderateScale(44),
-    height: moderateScale(44),
-    borderRadius: moderateScale(12),
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: moderateScale(50),
+    height: moderateScale(50),
+    borderRadius: moderateScale(50),
+    // borderWidth: 1,
+    // borderColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -108,19 +132,30 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: moderateScale(12),
   },
+  headerTextCentered: {
+    alignItems: 'center',
+    marginHorizontal: moderateScale(4),
+  },
   eyebrow: {
     color: 'rgba(255,255,255,0.85)',
-    letterSpacing: 1.2,
-    fontSize: 10,
-    marginBottom: 2,
+    // letterSpacing: 1.2,
+    fontSize: RFValue(11),
+    // marginBottom: 2,
   },
   title: {
     color: Colors.white,
-    letterSpacing: -0.3,
+    // letterSpacing: -0.3,
+  },
+  titleCentered: {
+    fontSize: RFValue(16),
+    textAlign: 'center',
   },
   firm: {
     color: 'rgba(255,255,255,0.9)',
-    marginTop: 2,
+    // marginTop: 2,
+  },
+  sideSpacer: {
+    width: moderateScale(50),
   },
   avatar: {
     width: moderateScale(46),

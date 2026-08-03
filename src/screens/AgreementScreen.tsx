@@ -1,25 +1,27 @@
 import CustomText from '@/components/global/CustomText';
 import PrimaryButton from '@/components/global/PrimaryButton';
-import {ErrorBanner} from '@/components/ui/ErrorBanner';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import {
   acceptAgreement,
   emailAgreement,
   fetchAgreement,
 } from '@/api/agreementApi';
-import {Colors} from '@/constants/colors';
-import {ExternalLayout} from '@/layouts/ExternalLayout';
-import {StackNav} from '@/navigations/NavigationKeys';
-import {useAuthStore} from '@/states/authStore';
-import {card, screen} from '@/styles/ui';
-import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
-import {clearSession} from '@/utils/sessionStorage';
-import {buildVendorNavItems} from '@/utils/vendorNavItems';
-import {vendorUserId} from '@/utils/vendorUser';
-import {resetAndNavigate} from '@/utils/NavigationUtils';
-import {useToastMessage} from '@/utils/useToastMessage';
-import {moderateScaleVertical} from '@/utils/responsiveSize';
-import React, {useEffect, useState} from 'react';
-import {ActivityIndicator, ScrollView, StyleSheet, View} from 'react-native';
+import { Colors } from '@/constants/colors';
+import { ExternalLayout } from '@/layouts/ExternalLayout';
+import { StackNav } from '@/navigations/NavigationKeys';
+import { useAuthStore } from '@/states/authStore';
+import { card, screen } from '@/styles/ui';
+import { getApiErrorMessage } from '@/utils/getApiErrorMessage';
+import { clearSession } from '@/utils/sessionStorage';
+import { buildVendorNavItems } from '@/utils/vendorNavItems';
+import { vendorUserId } from '@/utils/vendorUser';
+import { resetAndNavigate } from '@/utils/NavigationUtils';
+import { useToastMessage } from '@/utils/useToastMessage';
+import { moderateScaleVertical } from '@/utils/responsiveSize';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { Container } from '@/components/global/Container';
+import AppBar from '@/components/global/AppBar';
 
 function stripHtml(html: string): string {
   return html
@@ -36,7 +38,7 @@ function stripHtml(html: string): string {
 export default function AgreementScreen() {
   const user = useAuthStore(s => s.user);
   const userId = vendorUserId(user);
-  const {toastSuccess} = useToastMessage();
+  const { toastSuccess } = useToastMessage();
   const [content, setContent] = useState('');
   const [status, setStatus] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -96,11 +98,8 @@ export default function AgreementScreen() {
   const plainContent = stripHtml(content);
 
   return (
-    <ExternalLayout
-      title="Agreement"
-      activeKey={StackNav.Agreement}
-      navItems={buildVendorNavItems(StackNav.Agreement, user)}
-      onLogout={handleLogout}>
+    <Container fullScreen statusBarStyle='light-content'>
+      <AppBar title="Agreement" leading='menu' />
       <ScrollView contentContainerStyle={screen.scroll} showsVerticalScrollIndicator={false}>
         {loading ? (
           <View style={styles.center}>
@@ -146,15 +145,15 @@ export default function AgreementScreen() {
           </View>
         ) : null}
       </ScrollView>
-    </ExternalLayout>
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  center: {alignItems: 'center', paddingVertical: moderateScaleVertical(32), gap: 8},
-  muted: {color: Colors.muted},
-  warn: {color: Colors.error, fontWeight: '600'},
-  agreementScroll: {maxHeight: 420, marginBottom: moderateScaleVertical(16)},
-  agreementText: {lineHeight: 22, color: Colors.black},
-  actions: {paddingTop: moderateScaleVertical(4)},
+  center: { alignItems: 'center', paddingVertical: moderateScaleVertical(32), gap: 8 },
+  muted: { color: Colors.muted },
+  warn: { color: Colors.error, fontWeight: '600' },
+  agreementScroll: { maxHeight: 420, marginBottom: moderateScaleVertical(16) },
+  agreementText: { lineHeight: 22, color: Colors.black },
+  actions: { paddingTop: moderateScaleVertical(4) },
 });

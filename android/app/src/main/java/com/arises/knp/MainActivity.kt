@@ -20,7 +20,7 @@ class MainActivity : ReactActivity() {
   override fun getMainComponentName(): String = "Ecoil"
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
+    super.onCreate(null)
 
        // Apply window insets handling for SDK 35+
     if (Build.VERSION.SDK_INT >= 35) {

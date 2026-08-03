@@ -9,7 +9,6 @@ import {
 } from '@/services/pushNotificationService';
 import {useToastMessage} from '@/utils/useToastMessage';
 import {useEffect} from 'react';
-import {Platform} from 'react-native';
 
 function logFcmToken(token: string | null) {
   if (__DEV__ && token) {
@@ -21,16 +20,18 @@ export default function usePushNotifications() {
   const {toastInfo} = useToastMessage();
 
   useEffect(() => {
-    if (Platform.OS !== 'android') {
-      return;
-    }
-
     let active = true;
 
     const init = async () => {
-      const token = await fetchAndStoreFcmToken();
-      if (active) {
-        logFcmToken(token);
+      try {
+        const token = await fetchAndStoreFcmToken();
+        if (active) {
+          logFcmToken(token);
+        }
+      } catch (err) {
+        if (__DEV__) {
+          console.log('[FCM] init error:', err);
+        }
       }
     };
 
@@ -58,11 +59,17 @@ export default function usePushNotifications() {
       }
     });
 
-    getInitialNotification().then(message => {
-      if (message && __DEV__) {
-        console.log('[FCM] App opened from quit state:', message.data);
-      }
-    });
+    getInitialNotification()
+      .then(message => {
+        if (message && __DEV__) {
+          console.log('[FCM] App opened from quit state:', message.data);
+        }
+      })
+      .catch(err => {
+        if (__DEV__) {
+          console.log('[FCM] getInitialNotification error:', err);
+        }
+      });
 
     return () => {
       active = false;

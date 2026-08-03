@@ -1,21 +1,20 @@
 import CustomText from '@/components/global/CustomText';
-import {CertificateRowCard} from '@/components/external/CertificateRowCard';
-import {EmptyState} from '@/components/ui/EmptyState';
-import type {CertificateRow} from '@/api/certificatesApi';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
+import {
+  CertificateRowCard,
+} from '@/components/external/CertificateRowCard';
+import { EmptyState } from '@/components/ui/EmptyState';
+import type { CertificateRow } from '@/api/certificatesApi';
+import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
 import useCertificates from '@/hooks/vendor/use-certificates';
-import {ExternalLayout} from '@/layouts/ExternalLayout';
-import {StackNav} from '@/navigations/NavigationKeys';
-import {useAuthStore} from '@/states/authStore';
-import {externalUi} from '@/styles/externalUi';
-import {screen} from '@/styles/ui';
-import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
-import {clearSession} from '@/utils/sessionStorage';
-import {buildVendorNavItems} from '@/utils/vendorNavItems';
-import {resetAndNavigate} from '@/utils/NavigationUtils';
-import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import React, {useCallback} from 'react';
+import { StackNav } from '@/navigations/NavigationKeys';
+import { useAuthStore } from '@/states/authStore';
+import { getApiErrorMessage } from '@/utils/getApiErrorMessage';
+import { clearSession } from '@/utils/sessionStorage';
+import { buildVendorNavItems } from '@/utils/vendorNavItems';
+import { resetAndNavigate } from '@/utils/NavigationUtils';
+import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
+import React, { useCallback } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -24,10 +23,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { Container } from '@/components/global/Container';
+import AppBar from '@/components/global/AppBar';
 
 export default function MyCertificatesScreen() {
   const user = useAuthStore(s => s.user);
-  const {data, isLoading, refetch, isRefetching, error} = useCertificates();
+  const { data, isLoading, refetch, isRefetching, error } = useCertificates();
   const rows = data ?? [];
 
   function handleLogout() {
@@ -44,105 +46,95 @@ export default function MyCertificatesScreen() {
   );
 
   const renderItem: ListRenderItem<CertificateRow> = useCallback(
-    ({item}) => <CertificateRowCard row={item} />,
+    ({ item }) => <CertificateRowCard row={item} />,
     [],
   );
 
-  const listEmpty = useCallback(() => {
-    if (isLoading) {
-      return (
-        <View style={styles.emptyBody}>
-          <ActivityIndicator size="large" color={Colors.brand} />
-          <CustomText variant="h7" style={[externalUi.muted, styles.emptySub]}>
-            Loading certificates…
-          </CustomText>
-        </View>
-      );
-    }
-    if (error) {
-      return (
-        <View style={styles.emptyBody}>
-          <View style={externalUi.alertError}>
-            <CustomText variant="h7" style={externalUi.alertErrorText}>
+  const showTable = !isLoading && !error && rows.length > 0;
+
+  return (
+
+    <Container fullScreen statusBarStyle='light-content'>
+
+      <AppBar title='Certificates' leading='menu' />
+      <View style={styles.containerWrapper}>
+        {isLoading ? (
+          <View style={styles.emptyBody}>
+            <ActivityIndicator size="large" color={Colors.brand} />
+            <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.emptySub}>
+              Loading certificates…
+            </CustomText>
+          </View>
+        ) : null}
+
+        {!isLoading && error ? (
+          <View style={styles.emptyBody}>
+            <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.errorText}>
               {getApiErrorMessage(error, 'Could not load certificates')}
             </CustomText>
           </View>
-        </View>
-      );
-    }
-    return (
-      <View style={styles.emptyBody}>
-        <EmptyState
-          icon="ribbon-outline"
-          title="No certificates"
-          subtitle="Certificates will appear here when available."
-        />
-      </View>
-    );
-  }, [isLoading, error]);
+        ) : null}
 
-  const isEmpty = !isLoading && !error && rows.length === 0;
-  const showListHeader = !(isLoading || isEmpty || error);
+        {!isLoading && !error && rows.length === 0 ? (
+          <View style={styles.emptyBody}>
+            <EmptyState
+              icon="ribbon-outline"
+              title="No certificates"
+              subtitle="Certificates will appear here when available."
+            />
+          </View>
+        ) : null}
 
-  return (
-    <ExternalLayout
-      title="My Certificates"
-      activeKey={StackNav.MyCertificates}
-      navItems={navItems}
-      onLogout={handleLogout}>
-      <FlatList
-        style={styles.list}
-        data={rows}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        ListHeaderComponent={
-          showListHeader ? (
-            <View style={styles.header}>
-              <CustomText variant="h5" fontFamily={Fonts.inter.bold}>
-                Download Certificates
-              </CustomText>
-              <CustomText variant="h7" style={externalUi.muted}>
-                Each row has the certificate name and a download button
-              </CustomText>
-            </View>
-          ) : null
-        }
-        ListEmptyComponent={listEmpty}
-        contentContainerStyle={[
-          screen.scroll,
-          styles.listContent,
-          (isLoading || isEmpty || error) && styles.emptyContent,
-        ]}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={Colors.brand}
+        {showTable ? (
+          <FlatList
+            data={rows}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={refetch}
+                tintColor={Colors.brand}
+              />
+            }
           />
-        }
-      />
-    </ExternalLayout>
+        ) : null}
+      </View>
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  list: {flex: 1},
-  listContent: {
-    paddingBottom: moderateScaleVertical(24),
+  containerWrapper: {
+    flex: 1,
+    backgroundColor: Colors.bg,
   },
-  emptyContent: {flexGrow: 1},
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: moderateScale(12),
+    paddingTop: moderateScaleVertical(12),
+    paddingBottom: moderateScaleVertical(16),
+  },
   emptyBody: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: moderateScale(16),
   },
-  header: {
-    marginBottom: moderateScaleVertical(14),
-    gap: moderateScaleVertical(4),
+  emptySub: {
+    marginTop: moderateScaleVertical(12),
+    color: Colors.muted,
+    fontSize: RFValue(12),
+    textAlign: 'center',
   },
-  separator: {height: moderateScaleVertical(10)},
-  emptySub: {marginTop: moderateScaleVertical(12)},
+  errorText: {
+    color: Colors.error,
+    fontSize: RFValue(12),
+    textAlign: 'center',
+  },
 });

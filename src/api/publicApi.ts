@@ -22,6 +22,8 @@ export function normalizeVendorMobile(mobile: string): string {
 export type PublicService = {
   id: string;
   name: string;
+  icon?: string | null;
+  iconUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -52,7 +54,7 @@ export async function fetchPublicSuppliersByCity(
   return data;
 }
 
-export type FormQuestionType = 'TEXT' | 'DROPDOWN' | 'CHECKBOX';
+export type FormQuestionType = 'TEXT' | 'DROPDOWN' | 'CHECKBOX' | 'DATE';
 
 export type ServiceFormQuestion = {
   id: string;
@@ -78,6 +80,21 @@ export async function fetchPublicServices(q?: string): Promise<PublicService[]> 
   return data;
 }
 
+export type PublicHomeBanner = {
+  id: string;
+  title: string | null;
+  linkUrl: string | null;
+  sortOrder: number;
+  /** File name on backend file_upload/ — preferred for building image URL. */
+  image?: string | null;
+  imageUrl: string;
+};
+
+export async function fetchPublicHomeBanners(): Promise<PublicHomeBanner[]> {
+  const {data} = await publicApi.get<PublicHomeBanner[]>('/home-banners');
+  return Array.isArray(data) ? data : [];
+}
+
 export async function fetchPublicServiceForm(
   serviceId: string,
 ): Promise<ServiceFormPayload> {
@@ -93,6 +110,7 @@ export function isServiceFormAvailable(form: ServiceFormPayload): boolean {
 
 export type VendorApplicationRow = {
   id: string;
+  requestNo: number | null;
   serviceId: string;
   serviceName: string;
   vendorId: string;
@@ -137,13 +155,29 @@ export async function submitPublicServiceApplication(
   serviceId: string,
   payload: {
     vendorId?: string;
+    vendorUserId?: string;
+    realVendorId?: string;
     vendorName: string;
     vendorMobile: string;
+    storeCode?: string;
+    firmName?: string;
+    vendorCity?: string;
     answers: {questionId: string; value: string}[];
   },
 ): Promise<{id?: string; message?: string}> {
   const {data} = await publicApi.post(`/services/${serviceId}/applications`, payload);
   return data as {id?: string; message?: string};
+}
+
+export type PublicAppSettings = {
+  app_android_version: string;
+  app_ios_version: string;
+  updated_at: string | null;
+};
+
+export async function fetchPublicSettings(): Promise<PublicAppSettings> {
+  const {data} = await publicApi.get<PublicAppSettings>('/settings');
+  return data;
 }
 
 export function getPublicApiError(err: unknown, fallback: string): string {

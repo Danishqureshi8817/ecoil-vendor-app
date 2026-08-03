@@ -5,7 +5,7 @@ import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import {theme} from '@/constants/theme';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import LinearGradient from 'react-native-linear-gradient';
+import {RFValue} from 'react-native-responsive-fontsize';
 
 export type ServiceStep = 'list' | 'suppliers' | 'form';
 
@@ -22,36 +22,30 @@ export function ServiceStepNav({step}: Props) {
 
   return (
     <View style={styles.nav}>
-      {steps.map((s, index) => (
-        <React.Fragment key={s.key}>
-          {index > 0 ? <View style={styles.line} /> : null}
-          <View style={[styles.pill, step === s.key && styles.pillActive]}>
-            {step === s.key ? (
-              <LinearGradient
-                colors={[Colors.brandDark, Colors.brand]}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.numActive}>
-                <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.numActiveText}>
-                  {s.num}
-                </CustomText>
-              </LinearGradient>
-            ) : (
-              <View style={styles.numWrap}>
-                <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.numText}>
+      {steps.map((s, index) => {
+        const active = step === s.key;
+        return (
+          <React.Fragment key={s.key}>
+            {index > 0 ? <View style={styles.line} /> : null}
+            <View style={[styles.pill, active && styles.pillActive]}>
+              <View style={[styles.numWrap, active && styles.numWrapActive]}>
+                <CustomText
+                  variant="h7"
+                  fontFamily={Fonts.montserrat.semiBold}
+                  style={active ? styles.numActiveText : styles.numText}>
                   {s.num}
                 </CustomText>
               </View>
-            )}
-            <CustomText
-              variant="h7"
-              fontFamily={Fonts.inter.bold}
-              style={step === s.key ? styles.pillLabelActive : styles.pillLabel}>
-              {s.label}
-            </CustomText>
-          </View>
-        </React.Fragment>
-      ))}
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.montserrat.semiBold}
+                style={active ? styles.pillLabelActive : styles.pillLabel}>
+                {s.label}
+              </CustomText>
+            </View>
+          </React.Fragment>
+        );
+      })}
     </View>
   );
 }
@@ -61,46 +55,61 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
     backgroundColor: Colors.white,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: Colors.line,
-    padding: moderateScale(5),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScaleVertical(6),
     marginBottom: moderateScaleVertical(16),
+    overflow: 'visible',
     ...theme.shadow,
+    shadowOpacity: 0.08,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: moderateScale(6),
-    paddingVertical: moderateScaleVertical(8),
+    paddingVertical: moderateScaleVertical(7),
     paddingHorizontal: moderateScale(10),
-    borderRadius: 999,
+    borderRadius: moderateScale(25),
   },
-  pillActive: {backgroundColor: Colors.brandSoft},
-  pillLabel: {color: Colors.muted, fontSize: moderateScale(11)},
-  pillLabelActive: {color: Colors.brandDark, fontSize: moderateScale(11)},
+  pillActive: {
+    backgroundColor: Colors.brandSoft,
+    borderRadius: moderateScale(25),
+    overflow: 'hidden',
+  },
+  pillLabel: {
+    color: Colors.muted,
+    fontSize: RFValue(10),
+  },
+  pillLabelActive: {
+    color: Colors.drawerGradientEnd,
+    fontSize: RFValue(10),
+  },
   numWrap: {
     width: moderateScale(22),
     height: moderateScale(22),
-    borderRadius: 11,
+    borderRadius: moderateScale(11),
     backgroundColor: Colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  numActive: {
-    width: moderateScale(22),
-    height: moderateScale(22),
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
+  numWrapActive: {
+    backgroundColor: Colors.drawerGradientEnd,
   },
-  numText: {color: Colors.black, fontSize: moderateScale(10)},
-  numActiveText: {color: Colors.white, fontSize: moderateScale(10)},
+  numText: {
+    color: Colors.muted,
+    fontSize: RFValue(10),
+  },
+  numActiveText: {
+    color: Colors.white,
+    fontSize: RFValue(10),
+  },
   line: {
-    width: moderateScale(12),
-    height: 2,
+    width: moderateScale(14),
+    height: 1,
     backgroundColor: Colors.line,
-    borderRadius: 2,
   },
 });

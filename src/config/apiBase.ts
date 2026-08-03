@@ -1,16 +1,21 @@
 import {Platform} from 'react-native';
-import {API_ORIGIN as ENV_API_ORIGIN} from '@env';
 
 const trimTrailingSlash = (s: string) => s.replace(/\/$/, '');
 
-/** Production default — same as ecoil-vendor-dashboard `apiBase.ts`. */
-const PRODUCTION_ORIGIN = 'https://vendor-api.ecoil.in';
+/**
+ * API origin — same role as dashboard `VITE_API_ORIGIN`.
+ * Local backend: set to `http://localhost:3000` (Android emulator remaps to 10.0.2.2).
+ */
+export const CONFIG_API_ORIGIN = 'https://vendor-api.ecoil.in';
+// export const CONFIG_API_ORIGIN = 'http://localhost:3000';
+/** Optional separate host for service icon files; leave empty to use `{API_ORIGIN}/api/file-upload`. */
+export const CONFIG_SERVICE_ICON_BASE_URL = '';
 
 /**
  * Android emulator cannot reach the dev machine via `localhost`.
  * Map to the host loopback alias used by the Android emulator.
  */
-function remapHostForDevice(origin: string): string {
+export function remapHostForDevice(origin: string): string {
   if (Platform.OS !== 'android') {
     return origin;
   }
@@ -26,15 +31,7 @@ function remapHostForDevice(origin: string): string {
 }
 
 function resolveApiOrigin(): string {
-  const configured = (ENV_API_ORIGIN ?? '').trim();
-
-  if (__DEV__) {
-    const devOrigin = configured || 'http://localhost:3000';
-    return remapHostForDevice(trimTrailingSlash(devOrigin));
-  }
-
-  const origin = configured || PRODUCTION_ORIGIN;
-  return remapHostForDevice(trimTrailingSlash(origin));
+  return remapHostForDevice(trimTrailingSlash(CONFIG_API_ORIGIN));
 }
 
 export const API_ORIGIN = resolveApiOrigin();

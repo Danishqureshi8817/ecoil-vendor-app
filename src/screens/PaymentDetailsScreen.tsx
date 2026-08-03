@@ -1,60 +1,91 @@
 import CustomText from '@/components/global/CustomText';
-import {KnparisesDatePickerField} from '@/components/global/KnparisesDatePickerField';
-import {EmptyState} from '@/components/ui/EmptyState';
-import {ErrorBanner} from '@/components/ui/ErrorBanner';
-import {fetchPaymentDetails, type PaymentDetailRow} from '@/api/paymentApi';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
-import {ExternalLayout} from '@/layouts/ExternalLayout';
-import {StackNav} from '@/navigations/NavigationKeys';
-import {useAuthStore} from '@/states/authStore';
-import {card, screen} from '@/styles/ui';
-import {externalUi} from '@/styles/externalUi';
+import { KnparisesDatePickerField } from '@/components/global/KnparisesDatePickerField';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { fetchPaymentDetails, type PaymentDetailRow } from '@/api/paymentApi';
+import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
+import { ExternalLayout } from '@/layouts/ExternalLayout';
+import { StackNav } from '@/navigations/NavigationKeys';
+import { useAuthStore } from '@/states/authStore';
+import { externalUi } from '@/styles/externalUi';
+import { screen, shadowStyle } from '@/styles/ui';
 import {
   defaultPaymentDateRange,
   parseKnparisesDate,
 } from '@/utils/knparisesDate';
-import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
-import {clearSession} from '@/utils/sessionStorage';
-import {vendorUserId} from '@/utils/vendorUser';
-import {buildVendorNavItems} from '@/utils/vendorNavItems';
-import {resetAndNavigate} from '@/utils/NavigationUtils';
-import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
+import { getApiErrorMessage } from '@/utils/getApiErrorMessage';
+import { clearSession } from '@/utils/sessionStorage';
+import { vendorUserId } from '@/utils/vendorUser';
+import { buildVendorNavItems } from '@/utils/vendorNavItems';
+import { resetAndNavigate } from '@/utils/NavigationUtils';
+import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import LinearGradient from 'react-native-linear-gradient';
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Linking,
   ListRenderItem,
   Pressable,
   StyleSheet,
   View,
 } from 'react-native';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { Container } from '@/components/global/Container';
+import AppBar from '@/components/global/AppBar';
 
-const FIELDS: {label: string; key: keyof PaymentDetailRow}[] = [
-  {label: 'Firm', key: 'firm_name'},
-  {label: 'Branch', key: 'branch_name'},
-  {label: 'Store code', key: 'store_code'},
-  {label: 'Volume (kg)', key: 'weight'},
-  {label: 'Oil rate', key: 'oil_rate'},
-  {label: 'GST', key: 'gst_amount'},
-  {label: 'Amount', key: 'amount'},
-  {label: 'Pickup', key: 'pickup_date'},
-  {label: 'Payment date', key: 'payment_date'},
-  {label: 'Receipt no.', key: 'receipt_no'},
-  {label: 'Invoice', key: 'invoice_number'},
-  {label: 'Remarks', key: 'payment_remarks'},
+const PAYMENT_EMPTY_IMAGE = require('@/assets/images/paymentNo.png');
+
+const FIELDS: { label: string; key: keyof PaymentDetailRow }[] = [
+  { label: 'Firm', key: 'firm_name' },
+  { label: 'Branch', key: 'branch_name' },
+  { label: 'Store code', key: 'store_code' },
+  { label: 'Volume (kg)', key: 'weight' },
+  { label: 'Amount', key: 'amount' },
+  { label: 'Pickup', key: 'pickup_date' },
+  { label: 'Payment date', key: 'payment_date' },
+  { label: 'Receipt no.', key: 'receipt_no' },
+  { label: 'Invoice', key: 'invoice_number' },
+  { label: 'Remarks', key: 'payment_remarks' },
 ];
 
-function PaymentCard({row, index}: {row: PaymentDetailRow; index: number}) {
+function PaymentEmptyState() {
+  return (
+    <View style={styles.emptyBody}>
+      <Image source={PAYMENT_EMPTY_IMAGE} style={styles.emptyImage} resizeMode="contain" />
+      <CustomText variant="h5" fontFamily={Fonts.montserrat.bold} style={styles.emptyTitle}>
+        No record found
+      </CustomText>
+      <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.emptySub}>
+        No payment details available for the selected date range. Try adjusting the dates.
+      </CustomText>
+    </View>
+  );
+}
+
+function PaymentCard({ row, index }: { row: PaymentDetailRow; index: number }) {
   return (
     <View style={[externalUi.listCard, styles.paymentCard]}>
-      <CustomText variant="h6" fontFamily={Fonts.inter.bold}>
-        Payment #{index + 1}
-      </CustomText>
-      {FIELDS.map(({label, key}) => {
+      <View style={styles.cardHeaderRow}>
+        <CustomText variant="h6" fontFamily={Fonts.montserrat.semiBold}>
+          Payment #{index + 1}
+        </CustomText>
+        <View style={styles.verifiedBadge}>
+          <Ionicons
+            name="checkmark-circle"
+            size={moderateScale(14)}
+            color={Colors.brand}
+          />
+          <CustomText
+            variant="h7"
+            fontFamily={Fonts.montserrat.semiBold}
+            style={styles.verifiedText}>
+            Paid
+          </CustomText>
+        </View>
+      </View>
+      {FIELDS.map(({ label, key }) => {
         const value = row[key];
         if (value == null || value === '') {
           return null;
@@ -71,13 +102,19 @@ function PaymentCard({row, index}: {row: PaymentDetailRow; index: number}) {
         );
       })}
       {row.payment_ref_2_url ? (
-        <Pressable
-          onPress={() => void Linking.openURL(row.payment_ref_2_url!)}
-          style={styles.receiptLink}>
-          <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.receiptLinkText}>
-            View receipt
-          </CustomText>
-        </Pressable>
+        <View style={styles.receiptRow}>
+          <Pressable
+            onPress={() => void Linking.openURL(row.payment_ref_2_url!)}
+            style={({pressed}) => [styles.receiptBtn, pressed && styles.receiptBtnPressed]}>
+            <Ionicons name="document-text-outline" size={moderateScale(14)} color={Colors.white} />
+            <CustomText
+              variant="h7"
+              fontFamily={Fonts.montserrat.semiBold}
+              style={styles.receiptBtnText}>
+              View receipt
+            </CustomText>
+          </Pressable>
+        </View>
       ) : null}
     </View>
   );
@@ -141,10 +178,10 @@ export default function PaymentDetailsScreen() {
   }
 
   const renderItem: ListRenderItem<PaymentDetailRow> = useCallback(
-    ({item, index}) => (
-      <View style={styles.listItem}>
+    ({ item, index }) => (
+      // <View style={styles.listItem}>
         <PaymentCard row={item} index={index} />
-      </View>
+      // </View>
     ),
     [],
   );
@@ -158,8 +195,8 @@ export default function PaymentDetailsScreen() {
     if (loading) {
       return (
         <View style={styles.emptyBody}>
-          <ActivityIndicator color={Colors.brand} />
-          <CustomText variant="h7" style={styles.muted}>
+          <ActivityIndicator size="large" color={Colors.brand} />
+          <CustomText variant="h7" fontFamily={Fonts.montserrat.regular} style={styles.loadingText}>
             Loading payment details…
           </CustomText>
         </View>
@@ -168,69 +205,55 @@ export default function PaymentDetailsScreen() {
     if (error) {
       return null;
     }
-    return (
-      <View style={styles.emptyBody}>
-        <EmptyState
-          icon="card-outline"
-          title="No records"
-          subtitle="No payment records found for this date range."
-        />
-      </View>
-    );
+    return <PaymentEmptyState />;
   }, [loading, error]);
 
   return (
-    <ExternalLayout
-      title="Payment details"
-      activeKey={StackNav.PaymentDetails}
-      navItems={buildVendorNavItems(StackNav.PaymentDetails, user)}
-      onLogout={handleLogout}>
+    // <ExternalLayout
+    //   title="Payment Details"
+    //   activeKey={StackNav.PaymentDetails}
+    //   navItems={buildVendorNavItems(StackNav.PaymentDetails, user)}
+    //   onLogout={handleLogout}
+    //   headerHideAvatar
+    //   headerCenterTitle>
+    <Container fullScreen statusBarStyle='light-content'>
+      <AppBar title='Payment Details' leading='menu' />
+
       <View style={styles.page}>
-        <View style={[card.base, styles.filterFixed, {borderRadius: 0, padding: moderateScale(15)}]}>
-          <View style={styles.filterRow}>
+        <View style={styles.filterCard}>
+          <View style={styles.dateRow}>
             <KnparisesDatePickerField
               label="Date from"
-              hideLabel
-              compact
+              variant="outlined"
               value={dateFrom}
               onChange={setDateFrom}
               maximumDate={dateUptoValue ?? undefined}
             />
-            <View style={styles.filterSepWrap}>
-              <CustomText variant="h7" style={styles.filterSep}>
-                to
-              </CustomText>
-            </View>
             <KnparisesDatePickerField
-              label="Date upto"
-              hideLabel
-              compact
+              label="Date Upto"
+              variant="outlined"
               value={dateUpto}
               onChange={setDateUpto}
               minimumDate={dateFromValue ?? undefined}
             />
-            <Pressable
-              style={({pressed}) => [pressed && styles.searchPressed]}
-              disabled={submitting}
-              onPress={() => void handleShowData()}>
-              <LinearGradient
-                colors={[Colors.brandDark, Colors.brand]}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.searchBtn}>
-                {submitting ? (
-                  <ActivityIndicator color={Colors.white} size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="search" size={16} color={Colors.white} />
-                    <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.searchText}>
-                      Search
-                    </CustomText>
-                  </>
-                )}
-              </LinearGradient>
-            </Pressable>
           </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.showDataBtn,
+              pressed && styles.showDataBtnPressed,
+              submitting && styles.showDataBtnDisabled,
+            ]}
+            disabled={submitting}
+            onPress={() => void handleShowData()}>
+            {submitting ? (
+              <ActivityIndicator color={Colors.white} size="small" />
+            ) : (
+              <CustomText variant="h7" fontFamily={Fonts.montserrat.semiBold} style={styles.showDataText}>
+                Show Data
+              </CustomText>
+            )}
+          </Pressable>
         </View>
 
         {error ? (
@@ -253,69 +276,138 @@ export default function PaymentDetailsScreen() {
           showsVerticalScrollIndicator={false}
         />
       </View>
-    </ExternalLayout>
+      {/* </ExternalLayout> */}
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {flex: 1},
-  filterFixed: {
-    marginBottom: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.line,
-    zIndex: 2,
+  page: {
+    flex: 1,
+    backgroundColor: Colors.white,
   },
-  list: {flex: 1},
+  filterCard: {
+    marginHorizontal: moderateScale(15),
+    marginTop: moderateScaleVertical(15),
+    marginBottom: moderateScaleVertical(8),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: moderateScaleVertical(16),
+    paddingBottom: moderateScaleVertical(18),
+    borderRadius: moderateScale(16),
+    backgroundColor: Colors.white,
+    ...shadowStyle,
+    gap: moderateScaleVertical(16),
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: moderateScale(12),
+  },
+  showDataBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.buttonPrimary,
+    borderRadius: moderateScale(999),
+    paddingVertical: moderateScaleVertical(14),
+    minHeight: moderateScaleVertical(48),
+  },
+  showDataBtnPressed: {
+    opacity: 0.92,
+  },
+  showDataBtnDisabled: {
+    opacity: 0.75,
+  },
+  showDataText: {
+    color: Colors.white,
+    fontSize: RFValue(12),
+  },
+  list: {
+    flex: 1,
+  },
   listContent: {
-    paddingHorizontal: 0,
     paddingTop: moderateScaleVertical(8),
+    paddingBottom: moderateScaleVertical(24),
   },
-  emptyContent: {flexGrow: 1},
+  emptyContent: {
+    flexGrow: 1,
+  },
   emptyBody: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: moderateScale(16),
-    gap: moderateScaleVertical(8),
-    minHeight: moderateScaleVertical(320),
+    paddingHorizontal: moderateScale(24),
+    minHeight: moderateScaleVertical(360),
+  },
+  emptyImage: {
+    width: moderateScale(220),
+    height: moderateScaleVertical(180),
+    marginBottom: moderateScaleVertical(20),
+  },
+  emptyTitle: {
+    color: Colors.black,
+    fontSize: RFValue(16),
+    textAlign: 'center',
+    marginBottom: moderateScaleVertical(10),
+  },
+  emptySub: {
+    color: Colors.muted,
+    fontSize: RFValue(12),
+    lineHeight: RFValue(18),
+    textAlign: 'center',
+  },
+  loadingText: {
+    marginTop: moderateScaleVertical(12),
+    color: Colors.muted,
+    fontSize: RFValue(12),
+    textAlign: 'center',
   },
   listItem: {
-    paddingHorizontal: moderateScale(16),
+    // paddingHorizontal: moderateScale(16),
+    // backgroundColor:'red'
   },
   errorWrap: {
     paddingHorizontal: moderateScale(16),
     paddingTop: moderateScaleVertical(8),
   },
-  filterRow: {
+  paymentCard: {
+    marginBottom: moderateScaleVertical(12),
+  },
+  cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: moderateScale(8),
+    justifyContent: 'space-between',
   },
-  filterSepWrap: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    paddingHorizontal: moderateScale(2),
-  },
-  filterSep: {
-    color: Colors.muted,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  searchBtn: {
+  verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: moderateScale(5),
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: moderateScaleVertical(11),
-    borderRadius: moderateScale(12),
-    minWidth: moderateScale(88),
+    gap: moderateScale(4),
+    backgroundColor: Colors.drawerIconBgColor,
+    paddingVertical: moderateScaleVertical(4),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(999),
   },
-  searchText: {color: Colors.white},
-  searchPressed: {opacity: 0.92, transform: [{scale: 0.98}]},
-  paymentCard: {marginBottom: moderateScaleVertical(12)},
-  receiptLink: {marginTop: moderateScaleVertical(8)},
-  receiptLinkText: {color: Colors.brand},
-  muted: {color: Colors.muted},
+  verifiedText: {
+    color: Colors.brand,
+    fontSize: RFValue(10),
+  },
+  receiptRow: {
+    marginTop: moderateScaleVertical(12),
+    alignItems: 'flex-end',
+  },
+  receiptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(6),
+    backgroundColor: Colors.buttonPrimary,
+    paddingVertical: moderateScaleVertical(9),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(999),
+  },
+  receiptBtnPressed: {
+    opacity: 0.92,
+  },
+  receiptBtnText: {
+    color: Colors.white,
+    fontSize: RFValue(10),
+  },
 });

@@ -1,20 +1,26 @@
-import {VendorTabBar} from '@/navigations/VendorTabBar';
-import {TabNav} from '@/navigations/NavigationKeys';
-import {moderateScaleVertical} from '@/utils/responsiveSize';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import { VendorTabBar } from '@/navigations/VendorTabBar';
+import { TabNav } from '@/navigations/NavigationKeys';
+import { moderateScaleVertical } from '@/utils/responsiveSize';
+import { isParentCounter } from '@/utils/vendorUser';
+import { useAuthStore } from '@/states/authStore';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
-import {StyleSheet} from 'react-native';
+import { StyleSheet } from 'react-native';
 import HomeScreen from '@/screens/HomeScreen';
 import ServiceManagementScreen from '@/screens/ServiceManagementScreen';
-import MyApplicationsScreen from '@/screens/MyApplicationsScreen';
-import CollectRequestScreen from '@/screens/CollectRequestScreen';
-import type {MainTabParamList} from '@/navigations/NavigationKeys';
+import CollectRequestListScreen from '@/screens/CollectRequestListScreen';
+import CounterCollectionListScreen from '@/screens/CounterCollectionListScreen';
+import ProfileScreen from '@/screens/Profile';
+import type { MainTabParamList } from '@/navigations/NavigationKeys';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-type Props = {onTabChange?: (name: string) => void};
+type Props = { onTabChange?: (name: string) => void };
 
-export default function ExternalTabBar({onTabChange}: Props) {
+export default function ExternalTabBar({ onTabChange }: Props) {
+  const user = useAuthStore(s => s.user);
+  const parentCounter = isParentCounter(user);
+
   return (
     <Tab.Navigator
       tabBar={props => <VendorTabBar {...props} />}
@@ -35,22 +41,30 @@ export default function ExternalTabBar({onTabChange}: Props) {
       <Tab.Screen
         name={TabNav.Home}
         component={HomeScreen}
-        options={{tabBarLabel: 'Home'}}
+        options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
         name={TabNav.Services}
         component={ServiceManagementScreen}
-        options={{tabBarLabel: 'Services'}}
+        options={{ tabBarLabel: 'Services' }}
       />
+      {parentCounter ? (
+        <Tab.Screen
+          name={TabNav.CountersCollection}
+          component={CounterCollectionListScreen}
+          options={{ tabBarLabel: 'Counters' }}
+        />
+      ) : (
+        <Tab.Screen
+          name={TabNav.Requests}
+          component={CollectRequestListScreen}
+          options={{ tabBarLabel: 'Requests' }}
+        />
+      )}
       <Tab.Screen
-        name={TabNav.Requests}
-        component={MyApplicationsScreen}
-        options={{tabBarLabel: 'Requests'}}
-      />
-      <Tab.Screen
-        name={TabNav.Collect}
-        component={CollectRequestScreen}
-        options={{tabBarLabel: 'Collection'}}
+        name={TabNav.Profile}
+        component={ProfileScreen}
+        options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
   );

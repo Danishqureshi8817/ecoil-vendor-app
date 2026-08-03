@@ -2,6 +2,7 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 apply plugin: "com.google.gms.google-services"
+apply plugin: "com.google.firebase.crashlytics"
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -83,8 +84,8 @@ android {
         applicationId "com.arises.knp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 88
-        versionName "1.0.88"
+        versionCode 96
+        versionName "1.0.96"
     }
     signingConfigs {
           release {
@@ -115,6 +116,10 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             manifestPlaceholders = [usesCleartextTraffic: "false"]
         }
+    }
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
     }
 }
 

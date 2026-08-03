@@ -105,3 +105,13 @@ export const cta = StyleSheet.create({
     borderColor: Colors.line,
   },
 });
+
+export const shadowStyle = {
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.5,
+  shadowRadius: 4,
+  elevation: 5,
+}

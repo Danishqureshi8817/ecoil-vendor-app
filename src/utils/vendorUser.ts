@@ -13,6 +13,31 @@ export function vendorUserId(
   return typeof id === 'number' ? id : String(id);
 }
 
+/** Body fields for POST /api/vendor/dashboard */
+export function vendorDashboardParams(
+  user: ExternalVendorUser | null | undefined,
+): {user_id: string; user_type: string; vendor_id: string} {
+  if (!user) {
+    return {user_id: '', user_type: '', vendor_id: ''};
+  }
+  const userId =
+    user.UserId ?? user.user_id ?? user.id ?? user.vendor_id ?? user.VendorId;
+  const userType =
+    user.user_type ??
+    user.type ??
+    user.usertype ??
+    user.UserType ??
+    user.userType ??
+    '';
+  const vendorId =
+    user.vendor_id ?? user.VendorId ?? user.vendorId ?? userId ?? '';
+  return {
+    user_id: userId != null && userId !== '' ? String(userId) : '',
+    user_type: userType != null && userType !== '' ? String(userType) : '',
+    vendor_id: vendorId != null && vendorId !== '' ? String(vendorId) : '',
+  };
+}
+
 export function vendorUserCity(
   user: ExternalVendorUser | null | undefined,
 ): string {
@@ -47,4 +72,15 @@ export function isPrimaryVendor(
     return true;
   }
   return Number(parentVendorId) === 0;
+}
+
+/** Master vendor account that manages branch counters (is_parent_counter = 1). */
+export function isParentCounter(
+  user: ExternalVendorUser | null | undefined,
+): boolean {
+  if (!user) {
+    return false;
+  }
+  const flag = user.is_parent_counter ?? user.isParentCounter;
+  return flag === 1 || flag === '1' || String(flag ?? '').trim() === '1';
 }

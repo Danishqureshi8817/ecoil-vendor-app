@@ -65,6 +65,7 @@ export function useRedeemCoinsMutation() {
     mutationFn: (payload: {
       vendorId: string | number;
       vendorName: string;
+      vendorEmail?: string;
       coinAmount: number;
       description: string;
     }) => vendorService.redeemCoins(payload),

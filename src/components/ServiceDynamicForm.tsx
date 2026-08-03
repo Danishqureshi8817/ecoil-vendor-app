@@ -1,13 +1,14 @@
 import CustomText from '@/components/global/CustomText';
-import {Colors} from '@/constants/colors';
-import {Fonts} from '@/constants/fonts';
-import type {ServiceFormPayload, ServiceFormQuestion} from '@/api/publicApi';
-import {serviceUi} from '@/styles/serviceUi';
-import type {ExternalVendorUser} from '@/types/vendor';
-import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import {useToastMessage} from '@/utils/useToastMessage';
+import { KnparisesDatePickerField } from '@/components/global/KnparisesDatePickerField';
+import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
+import type { ServiceFormPayload, ServiceFormQuestion } from '@/api/publicApi';
+import { serviceUi } from '@/styles/serviceUi';
+import type { ExternalVendorUser } from '@/types/vendor';
+import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
+import { useToastMessage } from '@/utils/useToastMessage';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import React, {useEffect, useMemo, useState} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -23,7 +24,7 @@ type Props = {
   form: ServiceFormPayload;
   user: ExternalVendorUser | null;
   saving: boolean;
-  onSubmit: (answers: {questionId: string; value: string}[]) => void;
+  onSubmit: (answers: { questionId: string; value: string }[]) => void;
 };
 
 /** Profile prefill only for plain text fields with obvious vendor/contact labels. */
@@ -36,7 +37,7 @@ function guessPrefill(
     return '';
   }
   // Dropdowns & checkboxes must start empty — options are service-specific.
-  if (questionType === 'DROPDOWN' || questionType === 'CHECKBOX') {
+  if (questionType === 'DROPDOWN' || questionType === 'CHECKBOX' || questionType === 'DATE') {
     return '';
   }
 
@@ -78,9 +79,10 @@ function guessPrefill(
   return '';
 }
 
-export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
-  const {toastError} = useToastMessage();
+export function ServiceDynamicForm({ form, user, saving, onSubmit }: Props) {
+  const { toastError } = useToastMessage();
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
+  const [dateAnswers, setDateAnswers] = useState<Record<string, string>>({});
   const [dropdownAnswers, setDropdownAnswers] = useState<Record<string, string>>({});
   const [checkboxAnswers, setCheckboxAnswers] = useState<Record<string, string[]>>({});
   const [dropdownModalId, setDropdownModalId] = useState<string | null>(null);
@@ -95,12 +97,15 @@ export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
 
   useEffect(() => {
     const text: Record<string, string> = {};
+    const dates: Record<string, string> = {};
     const dropdown: Record<string, string> = {};
     const checks: Record<string, string[]> = {};
     for (const q of sortedQuestions) {
       const pre = guessPrefill(q.label, user, q.type);
       if (q.type === 'TEXT') {
         text[q.id] = pre;
+      } else if (q.type === 'DATE') {
+        dates[q.id] = '';
       } else if (q.type === 'DROPDOWN') {
         dropdown[q.id] = pre;
       } else {
@@ -108,6 +113,7 @@ export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
       }
     }
     setTextAnswers(text);
+    setDateAnswers(dates);
     setDropdownAnswers(dropdown);
     setCheckboxAnswers(checks);
   }, [form.serviceId, sortedQuestions, user]);
@@ -120,16 +126,18 @@ export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
       } else {
         set.add(optionLabel);
       }
-      return {...prev, [questionId]: [...set]};
+      return { ...prev, [questionId]: [...set] };
     });
   }
 
   function handleSubmit() {
-    const answers: {questionId: string; value: string}[] = [];
+    const answers: { questionId: string; value: string }[] = [];
     for (const q of sortedQuestions) {
       let value = '';
       if (q.type === 'TEXT') {
         value = textAnswers[q.id]?.trim() ?? '';
+      } else if (q.type === 'DATE') {
+        value = dateAnswers[q.id]?.trim() ?? '';
       } else if (q.type === 'DROPDOWN') {
         value = dropdownAnswers[q.id]?.trim() ?? '';
       } else {
@@ -141,7 +149,7 @@ export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
         return;
       }
       if (value) {
-        answers.push({questionId: q.id, value});
+        answers.push({ questionId: q.id, value });
       }
     }
     if (!answers.length) {
@@ -159,10 +167,22 @@ export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
         <TextInput
           style={[serviceUi.formInput, focused && serviceUi.formInputFocused]}
           value={textAnswers[q.id] ?? ''}
-          onChangeText={v => setTextAnswers({...textAnswers, [q.id]: v})}
+          onChangeText={v => setTextAnswers({ ...textAnswers, [q.id]: v })}
           onFocus={() => setFocusedField(q.id)}
           onBlur={() => setFocusedField(null)}
           placeholderTextColor={Colors.placeHolderColor}
+        />
+      );
+    }
+
+    if (q.type === 'DATE') {
+      return (
+        <KnparisesDatePickerField
+          label={q.label}
+          value={dateAnswers[q.id] ?? ''}
+          onChange={v => setDateAnswers({ ...dateAnswers, [q.id]: v })}
+          hideLabel
+          variant="outlined"
         />
       );
     }
@@ -175,7 +195,7 @@ export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
           onPress={() => setDropdownModalId(q.id)}>
           <CustomText
             variant="h6"
-            style={{color: value ? Colors.black : Colors.placeHolderColor}}>
+            style={{ color: value ? Colors.black : Colors.placeHolderColor }}>
             {value || 'Select…'}
           </CustomText>
           <Ionicons name="chevron-down" size={20} color={Colors.muted} />
@@ -253,10 +273,10 @@ export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
             onPress={handleSubmit}
             disabled={saving}>
             <LinearGradient
-              colors={[Colors.brandDark, Colors.brand, Colors.brandMid]}
+              colors={[Colors.buttonPrimary, Colors.buttonPrimary, Colors.buttonPrimary]}
               locations={[0, 0.55, 1]}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={serviceUi.submitBtnInner}>
               {saving ? (
                 <ActivityIndicator color={Colors.white} />
@@ -289,7 +309,7 @@ export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
                 style={serviceUi.modalOption}
                 onPress={() => {
                   if (dropdownModalId) {
-                    setDropdownAnswers({...dropdownAnswers, [dropdownModalId]: ''});
+                    setDropdownAnswers({ ...dropdownAnswers, [dropdownModalId]: '' });
                   }
                   setDropdownModalId(null);
                 }}>
@@ -303,7 +323,7 @@ export function ServiceDynamicForm({form, user, saving, onSubmit}: Props) {
                   style={serviceUi.modalOption}
                   onPress={() => {
                     if (dropdownModalId) {
-                      setDropdownAnswers({...dropdownAnswers, [dropdownModalId]: o.label});
+                      setDropdownAnswers({ ...dropdownAnswers, [dropdownModalId]: o.label });
                     }
                     setDropdownModalId(null);
                   }}>
@@ -326,8 +346,8 @@ const styles = StyleSheet.create({
     marginBottom: moderateScaleVertical(14),
     lineHeight: 20,
   },
-  muted: {color: Colors.muted},
-  submitDisabled: {opacity: 0.55},
+  muted: { color: Colors.muted },
+  submitDisabled: { opacity: 0.55 },
   modalTitle: {
     paddingHorizontal: moderateScale(20),
     paddingTop: moderateScaleVertical(18),

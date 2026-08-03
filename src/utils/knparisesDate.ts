@@ -53,3 +53,29 @@ export function defaultPaymentDateRange(): {date_from: string; date_upto: string
     date_upto: formatKnparisesDate(upto),
   };
 }
+
+/** First and last day of the current calendar month (knparises display format). */
+export function defaultCounterCollectionDateRange(): {
+  date_from: string;
+  date_upto: string;
+} {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1);
+  const upto = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    date_from: formatKnparisesDate(from),
+    date_upto: formatKnparisesDate(upto),
+  };
+}
+
+/** API body dates use YYYY-MM-DD (e.g. 2026-06-01). */
+export function knparisesDateToApi(value: string): string {
+  const parsed = parseKnparisesDate(value);
+  if (!parsed) {
+    return value.trim();
+  }
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}

@@ -1,17 +1,20 @@
 import Ionicons from '@react-native-vector-icons/ionicons';
 import React from 'react';
-import {StackNav, TabNav} from '@/navigations/NavigationKeys';
-import {useAuthStore} from '@/states/authStore';
-import type {ExternalVendorUser} from '@/types/vendor';
-import {navigateToTab, push, resetAndNavigate} from '@/utils/NavigationUtils';
-import {isPrimaryVendor} from '@/utils/vendorUser';
+import { StackNav, TabNav } from '@/navigations/NavigationKeys';
+import { useAuthStore } from '@/states/authStore';
+import type { ExternalVendorUser } from '@/types/vendor';
+import { navigate, navigateToTab, resetAndNavigate } from '@/utils/NavigationUtils';
+import { isParentCounter, isPrimaryVendor } from '@/utils/vendorUser';
 
-type NavItem = {
+export type NavItem = {
   key: string;
   label: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
-  onPress: () => void;
+  onPress?: () => void;
   primaryOnly?: boolean;
+  parentCounterOnly?: boolean;
+  hideForParentCounter?: boolean;
+  disabled?: boolean;
 };
 
 export function buildVendorNavItems(
@@ -20,74 +23,101 @@ export function buildVendorNavItems(
 ): NavItem[] {
   const resolvedUser = user ?? useAuthStore.getState().user;
   const primary = isPrimaryVendor(resolvedUser);
+  const parentCounter = isParentCounter(resolvedUser);
 
   const items: NavItem[] = [
     {
       key: TabNav.Home,
-      label: 'Home',
-      icon: 'home-outline',
-      onPress: () => resetAndNavigate(StackNav.Main, 0),
-    },
-    {
-      key: TabNav.Services,
-      label: 'Our Services',
+      label: 'Dashboard',
       icon: 'grid-outline',
-      onPress: () => {
-        resetAndNavigate(StackNav.Main, 0);
-        navigateToTab(TabNav.Services);
-      },
+      onPress: () =>{{ navigate(StackNav.TabNav,{
+        screen: TabNav.Home,
+      })}
+    resetAndNavigate(StackNav.TabNav, 0)
+    }
+
     },
     {
-      key: TabNav.Requests,
+      key: StackNav.MyServiceRequests,
       label: 'My Service Requests',
       icon: 'document-text-outline',
-      onPress: () => {
-        resetAndNavigate(StackNav.Main, 0);
-        navigateToTab(TabNav.Requests);
-      },
+      onPress: () => navigate(StackNav.MyServiceRequests),
     },
     {
-      key: TabNav.Collect,
-      label: 'Collection Request',
-      icon: 'cube-outline',
-      onPress: () => {
-        resetAndNavigate(StackNav.Main, 0);
-        navigateToTab(TabNav.Collect);
-      },
+      key: StackNav.CountersCollectionList,
+      label: 'Counters Collection',
+      icon: 'stats-chart-outline',
+      onPress: () => navigate(StackNav.CountersCollectionList),
+      parentCounterOnly: true,
     },
     {
       key: StackNav.CollectRequestList,
-      label: 'Collection History',
-      icon: 'list-outline',
-      onPress: () => push(StackNav.CollectRequestList),
+      label: 'Collection Requests',
+      icon: 'list-circle-outline',
+      onPress: () => {
+        navigate(StackNav.CollectRequestList);
+      },
+      hideForParentCounter: true,
     },
     {
-      key: StackNav.MyCertificates,
-      label: 'My Certificates',
-      icon: 'ribbon-outline',
-      onPress: () => push(StackNav.MyCertificates),
-    },
-    {
-      key: StackNav.MyRewards,
-      label: 'Scratch & Win',
-      icon: 'gift-outline',
-      onPress: () => push(StackNav.MyRewards),
+      key: StackNav.CollectionRequest,
+      label: 'New Collection Request',
+      icon: 'list-circle-outline',
+      onPress: () => {
+        navigate(StackNav.CollectionRequest);
+      },
+      hideForParentCounter: true,
     },
     {
       key: StackNav.PaymentDetails,
       label: 'Payment Details',
-      icon: 'card-outline',
-      onPress: () => push(StackNav.PaymentDetails),
+      icon: 'wallet-outline',
+      onPress: () => navigate(StackNav.PaymentDetails),
       primaryOnly: true,
     },
     {
-      key: StackNav.Agreement,
-      label: 'Agreement',
-      icon: 'document-outline',
-      onPress: () => push(StackNav.Agreement),
-      primaryOnly: true,
+      key: StackNav.MyCertificates,
+      label: 'Certificates',
+      icon: 'ribbon-outline',
+      onPress: () => navigate(StackNav.MyCertificates),
     },
+    {
+      key: StackNav.MyRewards,
+      label: 'Scratch & Win',
+      icon: 'star-outline',
+      onPress: () => navigate(StackNav.MyRewards),
+    },
+    {
+      key: StackNav.ContactUs,
+      label: 'Contact Us',
+      icon: 'call-outline',
+      onPress: () => navigate(StackNav.ContactUs),
+    },
+    {
+      key: StackNav.PrivacyPolicy,
+      label: 'Privacy Policy',
+      icon: 'shield-checkmark-outline',
+      onPress: () => navigate(StackNav.PrivacyPolicy),
+    },
+    // {
+    //   key: StackNav.Agreement,
+    //   label: 'Agreement',
+    //   icon: 'document-attach-outline',
+    //   onPress: () => navigate(StackNav.Agreement),
+    //   primaryOnly: true,
+    // },
   ];
 
-  return items.filter(item => !item.primaryOnly || primary);
+  return items.filter(item => {
+    if (item.primaryOnly && !primary) {
+      return false;
+    }
+    if (item.parentCounterOnly && !parentCounter) {
+      return false;
+    }
+    if (item.hideForParentCounter && parentCounter) {
+      return false;
+    }
+    return true;
+  });
 }

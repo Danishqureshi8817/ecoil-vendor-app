@@ -16,7 +16,18 @@ buildscript {
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
         classpath("com.google.gms:google-services:4.4.2")
+        classpath("com.google.firebase:firebase-crashlytics-gradle:3.0.3")
     }
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// Skip lintVital* tasks (release lint) — avoids Metaspace OOM on large RN dependency graphs.
+// Do not use afterEvaluate here; RN root project may already be evaluated.
+subprojects { subproject ->
+    subproject.tasks.configureEach { task ->
+        if (task.name.toLowerCase().contains("lintvital")) {
+            task.enabled = false
+        }
+    }
+}

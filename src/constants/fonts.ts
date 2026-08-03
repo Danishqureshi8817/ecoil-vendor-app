@@ -10,6 +10,14 @@ export const Fonts = {
     regular: 'Inika-Regular',
     bold: 'Inika-Bold',
   },
+  montserrat: {
+    regular: 'Montserrat-Regular',
+    light: 'Montserrat-Light',
+    medium: 'Montserrat-Medium',
+    semiBold: 'Montserrat-SemiBold',
+    bold: 'Montserrat-Bold',
+    extraBold: 'Montserrat-ExtraBold',
+  },
   default: 'Inter-Regular',
 };
 

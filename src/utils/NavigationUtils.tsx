@@ -1,11 +1,28 @@
-import {StackNav, TabNav} from '@/navigations/NavigationKeys';
+import { StackNav, TabNav } from '@/navigations/NavigationKeys';
 import {
   CommonActions,
   createNavigationContainerRef,
   StackActions,
+  type NavigationState,
+  type PartialState,
 } from '@react-navigation/native';
 
 export const navigationRef = createNavigationContainerRef();
+
+type NavState = NavigationState | PartialState<NavigationState> | undefined;
+
+/** Deepest active route name — used for Crashlytics screen attribute. */
+export function getActiveRouteName(state: NavState): string {
+  if (!state || !('routes' in state) || !state.routes?.length) {
+    return 'unknown';
+  }
+  const index = state.index ?? state.routes.length - 1;
+  const route = state.routes[index];
+  if (route?.state) {
+    return getActiveRouteName(route.state);
+  }
+  return route?.name ?? 'unknown';
+}
 
 export function navigateToMainTab(
   tabScreen: string,
@@ -15,12 +32,12 @@ export function navigateToMainTab(
     return;
   }
   navigationRef.dispatch(
-    CommonActions.navigate({
-      name: StackNav.Main,
+    CommonActions.navigate(StackNav.Main, {
+      screen: StackNav.TabNav,
       params:
         params !== undefined
-          ? {screen: tabScreen, params}
-          : {screen: tabScreen},
+          ? { screen: tabScreen, params }
+          : { screen: tabScreen },
     }),
   );
 }
@@ -41,7 +58,7 @@ export async function resetAndNavigate(routeName: string, index = 0) {
     navigationRef.dispatch(
       CommonActions.reset({
         index,
-        routes: [{name: routeName}],
+        routes: [{ name: routeName }],
       }),
     );
   }
@@ -59,4 +76,4 @@ export async function goBack() {
   }
 }
 
-export {TabNav};
+export { TabNav };
