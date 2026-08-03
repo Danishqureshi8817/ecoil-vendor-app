@@ -19,6 +19,10 @@ function getTitle(routeName: string): string {
       return 'My Service Requests';
     case TabNav.Collect:
       return 'Collection Request';
+    case TabNav.Scrap:
+      return 'Scrap Requests';
+    case TabNav.Waste:
+      return 'Waste Requests';
     default:
       return 'Ecoil Vendor';
   }

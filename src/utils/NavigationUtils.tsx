@@ -59,4 +59,20 @@ export async function goBack() {
   }
 }
 
+/**
+ * After create/process scrap|waste: land on Main + detail route.
+ * (Named resetToDrawerScreen for stash screen compatibility.)
+ */
+export async function resetToDrawerScreen(screen: string) {
+  if (!navigationRef.isReady()) {
+    return;
+  }
+  navigationRef.dispatch(
+    CommonActions.reset({
+      index: 1,
+      routes: [{name: StackNav.Main}, {name: screen}],
+    }),
+  );
+}
+
 export {TabNav};

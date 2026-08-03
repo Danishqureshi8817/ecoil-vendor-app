@@ -4,7 +4,7 @@ import {StackNav, TabNav} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
 import type {ExternalVendorUser} from '@/types/vendor';
 import {navigateToTab, push, resetAndNavigate} from '@/utils/NavigationUtils';
-import {isPrimaryVendor} from '@/utils/vendorUser';
+import {isPrimaryVendor, isScrapVendor} from '@/utils/vendorUser';
 
 type NavItem = {
   key: string;
@@ -20,6 +20,48 @@ export function buildVendorNavItems(
 ): NavItem[] {
   const resolvedUser = user ?? useAuthStore.getState().user;
   const primary = isPrimaryVendor(resolvedUser);
+  const scrap = isScrapVendor(resolvedUser);
+
+  if (scrap) {
+    return [
+      {
+        key: TabNav.Home,
+        label: 'Home',
+        icon: 'home-outline',
+        onPress: () => resetAndNavigate(StackNav.Main, 0),
+      },
+      {
+        key: TabNav.Scrap,
+        label: 'Scrap Requests',
+        icon: 'cube-outline',
+        onPress: () => {
+          resetAndNavigate(StackNav.Main, 0);
+          navigateToTab(TabNav.Scrap);
+        },
+      },
+      {
+        key: TabNav.Waste,
+        label: 'Waste Requests',
+        icon: 'trash-outline',
+        onPress: () => {
+          resetAndNavigate(StackNav.Main, 0);
+          navigateToTab(TabNav.Waste);
+        },
+      },
+      {
+        key: StackNav.CreateScrapRequest,
+        label: 'New Scrap Request',
+        icon: 'add-circle-outline',
+        onPress: () => push(StackNav.CreateScrapRequest),
+      },
+      {
+        key: StackNav.CreateWasteRequest,
+        label: 'New Waste Request',
+        icon: 'add-outline',
+        onPress: () => push(StackNav.CreateWasteRequest),
+      },
+    ];
+  }
 
   const items: NavItem[] = [
     {

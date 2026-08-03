@@ -9,6 +9,12 @@ import MyCertificatesScreen from '@/screens/MyCertificatesScreen';
 import MyRewardsScreen from '@/screens/MyRewardsScreen';
 import PaymentDetailsScreen from '@/screens/PaymentDetailsScreen';
 import AgreementScreen from '@/screens/AgreementScreen';
+import ScrapRequestsScreen from '@/screens/ScrapRequestsScreen';
+import CreateScrapRequestScreen from '@/screens/CreateScrapRequestScreen';
+import ProcessScrapRequestScreen from '@/screens/ProcessScrapRequestScreen';
+import WasteRequestsScreen from '@/screens/WasteRequestsScreen';
+import CreateWasteRequestScreen from '@/screens/CreateWasteRequestScreen';
+import ProcessWasteRequestScreen from '@/screens/ProcessWasteRequestScreen';
 import {navigationRef} from '@/utils/NavigationUtils';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -42,6 +48,30 @@ export default function AppNavigator() {
           component={PaymentDetailsScreen}
         />
         <Stack.Screen name={StackNav.Agreement} component={AgreementScreen} />
+        <Stack.Screen
+          name={StackNav.ScrapRequests}
+          component={ScrapRequestsScreen}
+        />
+        <Stack.Screen
+          name={StackNav.CreateScrapRequest}
+          component={CreateScrapRequestScreen}
+        />
+        <Stack.Screen
+          name={StackNav.ProcessScrapRequest}
+          component={ProcessScrapRequestScreen}
+        />
+        <Stack.Screen
+          name={StackNav.WasteRequests}
+          component={WasteRequestsScreen}
+        />
+        <Stack.Screen
+          name={StackNav.CreateWasteRequest}
+          component={CreateWasteRequestScreen}
+        />
+        <Stack.Screen
+          name={StackNav.ProcessWasteRequest}
+          component={ProcessWasteRequestScreen}
+        />
       </Stack.Navigator>
       <CheckInternet />
     </NavigationContainer>

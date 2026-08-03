@@ -15,6 +15,8 @@ const TAB_CONFIG: Record<string, {label: string; icon: TabIcon}> = {
   Services: {label: 'Services', icon: 'sunny-outline'},
   Requests: {label: 'Requests', icon: 'document-text-outline'},
   Collect: {label: 'Collection', icon: 'basket-outline'},
+  Scrap: {label: 'Scrap', icon: 'cube-outline'},
+  Waste: {label: 'Waste', icon: 'trash-outline'},
 };
 
 /** Vendor dashboard style — white bar, green top indicator on active tab */

@@ -10,6 +10,13 @@ export const Fonts = {
     regular: 'Inika-Regular',
     bold: 'Inika-Bold',
   },
+  /** Scrap/waste screens (stash) use montserrat keys — map to Inter. */
+  montserrat: {
+    regular: 'Inter-Regular',
+    medium: 'Inter-Medium',
+    semiBold: 'Inter-SemiBold',
+    bold: 'Inter-Bold',
+  },
   default: 'Inter-Regular',
 };
 

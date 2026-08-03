@@ -22,4 +22,7 @@ export const Colors = {
   borderColor: '#e8ecf0',
   placeHolderColor: '#94a3b8',
   primary: '#047857',
+  buttonPrimary: '#047857',
+  drawerGradientStart: '#047857',
+  drawerGradientEnd: '#065f46',
 };

@@ -3,11 +3,13 @@ import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import {theme} from '@/constants/theme';
 import useCollectionRequests from '@/hooks/vendor/use-collection-requests';
+import useScrapRequests from '@/hooks/vendor/use-scrap-requests';
+import useWasteRequests from '@/hooks/vendor/use-waste-requests';
 import {StackNav, TabNav} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
 import {card, screen} from '@/styles/ui';
 import {navigateToTab, push} from '@/utils/NavigationUtils';
-import {isPrimaryVendor} from '@/utils/vendorUser';
+import {isPrimaryVendor, isScrapVendor} from '@/utils/vendorUser';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import React, {useMemo} from 'react';
@@ -27,10 +29,50 @@ type QuickAction = {
 export default function HomeScreen() {
   const user = useAuthStore(s => s.user);
   const primary = isPrimaryVendor(user);
-  const {data: collections} = useCollectionRequests();
+  const scrap = isScrapVendor(user);
+  const {data: collections} = useCollectionRequests(!scrap);
+  const {data: scrapRows} = useScrapRequests(scrap);
+  const {data: wasteRows} = useWasteRequests(scrap);
   const firstName = (user?.name || 'Partner').split(/\s+/)[0];
 
   const quickActions: QuickAction[] = useMemo(() => {
+    if (scrap) {
+      return [
+        {
+          title: 'Scrap Requests',
+          desc: 'Assigned scrap pickups',
+          icon: 'cube-outline',
+          iconColor: Colors.brand,
+          iconBg: Colors.brandSoft,
+          onPress: () => navigateToTab(TabNav.Scrap),
+        },
+        {
+          title: 'Waste Requests',
+          desc: 'Assigned waste pickups',
+          icon: 'trash-outline',
+          iconColor: Colors.accent,
+          iconBg: Colors.accentSoft,
+          onPress: () => navigateToTab(TabNav.Waste),
+        },
+        {
+          title: 'New Scrap',
+          desc: 'Create scrap request',
+          icon: 'add-circle-outline',
+          iconColor: Colors.blue,
+          iconBg: Colors.blueSoft,
+          onPress: () => push(StackNav.CreateScrapRequest),
+        },
+        {
+          title: 'New Waste',
+          desc: 'Create waste request',
+          icon: 'add-outline',
+          iconColor: Colors.purple,
+          iconBg: Colors.purpleSoft,
+          onPress: () => push(StackNav.CreateWasteRequest),
+        },
+      ];
+    }
+
     const actions: QuickAction[] = [
       {
         title: 'Our Services',
@@ -100,7 +142,18 @@ export default function HomeScreen() {
       },
     ];
     return actions.filter(a => !a.primaryOnly || primary);
-  }, [primary]);
+  }, [primary, scrap]);
+
+  const heroCount = scrap
+    ? (scrapRows?.length ?? 0) + (wasteRows?.length ?? 0)
+    : collections?.length ?? '—';
+  const heroLabel = scrap ? 'Open jobs' : 'Collections';
+  const heroCta = scrap ? 'View scrap' : 'New pickup';
+  const onHeroCta = () =>
+    scrap ? navigateToTab(TabNav.Scrap) : navigateToTab(TabNav.Collect);
+  const heroSub = scrap
+    ? 'Your hub for scrap and waste collection requests.'
+    : 'Your partner hub for services and oil collection.';
 
   return (
     <ScrollView
@@ -116,41 +169,60 @@ export default function HomeScreen() {
           <CustomText variant="h7" style={styles.greet}>
             Hello,
           </CustomText>
-          <CustomText variant="h2" fontFamily={Fonts.inter.bold} style={styles.heroName}>
+          <CustomText
+            variant="h2"
+            fontFamily={Fonts.inter.bold}
+            style={styles.heroName}>
             {firstName} 👋
           </CustomText>
           <CustomText variant="h6" style={styles.sub} numberOfLine={4}>
-            Your partner hub for services and oil collection.
+            {heroSub}
           </CustomText>
 
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <CustomText variant="h2" fontFamily={Fonts.inter.bold} style={styles.statNum}>
-                {collections?.length ?? '—'}
+              <CustomText
+                variant="h2"
+                fontFamily={Fonts.inter.bold}
+                style={styles.statNum}>
+                {heroCount}
               </CustomText>
-              <CustomText variant="h7" fontFamily={Fonts.inter.semiBold} style={styles.statLabel}>
-                Collections
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.inter.semiBold}
+                style={styles.statLabel}>
+                {heroLabel}
               </CustomText>
             </View>
             <Pressable
               style={({pressed}) => [styles.ctaWrap, pressed && styles.pressed]}
-              onPress={() => navigateToTab(TabNav.Collect)}>
+              onPress={onHeroCta}>
               <LinearGradient
                 colors={[Colors.brandDark, Colors.brand]}
                 start={{x: 0, y: 0}}
                 end={{x: 1, y: 1}}
                 style={styles.cta}>
-                <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.ctaText}>
-                  New pickup
+                <CustomText
+                  variant="h7"
+                  fontFamily={Fonts.inter.bold}
+                  style={styles.ctaText}>
+                  {heroCta}
                 </CustomText>
-                <Ionicons name="chevron-forward" size={16} color={Colors.white} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={Colors.white}
+                />
               </LinearGradient>
             </Pressable>
           </View>
         </LinearGradient>
       </View>
 
-      <CustomText variant="h5" fontFamily={Fonts.inter.bold} style={styles.sectionTitle}>
+      <CustomText
+        variant="h5"
+        fontFamily={Fonts.inter.bold}
+        style={styles.sectionTitle}>
         Quick actions
       </CustomText>
 
@@ -158,12 +230,23 @@ export default function HomeScreen() {
         {quickActions.map(action => (
           <Pressable
             key={action.title}
-            style={({pressed}) => [styles.actionTile, pressed && styles.pressed]}
+            style={({pressed}) => [
+              styles.actionTile,
+              pressed && styles.pressed,
+            ]}
             onPress={action.onPress}>
-            <View style={[styles.actionIcon, {backgroundColor: action.iconBg}]}>
-              <Ionicons name={action.icon} size={22} color={action.iconColor} />
+            <View
+              style={[styles.actionIcon, {backgroundColor: action.iconBg}]}>
+              <Ionicons
+                name={action.icon}
+                size={22}
+                color={action.iconColor}
+              />
             </View>
-            <CustomText variant="h6" fontFamily={Fonts.inter.bold} style={styles.actionTitle}>
+            <CustomText
+              variant="h6"
+              fontFamily={Fonts.inter.bold}
+              style={styles.actionTitle}>
               {action.title}
             </CustomText>
             <CustomText variant="h7" style={styles.actionDesc}>
@@ -173,24 +256,40 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {(user?.mobile || user?.email) ? (
+      {user?.mobile || user?.email ? (
         <View style={[card.base, styles.accountCard]}>
-          <CustomText variant="h5" fontFamily={Fonts.inter.bold} style={styles.accountHeading}>
+          <CustomText
+            variant="h5"
+            fontFamily={Fonts.inter.bold}
+            style={styles.accountHeading}>
             Account
           </CustomText>
           {user.mobile ? (
             <View style={styles.accountRow}>
-              <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.accountLabel}>
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.inter.bold}
+                style={styles.accountLabel}>
                 Mobile
               </CustomText>
-              <CustomText variant="h6" fontFamily={Fonts.inter.bold} style={styles.accountValue}>
+              <CustomText
+                variant="h6"
+                fontFamily={Fonts.inter.bold}
+                style={styles.accountValue}>
                 {user.mobile}
               </CustomText>
             </View>
           ) : null}
           {user.email ? (
-            <View style={[styles.accountRow, user.mobile ? styles.accountRowGap : null]}>
-              <CustomText variant="h7" fontFamily={Fonts.inter.bold} style={styles.accountLabel}>
+            <View
+              style={[
+                styles.accountRow,
+                user.mobile ? styles.accountRowGap : null,
+              ]}>
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.inter.bold}
+                style={styles.accountLabel}>
                 Email
               </CustomText>
               <CustomText
@@ -253,7 +352,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(16),
     ...theme.shadow,
   },
-  statNum: {color: Colors.brand, letterSpacing: -0.3, fontSize: moderateScale(24)},
+  statNum: {
+    color: Colors.brand,
+    letterSpacing: -0.3,
+    fontSize: moderateScale(24),
+  },
   statLabel: {color: Colors.muted, marginTop: 2},
   ctaWrap: {
     flexShrink: 0,

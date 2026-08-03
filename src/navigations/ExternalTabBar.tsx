@@ -1,5 +1,7 @@
 import {VendorTabBar} from '@/navigations/VendorTabBar';
 import {TabNav} from '@/navigations/NavigationKeys';
+import {useAuthStore} from '@/states/authStore';
+import {isScrapVendor} from '@/utils/vendorUser';
 import {moderateScaleVertical} from '@/utils/responsiveSize';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import React from 'react';
@@ -8,6 +10,8 @@ import HomeScreen from '@/screens/HomeScreen';
 import ServiceManagementScreen from '@/screens/ServiceManagementScreen';
 import MyApplicationsScreen from '@/screens/MyApplicationsScreen';
 import CollectRequestScreen from '@/screens/CollectRequestScreen';
+import ScrapRequestsScreen from '@/screens/ScrapRequestsScreen';
+import WasteRequestsScreen from '@/screens/WasteRequestsScreen';
 import type {MainTabParamList} from '@/navigations/NavigationKeys';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -15,8 +19,12 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 type Props = {onTabChange?: (name: string) => void};
 
 export default function ExternalTabBar({onTabChange}: Props) {
+  const user = useAuthStore(s => s.user);
+  const scrap = isScrapVendor(user);
+
   return (
     <Tab.Navigator
+      key={scrap ? 'scrap-tabs' : 'oil-tabs'}
       tabBar={props => <VendorTabBar {...props} />}
       screenListeners={{
         state: e => {
@@ -37,21 +45,38 @@ export default function ExternalTabBar({onTabChange}: Props) {
         component={HomeScreen}
         options={{tabBarLabel: 'Home'}}
       />
-      <Tab.Screen
-        name={TabNav.Services}
-        component={ServiceManagementScreen}
-        options={{tabBarLabel: 'Services'}}
-      />
-      <Tab.Screen
-        name={TabNav.Requests}
-        component={MyApplicationsScreen}
-        options={{tabBarLabel: 'Requests'}}
-      />
-      <Tab.Screen
-        name={TabNav.Collect}
-        component={CollectRequestScreen}
-        options={{tabBarLabel: 'Collection'}}
-      />
+      {scrap ? (
+        <>
+          <Tab.Screen
+            name={TabNav.Scrap}
+            component={ScrapRequestsScreen}
+            options={{tabBarLabel: 'Scrap'}}
+          />
+          <Tab.Screen
+            name={TabNav.Waste}
+            component={WasteRequestsScreen}
+            options={{tabBarLabel: 'Waste'}}
+          />
+        </>
+      ) : (
+        <>
+          <Tab.Screen
+            name={TabNav.Services}
+            component={ServiceManagementScreen}
+            options={{tabBarLabel: 'Services'}}
+          />
+          <Tab.Screen
+            name={TabNav.Requests}
+            component={MyApplicationsScreen}
+            options={{tabBarLabel: 'Requests'}}
+          />
+          <Tab.Screen
+            name={TabNav.Collect}
+            component={CollectRequestScreen}
+            options={{tabBarLabel: 'Collection'}}
+          />
+        </>
+      )}
     </Tab.Navigator>
   );
 }

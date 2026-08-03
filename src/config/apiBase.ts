@@ -29,7 +29,7 @@ function resolveApiOrigin(): string {
   const configured = (ENV_API_ORIGIN ?? '').trim();
 
   if (__DEV__) {
-    const devOrigin = configured || 'http://localhost:3000';
+    const devOrigin = configured || 'https://vendor-api.ecoil.in';
     return remapHostForDevice(trimTrailingSlash(devOrigin));
   }
 
