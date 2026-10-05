@@ -11,19 +11,24 @@ import {
   type SubmitCollectionRequestInput,
 } from '@/api/collectionApi';
 import {
+  assignScrapRequest,
   completeScrapRequest,
   createScrapRequest,
   deleteScrapRequest,
   fetchAssignedScrapRequests,
   fetchLinkedScrapCategories,
   fetchLinkedScrapVendors,
+  fetchOutletLinkedScrapVendors,
+  fetchScrapAssignUsers,
   updateScrapRequest,
+  type AssignScrapRequestInput,
   type CompleteScrapRequestInput,
   type CreateScrapRequestInput,
   type DeleteScrapRequestInput,
   type UpdateScrapRequestInput,
 } from '@/api/scrapApi';
 import {
+  assignWasteRequest,
   completeWasteRequest,
   createWasteRequest,
   deleteWasteRequest,
@@ -31,6 +36,7 @@ import {
   fetchLinkedWasteCategories,
   fetchLinkedWasteVendors,
   updateWasteRequest,
+  type AssignWasteRequestInput,
   type CompleteWasteRequestInput,
   type CreateWasteRequestInput,
   type DeleteWasteRequestInput,
@@ -54,7 +60,9 @@ class VendorService {
     collectionRequests: 'collectionRequests',
     scrapRequests: 'scrapRequests',
     linkedScrapVendors: 'linkedScrapVendors',
+    outletLinkedScrapVendors: 'outletLinkedScrapVendors',
     linkedScrapCategories: 'linkedScrapCategories',
+    scrapAssignUsers: 'scrapAssignUsers',
     wasteRequests: 'wasteRequests',
     linkedWasteCategories: 'linkedWasteCategories',
     certificates: 'certificates',
@@ -80,13 +88,20 @@ class VendorService {
 
   getLinkedScrapVendors = () => fetchLinkedScrapVendors();
 
+  getOutletLinkedScrapVendors = () => fetchOutletLinkedScrapVendors();
+
   getLinkedScrapCategories = () => fetchLinkedScrapCategories();
+
+  getScrapAssignUsers = () => fetchScrapAssignUsers();
 
   createScrapRequest = (input: CreateScrapRequestInput) =>
     createScrapRequest(input);
 
   updateScrapRequest = (input: UpdateScrapRequestInput) =>
     updateScrapRequest(input);
+
+  assignScrapRequest = (input: AssignScrapRequestInput) =>
+    assignScrapRequest(input);
 
   deleteScrapRequest = (input: DeleteScrapRequestInput) =>
     deleteScrapRequest(input);
@@ -106,6 +121,9 @@ class VendorService {
 
   updateWasteRequest = (input: UpdateWasteRequestInput) =>
     updateWasteRequest(input);
+
+  assignWasteRequest = (input: AssignWasteRequestInput) =>
+    assignWasteRequest(input);
 
   deleteWasteRequest = (input: DeleteWasteRequestInput) =>
     deleteWasteRequest(input);

@@ -16,6 +16,7 @@ import { StackNav, TabNav } from '@/navigations/NavigationKeys';
 import type { PublicService } from '@/api/publicApi';
 import type { VendorDashboardNotification } from '@/api/dashboardApi';
 import publicService from '@/services/public-service';
+import vendorService from '@/services/vendor-service';
 import { useAuthStore } from '@/states/authStore';
 import { useServiceNavigationStore } from '@/states/serviceNavigationStore';
 import {
@@ -28,7 +29,7 @@ import {
 import { ServiceIconImage } from '@/components/service/ServiceIconImage';
 import { navigate, navigateToTab, push } from '@/utils/NavigationUtils';
 import { moderateScale, moderateScaleVertical } from '@/utils/responsiveSize';
-import { isScrapVendor } from '@/utils/vendorUser';
+import { hasScrapVendorAccess } from '@/utils/vendorUser';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
@@ -135,7 +136,7 @@ function NotificationActivityRow({ item }: { item: VendorDashboardNotification }
 
 export default function HomeScreen() {
   const user = useAuthStore(s => s.user);
-  const scrapVendor = isScrapVendor(user);
+  const scrapVendor = hasScrapVendorAccess(user);
   const {
     data: dashboard,
     isPending: dashboardPending,
@@ -153,6 +154,17 @@ export default function HomeScreen() {
     enabled: !scrapVendor,
   });
 
+  const {
+    data: outletLinkedScrapVendors = [],
+    refetch: refetchOutletLinkedScrapVendors,
+  } = useQuery({
+    queryKey: [vendorService.queryKeys.outletLinkedScrapVendors],
+    queryFn: () => vendorService.getOutletLinkedScrapVendors(),
+    enabled: !scrapVendor,
+    staleTime: 60_000,
+  });
+  const showScrapRequestTile = outletLinkedScrapVendors.length > 0;
+
   const { data: homeBanners = [] } = useQuery({
     queryKey: [publicService.queryKeys.homeBanners],
     queryFn: () => publicService.getHomeBanners(),
@@ -163,8 +175,14 @@ export default function HomeScreen() {
       void refetchDashboard();
       if (!scrapVendor) {
         void refetchCoins();
+        void refetchOutletLinkedScrapVendors();
       }
-    }, [refetchDashboard, refetchCoins, scrapVendor]),
+    }, [
+      refetchDashboard,
+      refetchCoins,
+      refetchOutletLinkedScrapVendors,
+      scrapVendor,
+    ]),
   );
 
   const counters = dashboard?.counters;
@@ -436,6 +454,28 @@ export default function HomeScreen() {
                   Oil Collection Request
                 </CustomText>
               </Pressable>
+              {showScrapRequestTile ? (
+                <Pressable
+                  style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
+                  onPress={() =>
+                    navigate(StackNav.ScrapRequests, {mode: 'outlet'})
+                  }>
+                  <View style={styles.serviceEmptyIcon}>
+                    <Ionicons
+                      name="cube-outline"
+                      size={moderateScale(26)}
+                      color={Colors.brand}
+                    />
+                  </View>
+                  <CustomText
+                    variant="h7"
+                    fontFamily={Fonts.montserrat.semiBold}
+                    style={styles.serviceLabel}
+                    numberOfLine={3}>
+                    Scrap Request
+                  </CustomText>
+                </Pressable>
+              ) : null}
               {servicesLoading ? (
                 <ActivityIndicator color={Colors.brand} style={styles.servicesLoader} />
               ) : (

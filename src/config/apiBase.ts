@@ -6,8 +6,8 @@ const trimTrailingSlash = (s: string) => s.replace(/\/$/, '');
  * API origin — same role as dashboard `VITE_API_ORIGIN`.
  * Local backend: set to `http://localhost:3000` (Android emulator remaps to 10.0.2.2).
  */
-export const CONFIG_API_ORIGIN = 'https://vendor-api.ecoil.in';
-// export const CONFIG_API_ORIGIN = 'http://localhost:3000';
+// export const CONFIG_API_ORIGIN = 'https://vendor-api.ecoil.in';
+export const CONFIG_API_ORIGIN = 'http://localhost:3000';
 /** Optional separate host for service icon files; leave empty to use `{API_ORIGIN}/api/file-upload`. */
 export const CONFIG_SERVICE_ICON_BASE_URL = '';
 

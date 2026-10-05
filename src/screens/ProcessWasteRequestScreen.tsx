@@ -17,11 +17,7 @@ import {StackNav} from '@/navigations/NavigationKeys';
 import type {RootStackParamList} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
 import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
-import {
-  isImagePickerNativeAvailable,
-  requestCameraAccess,
-  requestGalleryAccess,
-} from '@/utils/mediaPermissions';
+import {requestCameraAccess} from '@/utils/mediaPermissions';
 import {goBack, resetToDrawerScreen} from '@/utils/NavigationUtils';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import {vendorUserId} from '@/utils/vendorUser';
@@ -51,6 +47,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import {RFValue} from 'react-native-responsive-fontsize';
 
 type Props = NativeStackScreenProps<
@@ -106,18 +103,6 @@ function fromDocument(
   );
 }
 
-function getImagePicker() {
-  if (!isImagePickerNativeAvailable()) {
-    return null;
-  }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require('react-native-image-picker') as typeof import('react-native-image-picker');
-  } catch {
-    return null;
-  }
-}
-
 function showPermissionSettingsAlert(title: string, message: string) {
   Alert.alert(title, message, [
     {text: 'Cancel', style: 'cancel'},
@@ -131,35 +116,17 @@ function showPermissionSettingsAlert(title: string, message: string) {
 }
 
 async function pickFromGallery(slot: number): Promise<WastePicturePayload | null> {
-  const imagePicker = getImagePicker();
+  // System photo picker — no READ_MEDIA_* / storage permission.
+  const result = await launchImageLibrary({
+    mediaType: 'photo',
+    quality: 0.8,
+    selectionLimit: 1,
+  });
 
-  // Preferred: native gallery with system permission dialog.
-  if (imagePicker?.launchImageLibrary) {
-    const allowed = await requestGalleryAccess();
-    if (!allowed) {
-      return null;
-    }
-
-    const result = await imagePicker.launchImageLibrary({
-      mediaType: 'photo',
-      quality: 0.8,
-      selectionLimit: 1,
-    });
-
-    if (result.didCancel) {
-      return null;
-    }
-    if (result.errorCode === 'permission') {
-      showPermissionSettingsAlert(
-        'Photos permission required',
-        'Please allow photo access in Settings to choose waste pictures.',
-      );
-      return null;
-    }
-    if (result.errorCode) {
-      throw new Error(result.errorMessage ?? 'Could not open gallery');
-    }
-
+  if (result.didCancel) {
+    return null;
+  }
+  if (!result.errorCode) {
     const asset = result.assets?.[0];
     if (!asset?.uri) {
       throw new Error('Could not read selected image');
@@ -199,22 +166,12 @@ async function pickFromGallery(slot: number): Promise<WastePicturePayload | null
 }
 
 async function pickFromCamera(slot: number): Promise<WastePicturePayload | null> {
-  const imagePicker = getImagePicker();
-  if (!imagePicker?.launchCamera) {
-    Alert.alert(
-      'Camera unavailable',
-      'Camera needs a native rebuild. Run:\nnpx react-native run-android',
-      [{text: 'OK'}],
-    );
-    return null;
-  }
-
   const allowed = await requestCameraAccess();
   if (!allowed) {
     return null;
   }
 
-  const result = await imagePicker.launchCamera({
+  const result = await launchCamera({
     mediaType: 'photo',
     quality: 0.8,
     saveToPhotos: false,

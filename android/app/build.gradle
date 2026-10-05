@@ -84,8 +84,8 @@ android {
         applicationId "com.arises.knp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 99
-        versionName "1.0.99"
+        versionCode 100
+        versionName "1.0.100"
     }
     signingConfigs {
           release {
@@ -126,6 +126,9 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    // System Photo Picker for react-native-image-picker (no READ_MEDIA_*)
+    implementation("androidx.activity:activity:1.9.3")
+    implementation("androidx.activity:activity-ktx:1.9.3")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

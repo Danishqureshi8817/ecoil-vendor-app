@@ -65,7 +65,10 @@ export async function resetAndNavigate(routeName: string, index = 0) {
 }
 
 /** Reset root stack to Main drawer opened on a specific drawer screen (clears ProcessScrapRequest etc.). */
-export async function resetToDrawerScreen(drawerScreen: string) {
+export async function resetToDrawerScreen(
+  drawerScreen: string,
+  params?: object,
+) {
   if (!navigationRef.isReady()) {
     return;
   }
@@ -79,7 +82,7 @@ export async function resetToDrawerScreen(drawerScreen: string) {
             index: 1,
             routes: [
               {name: StackNav.TabNav},
-              {name: drawerScreen},
+              {name: drawerScreen, params},
             ],
           },
         },

@@ -43,8 +43,8 @@ const PERMISSION_ITEMS: {
     icon: 'camera-outline',
   },
   {
-    title: 'Storage/Photos',
-    body: 'To upload images or documents.',
+    title: 'Photos',
+    body: 'To choose images via the system photo picker for upload (no full gallery access).',
     icon: 'images-outline',
   },
   {

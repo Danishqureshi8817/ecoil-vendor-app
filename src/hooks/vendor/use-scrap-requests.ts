@@ -1,5 +1,6 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import type {
+  AssignScrapRequestInput,
   CompleteScrapRequestInput,
   CreateScrapRequestInput,
   DeleteScrapRequestInput,
@@ -68,6 +69,25 @@ export function useLinkedScrapVendors(enabled = true) {
   });
 }
 
+/** Oil outlet → linked scrap vendors (for Home card + outlet scrap create). */
+export function useOutletLinkedScrapVendors(enabled = true) {
+  const {toastError} = useToastMessage();
+
+  return useQuery({
+    queryKey: [vendorService.queryKeys.outletLinkedScrapVendors],
+    queryFn: () => vendorService.getOutletLinkedScrapVendors(),
+    enabled,
+    staleTime: 60_000,
+    meta: {
+      onError: (error: unknown) => {
+        toastError(
+          getApiErrorMessage(error, 'Could not load linked scrap vendors'),
+        );
+      },
+    },
+  });
+}
+
 export function useLinkedScrapCategories(enabled = true) {
   const {toastError} = useToastMessage();
 
@@ -79,6 +99,22 @@ export function useLinkedScrapCategories(enabled = true) {
     meta: {
       onError: (error: unknown) => {
         toastError(getApiErrorMessage(error, 'Could not load scrap categories'));
+      },
+    },
+  });
+}
+
+export function useScrapAssignUsers(enabled = true) {
+  const {toastError} = useToastMessage();
+
+  return useQuery({
+    queryKey: [vendorService.queryKeys.scrapAssignUsers],
+    queryFn: () => vendorService.getScrapAssignUsers(),
+    enabled,
+    staleTime: 60_000,
+    meta: {
+      onError: (error: unknown) => {
+        toastError(getApiErrorMessage(error, 'Could not load assign users'));
       },
     },
   });
@@ -133,6 +169,22 @@ export function useUpdateScrapRequest() {
     },
     onError: (error: unknown) => {
       toastError(getApiErrorMessage(error, 'Could not update scrap request'));
+    },
+  });
+}
+
+export function useAssignScrapRequest() {
+  const queryClient = useQueryClient();
+  const {toastError} = useToastMessage();
+
+  return useMutation({
+    mutationFn: (input: AssignScrapRequestInput) =>
+      vendorService.assignScrapRequest(input),
+    onSuccess: () => {
+      invalidateScrapLists(queryClient);
+    },
+    onError: (error: unknown) => {
+      toastError(getApiErrorMessage(error, 'Could not reassign scrap request'));
     },
   });
 }

@@ -5,9 +5,9 @@ import {useAuthStore} from '@/states/authStore';
 import type {ExternalVendorUser} from '@/types/vendor';
 import {navigate, resetAndNavigate} from '@/utils/NavigationUtils';
 import {
+  hasScrapVendorAccess,
   isParentCounter,
   isPrimaryVendor,
-  isScrapVendor,
 } from '@/utils/vendorUser';
 
 export type NavItem = {
@@ -18,9 +18,9 @@ export type NavItem = {
   primaryOnly?: boolean;
   parentCounterOnly?: boolean;
   hideForParentCounter?: boolean;
-  /** Only show for scrap vendors (type 99). */
+  /** Only show for scrap vendor / scrap vendor user (type 99 / 98). */
   scrapOnly?: boolean;
-  /** Hide for scrap vendors (type 99). */
+  /** Hide for scrap vendor / scrap vendor user (type 99 / 98). */
   hideForScrapVendor?: boolean;
   disabled?: boolean;
 };
@@ -32,7 +32,7 @@ export function buildVendorNavItems(
   const resolvedUser = user ?? useAuthStore.getState().user;
   const primary = isPrimaryVendor(resolvedUser);
   const parentCounter = isParentCounter(resolvedUser);
-  const scrapVendor = isScrapVendor(resolvedUser);
+  const scrapVendor = hasScrapVendorAccess(resolvedUser);
 
   const items: NavItem[] = [
     {

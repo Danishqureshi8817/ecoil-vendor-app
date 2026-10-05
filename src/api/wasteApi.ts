@@ -45,6 +45,8 @@ export type WasteRequestRow = {
   status?: string;
   /** 1 = created by logged-in waste vendor; can edit/delete */
   entry_by_sv?: string | number;
+  /** Assigned team user id; `0` / missing = My Self */
+  assign_to_user_id?: string | number;
   [key: string]: unknown;
 };
 
@@ -58,14 +60,101 @@ export type LinkedWasteCategory = {
   name: string;
 };
 
+/** UI + API sentinel: assign request to the logged-in scrap vendor. */
+export const WASTE_ASSIGN_MYSELF_ID = '0';
+
+export type WasteAssignUser = {
+  id: string;
+  name: string;
+  mobile?: string;
+};
+
+function firstNonEmptyId(
+  ...candidates: Array<string | number | null | undefined>
+): string {
+  for (const candidate of candidates) {
+    if (candidate == null) {
+      continue;
+    }
+    const value = String(candidate).trim();
+    if (value !== '') {
+      return value;
+    }
+  }
+  return '';
+}
+
+/** Display name for assigned user from list/detail row (if API sends it). */
+export function wasteAssignToUserName(row?: WasteRequestRow | null): string {
+  if (!row) {
+    return '';
+  }
+  return firstNonEmptyId(
+    row.assign_to_user_name as string | number | undefined,
+    row.assigned_to_user_name as string | number | undefined,
+    row.assigned_user_name as string | number | undefined,
+    row.assign_to_name as string | number | undefined,
+    row.assigned_to_name as string | number | undefined,
+    row.assigned_to as string | number | undefined,
+  );
+}
+
+/**
+ * Resolve assigned user id from list/detail row for edit prefill.
+ * Upstream may use several key names; missing / empty → My Self (`0`).
+ */
+export function wasteAssignToUserId(
+  row?: WasteRequestRow | null,
+  users: WasteAssignUser[] = [],
+): string {
+  if (!row) {
+    return WASTE_ASSIGN_MYSELF_ID;
+  }
+
+  const fromId = firstNonEmptyId(
+    row.assign_to_user_id,
+    row.assigned_to_user_id as string | number | undefined,
+    row.assigned_user_id as string | number | undefined,
+    row.assign_user_id as string | number | undefined,
+    row.scrap_vendor_user_id as string | number | undefined,
+    row.sv_user_id as string | number | undefined,
+    row.assigned_to_id as string | number | undefined,
+  );
+  if (fromId) {
+    return fromId;
+  }
+
+  const name = wasteAssignToUserName(row);
+  if (name && users.length > 0) {
+    const match = users.find(
+      user => user.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (match) {
+      return match.id;
+    }
+  }
+
+  return WASTE_ASSIGN_MYSELF_ID;
+}
+
 export type CreateWasteRequestInput = {
   vendor_id: string | number;
   waste_category_ids: Array<string | number>;
+  /**
+   * `0` = My Self; otherwise scrap team user id from getUsers.
+   * Omit for scrap-vendor-user (type 98) — they can only create for self.
+   */
+  assign_to_user_id?: string | number;
   vendorUserId?: string | number;
 };
 
 export type UpdateWasteRequestInput = CreateWasteRequestInput & {
   waste_collection_id: string | number;
+};
+
+export type AssignWasteRequestInput = {
+  waste_collection_id: string | number;
+  assign_to_user_id: string | number;
 };
 
 export type DeleteWasteRequestInput = {
@@ -326,6 +415,9 @@ export async function createWasteRequest(
   const body = {
     vendor_id: String(input.vendor_id),
     waste_category_ids: categoryIds,
+    ...(input.assign_to_user_id != null && String(input.assign_to_user_id) !== ''
+      ? {assign_to_user_id: String(input.assign_to_user_id)}
+      : {}),
     ...(input.vendorUserId != null
       ? {vendorUserId: String(input.vendorUserId)}
       : {}),
@@ -352,6 +444,9 @@ export async function updateWasteRequest(
     waste_collection_id: String(input.waste_collection_id),
     vendor_id: String(input.vendor_id),
     waste_category_ids: categoryIds,
+    ...(input.assign_to_user_id != null && String(input.assign_to_user_id) !== ''
+      ? {assign_to_user_id: String(input.assign_to_user_id)}
+      : {}),
     ...(input.vendorUserId != null
       ? {vendorUserId: String(input.vendorUserId)}
       : {}),
@@ -365,6 +460,26 @@ export async function updateWasteRequest(
     timeout: 60_000,
   });
   console.log('[WasteUpdate] Response:', data);
+  return unwrapKnparises(data);
+}
+
+/** Reassign waste request — POST /waste-requests/assign */
+export async function assignWasteRequest(
+  input: AssignWasteRequestInput,
+): Promise<unknown> {
+  const body = {
+    waste_collection_id: String(input.waste_collection_id),
+    assign_to_user_id: String(input.assign_to_user_id),
+  };
+  const url = `${apiBase()}/waste-requests/assign`;
+  console.log('[WasteAssign] Request URL:', url);
+  console.log('[WasteAssign] Request body:', body);
+
+  const {data} = await axios.post<KnparisesEnvelope<unknown>>(url, body, {
+    headers: {...bearerHeaders(), 'Content-Type': 'application/json'},
+    timeout: 60_000,
+  });
+  console.log('[WasteAssign] Response:', data);
   return unwrapKnparises(data);
 }
 

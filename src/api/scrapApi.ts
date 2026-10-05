@@ -45,6 +45,8 @@ export type ScrapRequestRow = {
   status?: string;
   /** 1 = created by logged-in scrap vendor; can edit/delete */
   entry_by_sv?: string | number;
+  /** Assigned team user id; `0` / missing = My Self */
+  assign_to_user_id?: string | number;
   [key: string]: unknown;
 };
 
@@ -58,14 +60,104 @@ export type LinkedScrapCategory = {
   name: string;
 };
 
+export type ScrapAssignUser = {
+  id: string;
+  name: string;
+  mobile?: string;
+};
+
+/** UI + API sentinel: assign request to the logged-in scrap vendor. */
+export const SCRAP_ASSIGN_MYSELF_ID = '0';
+
+function firstNonEmptyId(
+  ...candidates: Array<string | number | null | undefined>
+): string {
+  for (const candidate of candidates) {
+    if (candidate == null) {
+      continue;
+    }
+    const value = String(candidate).trim();
+    if (value !== '') {
+      return value;
+    }
+  }
+  return '';
+}
+
+/** Display name for assigned user from list/detail row (if API sends it). */
+export function scrapAssignToUserName(row?: ScrapRequestRow | null): string {
+  if (!row) {
+    return '';
+  }
+  return firstNonEmptyId(
+    row.assign_to_user_name as string | number | undefined,
+    row.assigned_to_user_name as string | number | undefined,
+    row.assigned_user_name as string | number | undefined,
+    row.assign_to_name as string | number | undefined,
+    row.assigned_to_name as string | number | undefined,
+    row.assigned_to as string | number | undefined,
+  );
+}
+
+/**
+ * Resolve assigned user id from list/detail row for edit prefill.
+ * Upstream may use several key names; missing / empty → My Self (`0`).
+ */
+export function scrapAssignToUserId(
+  row?: ScrapRequestRow | null,
+  users: ScrapAssignUser[] = [],
+): string {
+  if (!row) {
+    return SCRAP_ASSIGN_MYSELF_ID;
+  }
+
+  const fromId = firstNonEmptyId(
+    row.assign_to_user_id,
+    row.assigned_to_user_id as string | number | undefined,
+    row.assigned_user_id as string | number | undefined,
+    row.assign_user_id as string | number | undefined,
+    row.scrap_vendor_user_id as string | number | undefined,
+    row.sv_user_id as string | number | undefined,
+    row.assigned_to_id as string | number | undefined,
+  );
+  if (fromId) {
+    return fromId;
+  }
+
+  const name = scrapAssignToUserName(row);
+  if (name && users.length > 0) {
+    const match = users.find(
+      user => user.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (match) {
+      return match.id;
+    }
+  }
+
+  return SCRAP_ASSIGN_MYSELF_ID;
+}
+
 export type CreateScrapRequestInput = {
-  vendor_id: string | number;
   scrap_category_ids: Array<string | number>;
+  /** Scrap-vendor create flow: target oil outlet. */
+  vendor_id?: string | number;
+  /** Oil-outlet create flow: target scrap vendor. */
+  scrap_vendor_id?: string | number;
+  /**
+   * `0` = My Self; otherwise scrap team user id from getUsers.
+   * Omit for scrap-vendor-user (type 98) and oil-outlet create.
+   */
+  assign_to_user_id?: string | number;
   vendorUserId?: string | number;
 };
 
 export type UpdateScrapRequestInput = CreateScrapRequestInput & {
   scrap_collection_id: string | number;
+};
+
+export type AssignScrapRequestInput = {
+  scrap_collection_id: string | number;
+  assign_to_user_id: string | number;
 };
 
 export type DeleteScrapRequestInput = {
@@ -300,6 +392,50 @@ export async function fetchLinkedScrapVendors(): Promise<LinkedScrapVendor[]> {
   return normalizeLinkedVendors(unwrapKnparises(data));
 }
 
+/**
+ * Oil outlet → linked scrap vendors.
+ * GET shape: { outlet_id, is_linked, scrap_vendors: [...] }
+ */
+function normalizeOutletLinkedScrapVendors(payload: unknown): LinkedScrapVendor[] {
+  let list: unknown[] = [];
+  if (Array.isArray(payload)) {
+    list = payload;
+  } else if (payload && typeof payload === 'object') {
+    const obj = payload as Record<string, unknown>;
+    if (Array.isArray(obj.scrap_vendors)) {
+      list = obj.scrap_vendors;
+    }
+  }
+  return list
+    .map(item => {
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+      const row = item as Record<string, unknown>;
+      const id = String(
+        row.scrap_vendor_id ?? row.id ?? row.vendor_id ?? '',
+      ).trim();
+      const firm_name = String(
+        row.firm_name ?? row.name ?? row.label ?? '',
+      ).trim();
+      if (!id) {
+        return null;
+      }
+      return {id, firm_name: firm_name || id};
+    })
+    .filter((x): x is LinkedScrapVendor => x != null);
+}
+
+/** Oil-outlet API: POST /scrap-vendors/getLinkedScrapVendors */
+export async function fetchOutletLinkedScrapVendors(): Promise<LinkedScrapVendor[]> {
+  const {data} = await axios.post<KnparisesEnvelope<unknown>>(
+    `${apiBase()}/scrap-vendors/getLinkedScrapVendors`,
+    {},
+    {headers: bearerHeaders(), timeout: 60_000},
+  );
+  return normalizeOutletLinkedScrapVendors(unwrapKnparises(data));
+}
+
 export async function fetchLinkedScrapCategories(): Promise<LinkedScrapCategory[]> {
   const {data} = await axios.post<KnparisesEnvelope<unknown>>(
     `${apiBase()}/scrap-vendors/getScrapCategories`,
@@ -309,19 +445,69 @@ export async function fetchLinkedScrapCategories(): Promise<LinkedScrapCategory[
   return normalizeLinkedCategories(unwrapKnparises(data));
 }
 
+function normalizeScrapAssignUsers(payload: unknown): ScrapAssignUser[] {
+  const list = Array.isArray(payload) ? payload : [];
+  return list
+    .map(item => {
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+      const row = item as Record<string, unknown>;
+      const id = String(row.id ?? row.user_id ?? '').trim();
+      if (!id || id === SCRAP_ASSIGN_MYSELF_ID) {
+        return null;
+      }
+      const name = String(row.name ?? row.user_name ?? '').trim();
+      const mobile =
+        row.mobile != null && String(row.mobile).trim() !== ''
+          ? String(row.mobile).trim()
+          : undefined;
+      return {id, name: name || id, mobile};
+    })
+    .filter((x): x is ScrapAssignUser => x != null);
+}
+
+/** Team users for assign-to dropdown. Caller should prepend My Self (id `0`). */
+export async function fetchScrapAssignUsers(): Promise<ScrapAssignUser[]> {
+  const {data} = await axios.post<KnparisesEnvelope<unknown>>(
+    `${apiBase()}/scrap-vendors/getUsers`,
+    {},
+    {headers: bearerHeaders(), timeout: 60_000},
+  );
+  return normalizeScrapAssignUsers(unwrapKnparises(data));
+}
+
 export async function createScrapRequest(
   input: CreateScrapRequestInput,
 ): Promise<unknown> {
   const categoryIds = input.scrap_category_ids
     .map(id => String(id).trim())
     .filter(Boolean);
-  const body = {
-    vendor_id: String(input.vendor_id),
-    scrap_category_ids: categoryIds,
-    ...(input.vendorUserId != null
-      ? {vendorUserId: String(input.vendorUserId)}
-      : {}),
-  };
+  const scrapVendorId =
+    input.scrap_vendor_id != null ? String(input.scrap_vendor_id).trim() : '';
+  const vendorId =
+    input.vendor_id != null ? String(input.vendor_id).trim() : '';
+
+  // Oil-outlet create: body is only scrap_vendor_id + scrap_category_ids.
+  const isOutletCreate = scrapVendorId !== '' && vendorId === '';
+  const body: Record<string, unknown> = isOutletCreate
+    ? {
+        scrap_vendor_id: scrapVendorId,
+        scrap_category_ids: categoryIds,
+      }
+    : {
+        scrap_category_ids: categoryIds,
+        ...(vendorId ? {vendor_id: vendorId} : {}),
+        ...(scrapVendorId ? {scrap_vendor_id: scrapVendorId} : {}),
+        ...(input.assign_to_user_id != null &&
+        String(input.assign_to_user_id) !== ''
+          ? {assign_to_user_id: String(input.assign_to_user_id)}
+          : {}),
+        ...(input.vendorUserId != null
+          ? {vendorUserId: String(input.vendorUserId)}
+          : {}),
+      };
+
   const url = `${apiBase()}/scrap-requests/create`;
   console.log('[ScrapCreate] Request URL:', url);
   console.log('[ScrapCreate] Request body:', body);
@@ -344,6 +530,9 @@ export async function updateScrapRequest(
     scrap_collection_id: String(input.scrap_collection_id),
     vendor_id: String(input.vendor_id),
     scrap_category_ids: categoryIds,
+    ...(input.assign_to_user_id != null && String(input.assign_to_user_id) !== ''
+      ? {assign_to_user_id: String(input.assign_to_user_id)}
+      : {}),
     ...(input.vendorUserId != null
       ? {vendorUserId: String(input.vendorUserId)}
       : {}),
@@ -357,6 +546,26 @@ export async function updateScrapRequest(
     timeout: 60_000,
   });
   console.log('[ScrapUpdate] Response:', data);
+  return unwrapKnparises(data);
+}
+
+/** Reassign scrap request — POST /scrap-requests/assign */
+export async function assignScrapRequest(
+  input: AssignScrapRequestInput,
+): Promise<unknown> {
+  const body = {
+    scrap_collection_id: String(input.scrap_collection_id),
+    assign_to_user_id: String(input.assign_to_user_id),
+  };
+  const url = `${apiBase()}/scrap-requests/assign`;
+  console.log('[ScrapAssign] Request URL:', url);
+  console.log('[ScrapAssign] Request body:', body);
+
+  const {data} = await axios.post<KnparisesEnvelope<unknown>>(url, body, {
+    headers: {...bearerHeaders(), 'Content-Type': 'application/json'},
+    timeout: 60_000,
+  });
+  console.log('[ScrapAssign] Response:', data);
   return unwrapKnparises(data);
 }
 

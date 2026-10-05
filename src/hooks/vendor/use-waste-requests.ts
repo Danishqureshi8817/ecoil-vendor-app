@@ -1,5 +1,6 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import type {
+  AssignWasteRequestInput,
   CompleteWasteRequestInput,
   CreateWasteRequestInput,
   DeleteWasteRequestInput,
@@ -133,6 +134,22 @@ export function useUpdateWasteRequest() {
     },
     onError: (error: unknown) => {
       toastError(getApiErrorMessage(error, 'Could not update waste request'));
+    },
+  });
+}
+
+export function useAssignWasteRequest() {
+  const queryClient = useQueryClient();
+  const {toastError} = useToastMessage();
+
+  return useMutation({
+    mutationFn: (input: AssignWasteRequestInput) =>
+      vendorService.assignWasteRequest(input),
+    onSuccess: () => {
+      invalidateWasteLists(queryClient);
+    },
+    onError: (error: unknown) => {
+      toastError(getApiErrorMessage(error, 'Could not reassign waste request'));
     },
   });
 }

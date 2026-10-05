@@ -46,8 +46,10 @@ export type RootStackParamList = {
   [StackNav.CollectRequestList]: undefined;
   [StackNav.CollectRequestDetail]: { id: string };
   [StackNav.CountersCollectionDetail]: { row: CounterCollectionRow };
-  [StackNav.ScrapRequests]: undefined;
-  [StackNav.CreateScrapRequest]: { request?: ScrapRequestRow } | undefined;
+  [StackNav.ScrapRequests]: {mode?: 'outlet'} | undefined;
+  [StackNav.CreateScrapRequest]:
+    | {request?: ScrapRequestRow; mode?: 'outlet'}
+    | undefined;
   [StackNav.ProcessScrapRequest]: { request: ScrapRequestRow };
   [StackNav.WasteRequests]: undefined;
   [StackNav.CreateWasteRequest]: { request?: WasteRequestRow } | undefined;

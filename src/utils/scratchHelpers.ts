@@ -84,3 +84,20 @@ export function formatRedeemMinimumMessage(
   if (needed <= 0.0001) return '';
   return `You need at least ${minRedeemAmount} coins in your wallet before you can request a redeem. You currently have ${coinTotal} coins — earn ${needed} more coins first.`;
 }
+
+export function getRedeemRequiredAmount(minRedeemAmount = 0): number {
+  return minRedeemAmount > 0 ? minRedeemAmount : 1;
+}
+
+/** Message when Redeem should be blocked (no form). Null = redeem form may open. */
+export function getRedeemBlockedMessage(
+  coinTotal: number | null | undefined,
+  minRedeemAmount = 0,
+): string | null {
+  if (coinTotal == null) return null;
+  const required = getRedeemRequiredAmount(minRedeemAmount);
+  if (coinTotal + 0.0001 < required) {
+    return formatRedeemMinimumMessage(required, coinTotal);
+  }
+  return null;
+}

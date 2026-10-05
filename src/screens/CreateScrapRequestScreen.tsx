@@ -3,26 +3,35 @@ import {Container} from '@/components/global/Container';
 import CustomText from '@/components/global/CustomText';
 import {
   parseScrapCategories,
+  scrapAssignToUserId,
+  scrapAssignToUserName,
   scrapCollectionId,
+  SCRAP_ASSIGN_MYSELF_ID,
+  type ScrapAssignUser,
   type ScrapRequestRow,
 } from '@/api/scrapApi';
 import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import {
+  useAssignScrapRequest,
   useCreateScrapRequest,
   useLinkedScrapCategories,
   useLinkedScrapVendors,
+  useOutletLinkedScrapVendors,
+  useScrapAssignUsers,
   useUpdateScrapRequest,
 } from '@/hooks/vendor/use-scrap-requests';
 import {StackNav} from '@/navigations/NavigationKeys';
+import {useAuthStore} from '@/states/authStore';
 import {screen} from '@/styles/ui';
 import {serviceUi} from '@/styles/serviceUi';
 import {navigate, resetToDrawerScreen} from '@/utils/NavigationUtils';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
+import {isScrapVendorUser} from '@/utils/vendorUser';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import type {RouteProp} from '@react-navigation/native';
 import {useFocusEffect} from '@react-navigation/native';
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import vendorService from '@/services/vendor-service';
 import {
@@ -40,9 +49,24 @@ import {RFValue} from 'react-native-responsive-fontsize';
 
 type Props = {
   route: RouteProp<
-    {[StackNav.CreateScrapRequest]: {request?: ScrapRequestRow} | undefined},
+    {
+      [StackNav.CreateScrapRequest]:
+        | {request?: ScrapRequestRow; mode?: 'outlet'}
+        | undefined;
+    },
     typeof StackNav.CreateScrapRequest
   >;
+};
+
+type AssignOption = {
+  id: string;
+  name: string;
+  mobile?: string;
+};
+
+const MYSELF_OPTION: AssignOption = {
+  id: SCRAP_ASSIGN_MYSELF_ID,
+  name: 'My Self',
 };
 
 function initialCategoryIds(request?: ScrapRequestRow): string[] {
@@ -52,29 +76,54 @@ function initialCategoryIds(request?: ScrapRequestRow): string[] {
   return parseScrapCategories(request).map(category => category.scrap_category_id);
 }
 
-function formStateFromRoute(request?: ScrapRequestRow) {
+function formStateFromRoute(
+  request?: ScrapRequestRow,
+  users: ScrapAssignUser[] = [],
+) {
   return {
     vendorId: String(request?.vendor_id ?? '').trim(),
     selectedCategoryIds: initialCategoryIds(request),
+    assignToUserId: scrapAssignToUserId(request, users),
   };
+}
+
+function assignOptionLabel(option: AssignOption): string {
+  if (option.id === SCRAP_ASSIGN_MYSELF_ID) {
+    return option.name;
+  }
+  return option.mobile ? `${option.name} (${option.mobile})` : option.name;
 }
 
 export default function CreateScrapRequestScreen({route}: Props) {
   const editRequest = route.params?.request;
   const isEdit = Boolean(editRequest);
+  const isOutletMode = route.params?.mode === 'outlet';
   const queryClient = useQueryClient();
+  const user = useAuthStore(s => s.user);
+  const scrapVendorUser = isScrapVendorUser(user);
+  const canAssignUsers = !scrapVendorUser && !isOutletMode;
 
-  const vendorsQuery = useLinkedScrapVendors();
+  const scrapSideVendorsQuery = useLinkedScrapVendors(!isOutletMode);
+  const outletVendorsQuery = useOutletLinkedScrapVendors(isOutletMode);
+  const vendorsQuery = isOutletMode ? outletVendorsQuery : scrapSideVendorsQuery;
   const categoriesQuery = useLinkedScrapCategories();
+  const assignUsersQuery = useScrapAssignUsers(canAssignUsers);
   const createMutation = useCreateScrapRequest();
   const updateMutation = useUpdateScrapRequest();
+  const assignMutation = useAssignScrapRequest();
 
-  const initialForm = formStateFromRoute(editRequest);
+  const assignUsers = assignUsersQuery.data ?? [];
+  const initialForm = formStateFromRoute(editRequest, assignUsers);
   const [vendorId, setVendorId] = useState(initialForm.vendorId);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
     initialForm.selectedCategoryIds,
   );
+  const [assignToUserId, setAssignToUserId] = useState(initialForm.assignToUserId);
+  const [initialAssignToUserId, setInitialAssignToUserId] = useState(
+    initialForm.assignToUserId,
+  );
   const [vendorModalOpen, setVendorModalOpen] = useState(false);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [formError, setFormError] = useState('');
 
   const editRequestKey = editRequest
@@ -85,38 +134,110 @@ export default function CreateScrapRequestScreen({route}: Props) {
   useFocusEffect(
     useCallback(() => {
       const request = route.params?.request;
-      const next = formStateFromRoute(request);
+      const users = assignUsersQuery.data ?? [];
+      const next = formStateFromRoute(request, users);
       setVendorId(next.vendorId);
       setSelectedCategoryIds(next.selectedCategoryIds);
+      setAssignToUserId(next.assignToUserId);
+      setInitialAssignToUserId(next.assignToUserId);
       setVendorModalOpen(false);
+      setAssignModalOpen(false);
       setFormError('');
+      if (request) {
+        console.log('[ScrapEdit] Assign prefill', {
+          resolvedId: next.assignToUserId,
+          assign_to_user_id: request.assign_to_user_id,
+          assigned_to_user_id: request.assigned_to_user_id,
+          assigned_user_id: request.assigned_user_id,
+          scrap_vendor_user_id: request.scrap_vendor_user_id,
+          name: scrapAssignToUserName(request),
+          keys: Object.keys(request),
+        });
+      }
 
-      void queryClient.fetchQuery({
-        queryKey: [vendorService.queryKeys.linkedScrapVendors],
-        queryFn: () => vendorService.getLinkedScrapVendors(),
-        staleTime: 60_000,
-      });
+      if (isOutletMode) {
+        void queryClient.fetchQuery({
+          queryKey: [vendorService.queryKeys.outletLinkedScrapVendors],
+          queryFn: () => vendorService.getOutletLinkedScrapVendors(),
+          staleTime: 60_000,
+        });
+      } else {
+        void queryClient.fetchQuery({
+          queryKey: [vendorService.queryKeys.linkedScrapVendors],
+          queryFn: () => vendorService.getLinkedScrapVendors(),
+          staleTime: 60_000,
+        });
+      }
       void queryClient.fetchQuery({
         queryKey: [vendorService.queryKeys.linkedScrapCategories],
         queryFn: () => vendorService.getLinkedScrapCategories(),
         staleTime: 60_000,
       });
-    }, [editRequestKey, queryClient, route.params?.request]),
+      if (canAssignUsers) {
+        void queryClient.fetchQuery({
+          queryKey: [vendorService.queryKeys.scrapAssignUsers],
+          queryFn: () => vendorService.getScrapAssignUsers(),
+          staleTime: 60_000,
+        });
+      }
+    }, [
+      assignUsersQuery.data,
+      canAssignUsers,
+      editRequestKey,
+      isOutletMode,
+      queryClient,
+      route.params?.request,
+    ]),
   );
+
+  // When getUsers arrives after edit open, re-resolve assign (id/name aliases).
+  useEffect(() => {
+    if (!isEdit || !editRequest || !canAssignUsers) {
+      return;
+    }
+    const resolved = scrapAssignToUserId(editRequest, assignUsers);
+    setAssignToUserId(prev => (prev === resolved ? prev : resolved));
+    setInitialAssignToUserId(prev => (prev === resolved ? prev : resolved));
+  }, [assignUsers, canAssignUsers, editRequest, isEdit]);
 
   const vendors = vendorsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
+  const assignOptions = useMemo<AssignOption[]>(() => {
+    return [MYSELF_OPTION, ...assignUsers];
+  }, [assignUsers]);
   const loadingOptions =
     vendorsQuery.isLoading ||
     vendorsQuery.isFetching ||
     categoriesQuery.isLoading ||
-    categoriesQuery.isFetching;
-  const submitting = createMutation.isPending || updateMutation.isPending;
+    categoriesQuery.isFetching ||
+    (canAssignUsers &&
+      (assignUsersQuery.isLoading || assignUsersQuery.isFetching));
+  const submitting =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    assignMutation.isPending;
 
   const selectedVendorLabel = useMemo(() => {
     const match = vendors.find(vendor => vendor.id === vendorId);
-    return match?.firm_name ?? (vendorId ? vendorId : 'Select vendor');
-  }, [vendorId, vendors]);
+    const placeholder = isOutletMode
+      ? 'Select scrap vendor'
+      : 'Select vendor';
+    return match?.firm_name ?? (vendorId ? vendorId : placeholder);
+  }, [isOutletMode, vendorId, vendors]);
+
+  const selectedAssignLabel = useMemo(() => {
+    const match = assignOptions.find(option => option.id === assignToUserId);
+    if (match) {
+      return assignOptionLabel(match);
+    }
+    const fromRequest = scrapAssignToUserName(editRequest);
+    if (fromRequest) {
+      return fromRequest;
+    }
+    return assignToUserId === SCRAP_ASSIGN_MYSELF_ID
+      ? MYSELF_OPTION.name
+      : 'Select user';
+  }, [assignOptions, assignToUserId, editRequest]);
 
   const toggleCategory = useCallback((categoryId: string) => {
     setSelectedCategoryIds(prev => {
@@ -128,8 +249,12 @@ export default function CreateScrapRequestScreen({route}: Props) {
   }, []);
 
   const handleBack = useCallback(() => {
+    if (isOutletMode) {
+      navigate(StackNav.ScrapRequests, {mode: 'outlet'});
+      return;
+    }
     navigate(StackNav.ScrapRequests);
-  }, []);
+  }, [isOutletMode]);
 
   useFocusEffect(
     useCallback(() => {
@@ -171,37 +296,94 @@ export default function CreateScrapRequestScreen({route}: Props) {
     [vendorId],
   );
 
+  const renderAssignOption: ListRenderItem<AssignOption> = useCallback(
+    ({item}) => {
+      const selected = item.id === assignToUserId;
+      return (
+        <Pressable
+          style={({pressed}) => [
+            styles.modalOption,
+            selected && styles.modalOptionSelected,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => {
+            setAssignToUserId(item.id);
+            setAssignModalOpen(false);
+          }}>
+          <CustomText
+            variant="h7"
+            fontFamily={Fonts.montserrat.medium}
+            style={selected ? styles.modalOptionTextSelected : styles.modalOptionText}>
+            {assignOptionLabel(item)}
+          </CustomText>
+        </Pressable>
+      );
+    },
+    [assignToUserId],
+  );
+
   const vendorKeyExtractor = useCallback(
     (item: (typeof vendors)[number]) => item.id,
     [],
   );
 
+  const assignKeyExtractor = useCallback((item: AssignOption) => item.id, []);
+
   async function handleSubmit() {
     setFormError('');
 
     if (!vendorId) {
-      setFormError('Please select a vendor');
+      setFormError(
+        isOutletMode ? 'Please select a scrap vendor' : 'Please select a vendor',
+      );
       return;
     }
     if (selectedCategoryIds.length === 0) {
       setFormError('Please select at least one scrap category');
       return;
     }
+    if (canAssignUsers && assignToUserId === '') {
+      setFormError('Please select a user to assign');
+      return;
+    }
+
+    const assignPayload = canAssignUsers
+      ? {assign_to_user_id: assignToUserId}
+      : {};
 
     try {
       if (isEdit && editRequest) {
+        const collectionId = scrapCollectionId(editRequest);
         await updateMutation.mutateAsync({
-          scrap_collection_id: scrapCollectionId(editRequest),
+          scrap_collection_id: collectionId,
           vendor_id: vendorId,
           scrap_category_ids: selectedCategoryIds,
         });
+        if (
+          canAssignUsers &&
+          assignToUserId !== '' &&
+          assignToUserId !== initialAssignToUserId
+        ) {
+          await assignMutation.mutateAsync({
+            scrap_collection_id: collectionId,
+            assign_to_user_id: assignToUserId,
+          });
+        }
+        resetToDrawerScreen(StackNav.ScrapRequests);
+      } else if (isOutletMode) {
+        await createMutation.mutateAsync({
+          scrap_vendor_id: vendorId,
+          scrap_category_ids: selectedCategoryIds,
+        });
+        resetToDrawerScreen(StackNav.ScrapRequests, {mode: 'outlet'});
       } else {
         await createMutation.mutateAsync({
           vendor_id: vendorId,
           scrap_category_ids: selectedCategoryIds,
+          ...assignPayload,
         });
+        resetToDrawerScreen(StackNav.ScrapRequests);
       }
-      resetToDrawerScreen(StackNav.ScrapRequests);
     } catch {
       // Toast handled in mutation hooks.
     }
@@ -224,7 +406,7 @@ export default function CreateScrapRequestScreen({route}: Props) {
             variant="h7"
             fontFamily={Fonts.montserrat.medium}
             style={styles.fieldLabel}>
-            Vendor
+            {isOutletMode ? 'Scrap Vendor' : 'Vendor'}
           </CustomText>
           <Pressable
             style={({pressed}) => [styles.vendorField, pressed && styles.pressed]}
@@ -243,6 +425,34 @@ export default function CreateScrapRequestScreen({route}: Props) {
               color={Colors.muted}
             />
           </Pressable>
+
+          {canAssignUsers ? (
+            <>
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.montserrat.medium}
+                style={[styles.fieldLabel, styles.categoryLabel]}>
+                Assign To User
+              </CustomText>
+              <Pressable
+                style={({pressed}) => [styles.vendorField, pressed && styles.pressed]}
+                onPress={() => setAssignModalOpen(true)}
+                disabled={loadingOptions}>
+                <CustomText
+                  variant="h7"
+                  fontFamily={Fonts.montserrat.medium}
+                  style={styles.vendorValue}
+                  numberOfLine={2}>
+                  {selectedAssignLabel}
+                </CustomText>
+                <Ionicons
+                  name="chevron-down"
+                  size={moderateScale(18)}
+                  color={Colors.muted}
+                />
+              </Pressable>
+            </>
+          ) : null}
 
           <CustomText
             variant="h7"
@@ -289,11 +499,11 @@ export default function CreateScrapRequestScreen({route}: Props) {
                     <CustomText
                       variant="h7"
                       fontFamily={Fonts.montserrat.semiBold}
-                      style={
-                        checked
-                          ? serviceUi.checkboxPillTextChecked
-                          : serviceUi.checkboxPillText
-                      }>
+                      numberOfLine={2}
+                      style={[
+                        serviceUi.checkboxPillText,
+                        checked && serviceUi.checkboxPillTextChecked,
+                      ]}>
                       {category.name}
                     </CustomText>
                   </Pressable>
@@ -346,7 +556,7 @@ export default function CreateScrapRequestScreen({route}: Props) {
               variant="h6"
               fontFamily={Fonts.montserrat.bold}
               style={styles.modalTitle}>
-              Select vendor
+              {isOutletMode ? 'Select scrap vendor' : 'Select vendor'}
             </CustomText>
             {vendorsQuery.isLoading ? (
               <ActivityIndicator color={Colors.brand} style={styles.modalLoader} />
@@ -355,7 +565,9 @@ export default function CreateScrapRequestScreen({route}: Props) {
                 variant="h7"
                 fontFamily={Fonts.montserrat.regular}
                 style={styles.emptyCategories}>
-                No linked vendors found.
+                {isOutletMode
+                  ? 'No linked scrap vendors found.'
+                  : 'No linked vendors found.'}
               </CustomText>
             ) : (
               <FlatList
@@ -372,6 +584,41 @@ export default function CreateScrapRequestScreen({route}: Props) {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {canAssignUsers ? (
+        <Modal
+          visible={assignModalOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setAssignModalOpen(false)}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setAssignModalOpen(false)}>
+            <Pressable style={styles.modalSheet} onPress={e => e.stopPropagation()}>
+              <CustomText
+                variant="h6"
+                fontFamily={Fonts.montserrat.bold}
+                style={styles.modalTitle}>
+                Assign to user
+              </CustomText>
+              {assignUsersQuery.isLoading ? (
+                <ActivityIndicator color={Colors.brand} style={styles.modalLoader} />
+              ) : (
+                <FlatList
+                  data={assignOptions}
+                  keyExtractor={assignKeyExtractor}
+                  renderItem={renderAssignOption}
+                  style={styles.modalList}
+                  contentContainerStyle={styles.modalListContent}
+                  showsVerticalScrollIndicator
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                />
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
     </Container>
   );
 }

@@ -1,7 +1,7 @@
 import { VendorTabBar } from '@/navigations/VendorTabBar';
 import { TabNav } from '@/navigations/NavigationKeys';
 import { moderateScaleVertical } from '@/utils/responsiveSize';
-import { isParentCounter, isScrapVendor } from '@/utils/vendorUser';
+import { hasScrapVendorAccess, isParentCounter } from '@/utils/vendorUser';
 import { useAuthStore } from '@/states/authStore';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
@@ -20,7 +20,7 @@ type Props = { onTabChange?: (name: string) => void };
 export default function ExternalTabBar({ onTabChange }: Props) {
   const user = useAuthStore(s => s.user);
   const parentCounter = isParentCounter(user);
-  const scrapVendor = isScrapVendor(user);
+  const scrapVendor = hasScrapVendorAccess(user);
 
   return (
     <Tab.Navigator

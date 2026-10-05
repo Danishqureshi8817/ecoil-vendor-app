@@ -3,26 +3,34 @@ import {Container} from '@/components/global/Container';
 import CustomText from '@/components/global/CustomText';
 import {
   parseWasteCategories,
+  wasteAssignToUserId,
+  wasteAssignToUserName,
   wasteCollectionId,
+  WASTE_ASSIGN_MYSELF_ID,
+  type WasteAssignUser,
   type WasteRequestRow,
 } from '@/api/wasteApi';
 import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
+import {useScrapAssignUsers} from '@/hooks/vendor/use-scrap-requests';
 import {
+  useAssignWasteRequest,
   useCreateWasteRequest,
   useLinkedWasteCategories,
   useLinkedWasteVendors,
   useUpdateWasteRequest,
 } from '@/hooks/vendor/use-waste-requests';
 import {StackNav} from '@/navigations/NavigationKeys';
+import {useAuthStore} from '@/states/authStore';
 import {screen} from '@/styles/ui';
 import {serviceUi} from '@/styles/serviceUi';
 import {navigate, resetToDrawerScreen} from '@/utils/NavigationUtils';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
+import {isScrapVendorUser} from '@/utils/vendorUser';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import type {RouteProp} from '@react-navigation/native';
 import {useFocusEffect} from '@react-navigation/native';
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import vendorService from '@/services/vendor-service';
 import {
@@ -45,6 +53,17 @@ type Props = {
   >;
 };
 
+type AssignOption = {
+  id: string;
+  name: string;
+  mobile?: string;
+};
+
+const MYSELF_OPTION: AssignOption = {
+  id: WASTE_ASSIGN_MYSELF_ID,
+  name: 'My Self',
+};
+
 function initialCategoryIds(request?: WasteRequestRow): string[] {
   if (!request) {
     return [];
@@ -52,29 +71,51 @@ function initialCategoryIds(request?: WasteRequestRow): string[] {
   return parseWasteCategories(request).map(category => category.waste_category_id);
 }
 
-function formStateFromRoute(request?: WasteRequestRow) {
+function formStateFromRoute(
+  request?: WasteRequestRow,
+  users: WasteAssignUser[] = [],
+) {
   return {
     vendorId: String(request?.vendor_id ?? '').trim(),
     selectedCategoryIds: initialCategoryIds(request),
+    assignToUserId: wasteAssignToUserId(request, users),
   };
+}
+
+function assignOptionLabel(option: AssignOption): string {
+  if (option.id === WASTE_ASSIGN_MYSELF_ID) {
+    return option.name;
+  }
+  return option.mobile ? `${option.name} (${option.mobile})` : option.name;
 }
 
 export default function CreateWasteRequestScreen({route}: Props) {
   const editRequest = route.params?.request;
   const isEdit = Boolean(editRequest);
   const queryClient = useQueryClient();
+  const user = useAuthStore(s => s.user);
+  const scrapVendorUser = isScrapVendorUser(user);
+  const canAssignUsers = !scrapVendorUser;
 
   const vendorsQuery = useLinkedWasteVendors();
   const categoriesQuery = useLinkedWasteCategories();
+  const assignUsersQuery = useScrapAssignUsers(canAssignUsers);
   const createMutation = useCreateWasteRequest();
   const updateMutation = useUpdateWasteRequest();
+  const assignMutation = useAssignWasteRequest();
 
-  const initialForm = formStateFromRoute(editRequest);
+  const assignUsers: WasteAssignUser[] = assignUsersQuery.data ?? [];
+  const initialForm = formStateFromRoute(editRequest, assignUsers);
   const [vendorId, setVendorId] = useState(initialForm.vendorId);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
     initialForm.selectedCategoryIds,
   );
+  const [assignToUserId, setAssignToUserId] = useState(initialForm.assignToUserId);
+  const [initialAssignToUserId, setInitialAssignToUserId] = useState(
+    initialForm.assignToUserId,
+  );
   const [vendorModalOpen, setVendorModalOpen] = useState(false);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [formError, setFormError] = useState('');
 
   const editRequestKey = editRequest
@@ -85,11 +126,26 @@ export default function CreateWasteRequestScreen({route}: Props) {
   useFocusEffect(
     useCallback(() => {
       const request = route.params?.request;
-      const next = formStateFromRoute(request);
+      const users = assignUsersQuery.data ?? [];
+      const next = formStateFromRoute(request, users);
       setVendorId(next.vendorId);
       setSelectedCategoryIds(next.selectedCategoryIds);
+      setAssignToUserId(next.assignToUserId);
+      setInitialAssignToUserId(next.assignToUserId);
       setVendorModalOpen(false);
+      setAssignModalOpen(false);
       setFormError('');
+      if (request) {
+        console.log('[WasteEdit] Assign prefill', {
+          resolvedId: next.assignToUserId,
+          assign_to_user_id: request.assign_to_user_id,
+          assigned_to_user_id: request.assigned_to_user_id,
+          assigned_user_id: request.assigned_user_id,
+          scrap_vendor_user_id: request.scrap_vendor_user_id,
+          name: wasteAssignToUserName(request),
+          keys: Object.keys(request),
+        });
+      }
 
       void queryClient.fetchQuery({
         queryKey: [vendorService.queryKeys.linkedScrapVendors, 'waste'],
@@ -101,22 +157,66 @@ export default function CreateWasteRequestScreen({route}: Props) {
         queryFn: () => vendorService.getLinkedWasteCategories(),
         staleTime: 60_000,
       });
-    }, [editRequestKey, queryClient, route.params?.request]),
+      if (canAssignUsers) {
+        void queryClient.fetchQuery({
+          queryKey: [vendorService.queryKeys.scrapAssignUsers],
+          queryFn: () => vendorService.getScrapAssignUsers(),
+          staleTime: 60_000,
+        });
+      }
+    }, [
+      assignUsersQuery.data,
+      canAssignUsers,
+      editRequestKey,
+      queryClient,
+      route.params?.request,
+    ]),
   );
+
+  useEffect(() => {
+    if (!isEdit || !editRequest || !canAssignUsers) {
+      return;
+    }
+    const resolved = wasteAssignToUserId(editRequest, assignUsers);
+    setAssignToUserId(prev => (prev === resolved ? prev : resolved));
+    setInitialAssignToUserId(prev => (prev === resolved ? prev : resolved));
+  }, [assignUsers, canAssignUsers, editRequest, isEdit]);
 
   const vendors = vendorsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
+  const assignOptions = useMemo<AssignOption[]>(() => {
+    return [MYSELF_OPTION, ...assignUsers];
+  }, [assignUsers]);
   const loadingOptions =
     vendorsQuery.isLoading ||
     vendorsQuery.isFetching ||
     categoriesQuery.isLoading ||
-    categoriesQuery.isFetching;
-  const submitting = createMutation.isPending || updateMutation.isPending;
+    categoriesQuery.isFetching ||
+    (canAssignUsers &&
+      (assignUsersQuery.isLoading || assignUsersQuery.isFetching));
+  const submitting =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    assignMutation.isPending;
 
   const selectedVendorLabel = useMemo(() => {
     const match = vendors.find(vendor => vendor.id === vendorId);
     return match?.firm_name ?? (vendorId ? vendorId : 'Select vendor');
   }, [vendorId, vendors]);
+
+  const selectedAssignLabel = useMemo(() => {
+    const match = assignOptions.find(option => option.id === assignToUserId);
+    if (match) {
+      return assignOptionLabel(match);
+    }
+    const fromRequest = wasteAssignToUserName(editRequest);
+    if (fromRequest) {
+      return fromRequest;
+    }
+    return assignToUserId === WASTE_ASSIGN_MYSELF_ID
+      ? MYSELF_OPTION.name
+      : 'Select user';
+  }, [assignOptions, assignToUserId, editRequest]);
 
   const toggleCategory = useCallback((categoryId: string) => {
     setSelectedCategoryIds(prev => {
@@ -171,10 +271,38 @@ export default function CreateWasteRequestScreen({route}: Props) {
     [vendorId],
   );
 
+  const renderAssignOption: ListRenderItem<AssignOption> = useCallback(
+    ({item}) => {
+      const selected = item.id === assignToUserId;
+      return (
+        <Pressable
+          style={({pressed}) => [
+            styles.modalOption,
+            selected && styles.modalOptionSelected,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => {
+            setAssignToUserId(item.id);
+            setAssignModalOpen(false);
+          }}>
+          <CustomText
+            variant="h7"
+            fontFamily={Fonts.montserrat.medium}
+            style={selected ? styles.modalOptionTextSelected : styles.modalOptionText}>
+            {assignOptionLabel(item)}
+          </CustomText>
+        </Pressable>
+      );
+    },
+    [assignToUserId],
+  );
+
   const vendorKeyExtractor = useCallback(
     (item: (typeof vendors)[number]) => item.id,
     [],
   );
+
+  const assignKeyExtractor = useCallback((item: AssignOption) => item.id, []);
 
   async function handleSubmit() {
     setFormError('');
@@ -187,18 +315,38 @@ export default function CreateWasteRequestScreen({route}: Props) {
       setFormError('Please select at least one waste category');
       return;
     }
+    if (canAssignUsers && assignToUserId === '') {
+      setFormError('Please select a user to assign');
+      return;
+    }
+
+    const assignPayload = canAssignUsers
+      ? {assign_to_user_id: assignToUserId}
+      : {};
 
     try {
       if (isEdit && editRequest) {
+        const collectionId = wasteCollectionId(editRequest);
         await updateMutation.mutateAsync({
-          waste_collection_id: wasteCollectionId(editRequest),
+          waste_collection_id: collectionId,
           vendor_id: vendorId,
           waste_category_ids: selectedCategoryIds,
         });
+        if (
+          canAssignUsers &&
+          assignToUserId !== '' &&
+          assignToUserId !== initialAssignToUserId
+        ) {
+          await assignMutation.mutateAsync({
+            waste_collection_id: collectionId,
+            assign_to_user_id: assignToUserId,
+          });
+        }
       } else {
         await createMutation.mutateAsync({
           vendor_id: vendorId,
           waste_category_ids: selectedCategoryIds,
+          ...assignPayload,
         });
       }
       resetToDrawerScreen(StackNav.WasteRequests);
@@ -243,6 +391,34 @@ export default function CreateWasteRequestScreen({route}: Props) {
               color={Colors.muted}
             />
           </Pressable>
+
+          {canAssignUsers ? (
+            <>
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.montserrat.medium}
+                style={[styles.fieldLabel, styles.categoryLabel]}>
+                Assign To User
+              </CustomText>
+              <Pressable
+                style={({pressed}) => [styles.vendorField, pressed && styles.pressed]}
+                onPress={() => setAssignModalOpen(true)}
+                disabled={loadingOptions}>
+                <CustomText
+                  variant="h7"
+                  fontFamily={Fonts.montserrat.medium}
+                  style={styles.vendorValue}
+                  numberOfLine={2}>
+                  {selectedAssignLabel}
+                </CustomText>
+                <Ionicons
+                  name="chevron-down"
+                  size={moderateScale(18)}
+                  color={Colors.muted}
+                />
+              </Pressable>
+            </>
+          ) : null}
 
           <CustomText
             variant="h7"
@@ -289,11 +465,11 @@ export default function CreateWasteRequestScreen({route}: Props) {
                     <CustomText
                       variant="h7"
                       fontFamily={Fonts.montserrat.semiBold}
-                      style={
-                        checked
-                          ? serviceUi.checkboxPillTextChecked
-                          : serviceUi.checkboxPillText
-                      }>
+                      numberOfLine={2}
+                      style={[
+                        serviceUi.checkboxPillText,
+                        checked && serviceUi.checkboxPillTextChecked,
+                      ]}>
                       {category.name}
                     </CustomText>
                   </Pressable>
@@ -372,6 +548,41 @@ export default function CreateWasteRequestScreen({route}: Props) {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {canAssignUsers ? (
+        <Modal
+          visible={assignModalOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setAssignModalOpen(false)}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setAssignModalOpen(false)}>
+            <Pressable style={styles.modalSheet} onPress={e => e.stopPropagation()}>
+              <CustomText
+                variant="h6"
+                fontFamily={Fonts.montserrat.bold}
+                style={styles.modalTitle}>
+                Assign to user
+              </CustomText>
+              {assignUsersQuery.isLoading ? (
+                <ActivityIndicator color={Colors.brand} style={styles.modalLoader} />
+              ) : (
+                <FlatList
+                  data={assignOptions}
+                  keyExtractor={assignKeyExtractor}
+                  renderItem={renderAssignOption}
+                  style={styles.modalList}
+                  contentContainerStyle={styles.modalListContent}
+                  showsVerticalScrollIndicator
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                />
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
     </Container>
   );
 }

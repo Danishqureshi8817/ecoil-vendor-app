@@ -13,10 +13,11 @@ import {Fonts} from '@/constants/fonts';
 import useScrapRequests, {
   useDeleteScrapRequest,
 } from '@/hooks/vendor/use-scrap-requests';
-import {StackNav} from '@/navigations/NavigationKeys';
+import {StackNav, TabNav} from '@/navigations/NavigationKeys';
 import {screen} from '@/styles/ui';
 import {navigate, push} from '@/utils/NavigationUtils';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
+import type {RouteProp} from '@react-navigation/native';
 import React, {useCallback} from 'react';
 import {
   ActivityIndicator,
@@ -32,7 +33,15 @@ import {
 import {RFValue} from 'react-native-responsive-fontsize';
 import Ionicons from '@react-native-vector-icons/ionicons';
 
-export default function ScrapRequestsScreen() {
+type Props = {
+  route: RouteProp<
+    {[StackNav.ScrapRequests]: {mode?: 'outlet'} | undefined},
+    typeof StackNav.ScrapRequests
+  >;
+};
+
+export default function ScrapRequestsScreen({route}: Props) {
+  const isOutletMode = route.params?.mode === 'outlet';
   const {height: windowHeight} = useWindowDimensions();
   const {data, isLoading, refetch, isRefetching, error} = useScrapRequests();
   const deleteMutation = useDeleteScrapRequest();
@@ -77,31 +86,49 @@ export default function ScrapRequestsScreen() {
     [deleteMutation],
   );
 
-  const renderItem: ListRenderItem<ScrapRequestRow> = useCallback(({item}) => {
-    const owned = isScrapRequestOwnedByUser(item);
-    return (
-      <ScrapRequestCard
-        row={item}
-        onComplete={() => push(StackNav.ProcessScrapRequest, {request: item})}
-        onEdit={
-          owned
-            ? () => navigate(StackNav.CreateScrapRequest, {request: item})
-            : undefined
-        }
-        onDelete={owned ? () => handleDelete(item) : undefined}
-      />
-    );
-  }, [handleDelete]);
+  const openCreate = useCallback(() => {
+    navigate(StackNav.CreateScrapRequest, {
+      request: undefined,
+      ...(isOutletMode ? {mode: 'outlet' as const} : {}),
+    });
+  }, [isOutletMode]);
+
+  const renderItem: ListRenderItem<ScrapRequestRow> = useCallback(
+    ({item}) => {
+      const owned = isScrapRequestOwnedByUser(item);
+      return (
+        <ScrapRequestCard
+          row={item}
+          onComplete={
+            isOutletMode
+              ? undefined
+              : () => push(StackNav.ProcessScrapRequest, {request: item})
+          }
+          onEdit={
+            owned
+              ? () =>
+                  navigate(StackNav.CreateScrapRequest, {
+                    request: item,
+                    ...(isOutletMode ? {mode: 'outlet' as const} : {}),
+                  })
+              : undefined
+          }
+          onDelete={owned ? () => handleDelete(item) : undefined}
+        />
+      );
+    },
+    [handleDelete, isOutletMode],
+  );
 
   const TrailingIcon = useCallback(
     () => (
       <Pressable
-        onPress={() => navigate(StackNav.CreateScrapRequest, {request: undefined})}
+        onPress={openCreate}
         accessibilityLabel="New scrap collection request">
         <Ionicons name="add" size={moderateScale(24)} color={Colors.white} />
       </Pressable>
     ),
-    [],
+    [openCreate],
   );
 
   const listEmpty = useCallback(() => {
@@ -135,17 +162,26 @@ export default function ScrapRequestsScreen() {
         <EmptyState
           icon="cube-outline"
           title="No scrap requests"
-          subtitle="Assigned scrap requests will appear here"
+          subtitle={
+            isOutletMode
+              ? 'Tap + to create a scrap collection request'
+              : 'Assigned scrap requests will appear here'
+          }
         />
       </View>
     );
-  }, [isLoading, error, emptyListMinHeight]);
+  }, [isLoading, error, emptyListMinHeight, isOutletMode]);
 
   return (
     <Container fullScreen statusBarStyle="light-content">
       <AppBar
         title="Scrap Requests"
-        leading="menu"
+        leading={isOutletMode ? 'back' : 'menu'}
+        onLeadingPress={
+          isOutletMode
+            ? () => navigate(StackNav.TabNav, {screen: TabNav.Home})
+            : undefined
+        }
         trailing={<TrailingIcon />}
       />
       <View style={styles.container}>
