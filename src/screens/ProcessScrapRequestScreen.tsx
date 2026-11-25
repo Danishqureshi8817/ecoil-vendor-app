@@ -16,12 +16,15 @@ import {useCompleteScrapRequest} from '@/hooks/vendor/use-scrap-requests';
 import {StackNav} from '@/navigations/NavigationKeys';
 import type {RootStackParamList} from '@/navigations/NavigationKeys';
 import {useAuthStore} from '@/states/authStore';
+import {
+  getCurrentCoords,
+  type CurrentCoords,
+} from '@/utils/currentLocation';
 import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
 import {requestCameraAccess} from '@/utils/mediaPermissions';
 import {goBack, resetToDrawerScreen} from '@/utils/NavigationUtils';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
 import {vendorUserId} from '@/utils/vendorUser';
-import {useToastMessage} from '@/utils/useToastMessage';
 import {
   errorCodes,
   isErrorWithCode,
@@ -32,10 +35,11 @@ import {
 } from '@react-native-documents/picker';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -211,7 +215,6 @@ async function pickFromCamera(slot: number): Promise<ScrapPicturePayload | null>
 export default function ProcessScrapRequestScreen({route}: Props) {
   const request = route.params.request as ScrapRequestRow;
   const user = useAuthStore(s => s.user);
-  const {toastSuccess} = useToastMessage();
   const completeMutation = useCompleteScrapRequest();
 
   const categories = useMemo(() => parseScrapCategories(request), [request]);
@@ -224,6 +227,30 @@ export default function ProcessScrapRequestScreen({route}: Props) {
   const [showPreview, setShowPreview] = useState(false);
   const [error, setError] = useState('');
   const [pickerSlot, setPickerSlot] = useState<PictureKey | null>(null);
+  const [coords, setCoords] = useState<CurrentCoords | null>(null);
+
+  // Ask permission + GPS on screen open; re-check when returning from Settings.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCoords() {
+      const current = await getCurrentCoords();
+      if (!cancelled) {
+        setCoords(current);
+      }
+    }
+
+    void loadCoords();
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'active') {
+        void loadCoords();
+      }
+    });
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
+  }, []);
 
   const isPreviewStep = showPreview;
   const totalSteps = categories.length;
@@ -332,14 +359,23 @@ export default function ProcessScrapRequestScreen({route}: Props) {
     }
 
     try {
+      const current = coords ?? (await getCurrentCoords());
+      if (!current) {
+        setError(
+          'Could not get current location. Please enable GPS and try again.',
+        );
+        return;
+      }
+      setCoords(current);
       await completeMutation.mutateAsync({
         scrap_collection_id: collectionId,
         scrap_vendor_id: request.scrap_vendor_id ?? null,
         vendor_id: request.vendor_id ?? null,
         vendorUserId: vendorUserId(user),
+        latitude: current.latitude,
+        longitude: current.longitude,
         categories: forms,
       });
-      toastSuccess('Scrap request submitted');
       resetToDrawerScreen(StackNav.ScrapRequests);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Could not submit scrap request'));

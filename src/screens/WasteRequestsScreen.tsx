@@ -1,3 +1,9 @@
+import {CancelRequestModal} from '@/components/external/CancelRequestModal';
+import {
+  RequestListFilters,
+  type AssignmentFilter,
+  type StatusFilter,
+} from '@/components/external/RequestListFilters';
 import {WasteRequestCard} from '@/components/external/WasteRequestCard';
 import AppBar from '@/components/global/AppBar';
 import {Container} from '@/components/global/Container';
@@ -5,24 +11,40 @@ import CustomText from '@/components/global/CustomText';
 import {EmptyState} from '@/components/ui/EmptyState';
 import {
   wasteCollectionId,
+  WASTE_ASSIGN_MYSELF_ID,
+  isWasteRequestCancelled,
+  isWasteRequestCompleted,
+  isWasteRequestOwnedByOutlet,
   isWasteRequestOwnedByUser,
+  type WasteAssignUser,
   type WasteRequestRow,
 } from '@/api/wasteApi';
 import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
+import {useScrapAssignUsers} from '@/hooks/vendor/use-scrap-requests';
 import useWasteRequests, {
+  useAssignWasteRequest,
+  useCancelWasteRequest,
   useDeleteWasteRequest,
 } from '@/hooks/vendor/use-waste-requests';
-import {StackNav} from '@/navigations/NavigationKeys';
+import {StackNav, TabNav} from '@/navigations/NavigationKeys';
+import {useAuthStore} from '@/states/authStore';
 import {screen} from '@/styles/ui';
 import {navigate, push} from '@/utils/NavigationUtils';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
-import React, {useCallback} from 'react';
+import {
+  hasScrapVendorAccess,
+  isScrapVendor,
+  isScrapVendorUser,
+} from '@/utils/vendorUser';
+import type {RouteProp} from '@react-navigation/native';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   ListRenderItem,
+  Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -32,11 +54,72 @@ import {
 import {RFValue} from 'react-native-responsive-fontsize';
 import Ionicons from '@react-native-vector-icons/ionicons';
 
-export default function WasteRequestsScreen() {
+type Props = {
+  route: RouteProp<
+    {[StackNav.WasteRequests]: {mode?: 'outlet'} | undefined},
+    typeof StackNav.WasteRequests
+  >;
+};
+
+type AssignOption = {
+  id: string;
+  name: string;
+  mobile?: string;
+};
+
+const MYSELF_OPTION: AssignOption = {
+  id: WASTE_ASSIGN_MYSELF_ID,
+  name: 'My Self',
+};
+
+function assignOptionLabel(option: AssignOption): string {
+  if (option.id === WASTE_ASSIGN_MYSELF_ID) {
+    return option.name;
+  }
+  return option.mobile ? `${option.name} (${option.mobile})` : option.name;
+}
+
+export default function WasteRequestsScreen({route}: Props) {
+  const isOutletMode = route.params?.mode === 'outlet';
+  const user = useAuthStore(s => s.user);
+  const scrapSideUser = hasScrapVendorAccess(user);
+  const canAssignFromList = !isOutletMode && scrapSideUser && !isScrapVendorUser(user);
+  const canCancelFromList = !isOutletMode && scrapSideUser;
+  /** Oil outlet and scrap vendor (99) can create; scrap user (98) cannot. */
+  const canCreateFromList = isOutletMode || isScrapVendor(user);
+  const showListFilters = !isOutletMode && scrapSideUser;
+
+  const [assignmentFilter, setAssignmentFilter] =
+    useState<AssignmentFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
+
+  const listFilters = useMemo(
+    () => ({
+      // Assignment filter only for scrap vendor (99); type 98 sees only assigned.
+      assignment: canAssignFromList ? assignmentFilter : ('all' as const),
+      request_status: showListFilters ? statusFilter : '',
+    }),
+    [assignmentFilter, canAssignFromList, showListFilters, statusFilter],
+  );
+
   const {height: windowHeight} = useWindowDimensions();
-  const {data, isLoading, refetch, isRefetching, error} = useWasteRequests();
+  const {data, isLoading, refetch, isRefetching, error} =
+    useWasteRequests(true, listFilters);
   const deleteMutation = useDeleteWasteRequest();
+  const assignMutation = useAssignWasteRequest();
+  const cancelMutation = useCancelWasteRequest();
+  const assignUsersQuery = useScrapAssignUsers(canAssignFromList);
   const rows = data ?? [];
+
+  const [assignTarget, setAssignTarget] = useState<WasteRequestRow | null>(null);
+  const assignModalOpen = assignTarget != null;
+  const [cancelTarget, setCancelTarget] = useState<WasteRequestRow | null>(null);
+  const cancelModalOpen = cancelTarget != null;
+
+  const assignOptions = useMemo<AssignOption[]>(() => {
+    const users: WasteAssignUser[] = assignUsersQuery.data ?? [];
+    return [MYSELF_OPTION, ...users];
+  }, [assignUsersQuery.data]);
 
   const emptyListMinHeight = Math.max(
     windowHeight - moderateScaleVertical(300),
@@ -77,31 +160,152 @@ export default function WasteRequestsScreen() {
     [deleteMutation],
   );
 
-  const renderItem: ListRenderItem<WasteRequestRow> = useCallback(({item}) => {
-    const owned = isWasteRequestOwnedByUser(item);
-    return (
-      <WasteRequestCard
-        row={item}
-        onComplete={() => push(StackNav.ProcessWasteRequest, {request: item})}
-        onEdit={
-          owned
-            ? () => navigate(StackNav.CreateWasteRequest, {request: item})
-            : undefined
-        }
-        onDelete={owned ? () => handleDelete(item) : undefined}
-      />
-    );
-  }, [handleDelete]);
+  const openCreate = useCallback(() => {
+    navigate(StackNav.CreateWasteRequest, {
+      request: undefined,
+      ...(isOutletMode ? {mode: 'outlet' as const} : {}),
+    });
+  }, [isOutletMode]);
+
+  const openAssign = useCallback((item: WasteRequestRow) => {
+    setAssignTarget(item);
+  }, []);
+
+  const closeAssignModal = useCallback(() => {
+    setAssignTarget(null);
+  }, []);
+
+  const openCancel = useCallback((item: WasteRequestRow) => {
+    setCancelTarget(item);
+  }, []);
+
+  const closeCancelModal = useCallback(() => {
+    if (cancelMutation.isPending) {
+      return;
+    }
+    setCancelTarget(null);
+  }, [cancelMutation.isPending]);
+
+  const handleCancelConfirm = useCallback(
+    async (remark: string) => {
+      if (!cancelTarget) {
+        return;
+      }
+      const waste_collection_id = wasteCollectionId(cancelTarget);
+      if (!waste_collection_id) {
+        return;
+      }
+      try {
+        await cancelMutation.mutateAsync({
+          waste_collection_id,
+          cancel_remark: remark,
+        });
+        setCancelTarget(null);
+      } catch {
+        // Toast handled in mutation hook.
+      }
+    },
+    [cancelMutation, cancelTarget],
+  );
+
+  const handleAssignToUser = useCallback(
+    async (assignToUserId: string) => {
+      if (!assignTarget) {
+        return;
+      }
+      const waste_collection_id = wasteCollectionId(assignTarget);
+      if (!waste_collection_id) {
+        return;
+      }
+      try {
+        await assignMutation.mutateAsync({
+          waste_collection_id,
+          assign_to_user_id: assignToUserId,
+        });
+        closeAssignModal();
+      } catch {
+        // Toast handled in mutation hook.
+      }
+    },
+    [assignTarget, assignMutation, closeAssignModal],
+  );
+
+  const renderAssignOption: ListRenderItem<AssignOption> = useCallback(
+    ({item}) => (
+      <Pressable
+        style={({pressed}) => [styles.modalOption, pressed && styles.pressed]}
+        onPress={() => void handleAssignToUser(item.id)}>
+        <CustomText
+          variant="h7"
+          fontFamily={Fonts.montserrat.medium}
+          style={styles.modalOptionText}>
+          {assignOptionLabel(item)}
+        </CustomText>
+      </Pressable>
+    ),
+    [handleAssignToUser],
+  );
+
+  const assignKeyExtractor = useCallback((item: AssignOption) => item.id, []);
+
+  const renderItem: ListRenderItem<WasteRequestRow> = useCallback(
+    ({item}) => {
+      const cancelled = isWasteRequestCancelled(item);
+      const completed = isWasteRequestCompleted(item);
+      const owned = isOutletMode
+        ? isWasteRequestOwnedByOutlet(item)
+        : isWasteRequestOwnedByUser(item);
+      const canEditDelete = owned && !cancelled && !completed;
+      const showAssign =
+        canAssignFromList &&
+        !isWasteRequestOwnedByUser(item) &&
+        !cancelled &&
+        !completed;
+      const showCancel = canCancelFromList && !cancelled && !completed;
+      return (
+        <WasteRequestCard
+          row={item}
+          onComplete={
+            isOutletMode || cancelled || completed
+              ? undefined
+              : () => push(StackNav.ProcessWasteRequest, {request: item})
+          }
+          onAssign={showAssign ? () => openAssign(item) : undefined}
+          onCancel={showCancel ? () => openCancel(item) : undefined}
+          showAssignee={canAssignFromList}
+          maskCancelAsPending={isOutletMode}
+          onEdit={
+            canEditDelete
+              ? () =>
+                  navigate(StackNav.CreateWasteRequest, {
+                    request: item,
+                    ...(isOutletMode ? {mode: 'outlet' as const} : {}),
+                  })
+              : undefined
+          }
+          onDelete={canEditDelete ? () => handleDelete(item) : undefined}
+        />
+      );
+    },
+    [
+      canAssignFromList,
+      canCancelFromList,
+      handleDelete,
+      isOutletMode,
+      openAssign,
+      openCancel,
+    ],
+  );
 
   const TrailingIcon = useCallback(
     () => (
       <Pressable
-        onPress={() => navigate(StackNav.CreateWasteRequest, {request: undefined})}
+        onPress={openCreate}
         accessibilityLabel="New waste collection request">
         <Ionicons name="add" size={moderateScale(24)} color={Colors.white} />
       </Pressable>
     ),
-    [],
+    [openCreate],
   );
 
   const listEmpty = useCallback(() => {
@@ -113,7 +317,7 @@ export default function WasteRequestsScreen() {
             variant="h7"
             fontFamily={Fonts.montserrat.regular}
             style={styles.emptySub}>
-            Loading Waste Requests…
+            Loading waste requests…
           </CustomText>
         </View>
       );
@@ -125,7 +329,7 @@ export default function WasteRequestsScreen() {
             variant="h7"
             fontFamily={Fonts.montserrat.regular}
             style={styles.errorText}>
-            Could not load Waste Requests.
+            Could not load waste requests.
           </CustomText>
         </View>
       );
@@ -134,19 +338,28 @@ export default function WasteRequestsScreen() {
       <View style={[styles.emptyWrap, {minHeight: emptyListMinHeight}]}>
         <EmptyState
           icon="trash-outline"
-          title="No Waste Requests"
-          subtitle="Assigned Waste Requests will appear here"
+          title="No waste requests"
+          subtitle={
+            canCreateFromList
+              ? 'Tap + to create a waste collection request'
+              : 'Assigned waste requests will appear here'
+          }
         />
       </View>
     );
-  }, [isLoading, error, emptyListMinHeight]);
+  }, [isLoading, error, emptyListMinHeight, canCreateFromList]);
 
   return (
     <Container fullScreen statusBarStyle="light-content">
       <AppBar
         title="Waste Requests"
-        leading="menu"
-        trailing={<TrailingIcon />}
+        leading={isOutletMode ? 'back' : 'menu'}
+        onLeadingPress={
+          isOutletMode
+            ? () => navigate(StackNav.TabNav, {screen: TabNav.Home})
+            : undefined
+        }
+        trailing={canCreateFromList ? <TrailingIcon /> : undefined}
       />
       <View style={styles.container}>
         <FlatList
@@ -154,6 +367,17 @@ export default function WasteRequestsScreen() {
           data={!isLoading && !error ? rows : []}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
+          ListHeaderComponent={
+            showListFilters ? (
+              <RequestListFilters
+                assignment={assignmentFilter}
+                status={statusFilter}
+                onAssignmentChange={setAssignmentFilter}
+                onStatusChange={setStatusFilter}
+                showAssignment={canAssignFromList}
+              />
+            ) : null
+          }
           ListEmptyComponent={listEmpty}
           contentContainerStyle={[screen.scroll, styles.listContent]}
           showsVerticalScrollIndicator={false}
@@ -166,6 +390,49 @@ export default function WasteRequestsScreen() {
           }
         />
       </View>
+
+      {canAssignFromList ? (
+        <Modal
+          visible={assignModalOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={closeAssignModal}>
+          <Pressable style={styles.modalBackdrop} onPress={closeAssignModal}>
+            <Pressable style={styles.modalSheet} onPress={e => e.stopPropagation()}>
+              <CustomText
+                variant="h6"
+                fontFamily={Fonts.montserrat.bold}
+                style={styles.modalTitle}>
+                Assign to user
+              </CustomText>
+              {assignUsersQuery.isLoading ? (
+                <ActivityIndicator color={Colors.brand} style={styles.modalLoader} />
+              ) : (
+                <FlatList
+                  data={assignOptions}
+                  keyExtractor={assignKeyExtractor}
+                  renderItem={renderAssignOption}
+                  style={styles.modalList}
+                  contentContainerStyle={styles.modalListContent}
+                  showsVerticalScrollIndicator
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                />
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
+
+      {canCancelFromList ? (
+        <CancelRequestModal
+          visible={cancelModalOpen}
+          loading={cancelMutation.isPending}
+          title="Cancel waste request"
+          onClose={closeCancelModal}
+          onConfirm={handleCancelConfirm}
+        />
+      ) : null}
     </Container>
   );
 }
@@ -198,5 +465,44 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: RFValue(12),
     textAlign: 'center',
+  },
+  pressed: {
+    opacity: 0.92,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: moderateScale(20),
+    borderTopRightRadius: moderateScale(20),
+    paddingHorizontal: moderateScale(20),
+    paddingTop: moderateScaleVertical(16),
+    paddingBottom: moderateScaleVertical(16),
+    maxHeight: '75%',
+  },
+  modalTitle: {
+    color: Colors.black,
+    marginBottom: moderateScaleVertical(12),
+  },
+  modalList: {
+    maxHeight: moderateScaleVertical(440),
+  },
+  modalListContent: {
+    paddingBottom: moderateScaleVertical(12),
+  },
+  modalLoader: {
+    marginVertical: moderateScaleVertical(20),
+  },
+  modalOption: {
+    paddingVertical: moderateScaleVertical(14),
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.line,
+  },
+  modalOptionText: {
+    color: Colors.black,
+    fontSize: RFValue(12),
   },
 });

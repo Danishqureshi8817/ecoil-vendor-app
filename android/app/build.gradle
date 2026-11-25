@@ -84,8 +84,8 @@ android {
         applicationId "com.arises.knp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 100
-        versionName "1.0.100"
+        versionCode 101
+        versionName "1.0.101"
     }
     signingConfigs {
           release {

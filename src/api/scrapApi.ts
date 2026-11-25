@@ -43,10 +43,15 @@ export type ScrapRequestRow = {
   request_date?: string;
   created_at?: string;
   status?: string;
+  request_status?: string | number;
+  request_status_name?: string;
   /** 1 = created by logged-in scrap vendor; can edit/delete */
   entry_by_sv?: string | number;
   /** Assigned team user id; `0` / missing = My Self */
   assign_to_user_id?: string | number;
+  /** Assigned team user display name from list API */
+  assigned_to_name?: string;
+  assign_to_user_name?: string;
   [key: string]: unknown;
 };
 
@@ -89,14 +94,159 @@ export function scrapAssignToUserName(row?: ScrapRequestRow | null): string {
   if (!row) {
     return '';
   }
+  // List API primary key is `assigned_to_name`.
   return firstNonEmptyId(
+    row.assigned_to_name,
     row.assign_to_user_name as string | number | undefined,
     row.assigned_to_user_name as string | number | undefined,
     row.assigned_user_name as string | number | undefined,
     row.assign_to_name as string | number | undefined,
-    row.assigned_to_name as string | number | undefined,
-    row.assigned_to as string | number | undefined,
   );
+}
+
+/** Raw assign id from row (no My Self default). Empty = not assigned. */
+export function scrapRawAssignToUserId(row?: ScrapRequestRow | null): string {
+  if (!row) {
+    return '';
+  }
+  return firstNonEmptyId(
+    row.assigned_to as string | number | undefined,
+    row.assign_to_user_id,
+    row.assigned_to_user_id as string | number | undefined,
+    row.assigned_user_id as string | number | undefined,
+    row.assign_user_id as string | number | undefined,
+    row.scrap_vendor_user_id as string | number | undefined,
+    row.sv_user_id as string | number | undefined,
+    row.assigned_to_id as string | number | undefined,
+  );
+}
+
+/** API assignment filter: assigned_to > 0 (My Self / 0 = unassigned). */
+export function scrapIsAssignedToUser(row?: ScrapRequestRow | null): boolean {
+  const id = scrapRawAssignToUserId(row);
+  if (id) {
+    const n = Number(id);
+    if (Number.isFinite(n)) {
+      return n > 0;
+    }
+    return id !== SCRAP_ASSIGN_MYSELF_ID;
+  }
+  const name = scrapAssignToUserName(row);
+  return name !== '' && name.toLowerCase() !== 'my self';
+}
+
+/** Map UI/API status aliases → KNP numeric codes. */
+export function mapScrapRequestStatusFilter(status: string): string {
+  const s = String(status ?? '')
+    .trim()
+    .toLowerCase();
+  if (!s) {
+    return '';
+  }
+  if (s === 'pending' || s === '1') {
+    return '1';
+  }
+  if (s === 'inprocess' || s === 'in_process' || s === '2') {
+    return '2';
+  }
+  if (s === 'completed' || s === '3') {
+    return '3';
+  }
+  if (s === 'cancelled' || s === 'canceled' || s === '5') {
+    return '5';
+  }
+  return String(status).trim();
+}
+
+function scrapMatchesAssignmentFilter(
+  row: ScrapRequestRow,
+  assignment: string,
+): boolean {
+  if (!assignment || assignment === 'all') {
+    return true;
+  }
+  const assigned = scrapIsAssignedToUser(row);
+  if (assignment === 'assigned') {
+    return assigned;
+  }
+  if (assignment === 'unassigned') {
+    return !assigned;
+  }
+  return true;
+}
+
+function scrapMatchesStatusFilter(
+  row: ScrapRequestRow,
+  status: string,
+): boolean {
+  if (!status) {
+    return true;
+  }
+  const mapped = mapScrapRequestStatusFilter(status);
+  const code = String(row.request_status ?? row.status ?? '').trim();
+  const name = String(row.request_status_name ?? '')
+    .trim()
+    .toLowerCase();
+  if (mapped === '1') {
+    return code === '1' || name === 'pending' || name.includes('pending');
+  }
+  if (mapped === '2') {
+    return code === '2' || name.includes('process');
+  }
+  if (mapped === '3') {
+    return code === '3' || name.includes('complete');
+  }
+  if (mapped === '5') {
+    return code === '5' || name.includes('cancel');
+  }
+  return code === mapped || name === status.toLowerCase();
+}
+
+function applyScrapListFilters(
+  rows: ScrapRequestRow[],
+  filters: {assignment?: string; request_status?: string},
+): ScrapRequestRow[] {
+  const assignment = String(filters.assignment ?? '').trim();
+  const status = String(filters.request_status ?? '').trim();
+  if ((!assignment || assignment === 'all') && !status) {
+    return rows;
+  }
+  return rows.filter(
+    row =>
+      scrapMatchesAssignmentFilter(row, assignment) &&
+      scrapMatchesStatusFilter(row, status),
+  );
+}
+
+/** True when request already has an assignee (including My Self = `0`). */
+export function scrapHasAssignee(row?: ScrapRequestRow | null): boolean {
+  if (!row) {
+    return false;
+  }
+  if (scrapRawAssignToUserId(row) !== '') {
+    return true;
+  }
+  return scrapAssignToUserName(row) !== '';
+}
+
+/** Card label: My Self / user name / — when unassigned. */
+export function scrapAssigneeDisplayLabel(row?: ScrapRequestRow | null): string {
+  if (!row) {
+    return '—';
+  }
+  const name = scrapAssignToUserName(row);
+  const id = scrapRawAssignToUserId(row);
+  if (id === SCRAP_ASSIGN_MYSELF_ID) {
+    // Prefer explicit name from API; fall back to My Self for id `0`.
+    return name || 'My Self';
+  }
+  if (name) {
+    return name;
+  }
+  if (!scrapHasAssignee(row)) {
+    return '—';
+  }
+  return id || '—';
 }
 
 /**
@@ -166,6 +316,11 @@ export type DeleteScrapRequestInput = {
   vendorUserId?: string | number;
 };
 
+export type CancelScrapRequestInput = {
+  scrap_collection_id: string | number;
+  cancel_remark: string;
+};
+
 export type ScrapCategorySubmitItem = {
   scrap_category_id: string;
   weight: string;
@@ -180,6 +335,8 @@ export type CompleteScrapRequestInput = {
   scrap_vendor_id?: string | number | null;
   vendor_id?: string | number | null;
   vendorUserId?: string | number;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   categories: ScrapCategorySubmitItem[];
 };
 
@@ -256,6 +413,24 @@ export function scrapCategoriesLabel(row: ScrapRequestRow): string {
     .map(c => c.name)
     .filter(Boolean);
   return fromList.length ? fromList.join(', ') : '—';
+}
+
+export function scrapRequestStatusName(
+  row: ScrapRequestRow,
+  options?: {maskCancelAsPending?: boolean},
+): string {
+  const status = String(row.request_status ?? row.status ?? '').trim();
+  const name = String(row.request_status_name ?? '').trim();
+  const cancelled =
+    status === '5' || name.toLowerCase().includes('cancel');
+  // Outlet must not see vendor cancellation — keep showing Pending.
+  if (options?.maskCancelAsPending && cancelled) {
+    return 'Pending';
+  }
+  if (name) {
+    return name;
+  }
+  return status || '—';
 }
 
 export function scrapRequestDateTime(row: ScrapRequestRow): string {
@@ -335,10 +510,15 @@ function splitCsvOrList(
     .filter(Boolean);
 }
 
-/** True when request was raised by the logged-in scrap vendor (editable). */
+/** True when request was raised by the logged-in scrap vendor (editable for SV). */
 export function isScrapRequestOwnedByUser(row: ScrapRequestRow): boolean {
   const flag = row.entry_by_sv;
   return flag === 1 || flag === '1' || String(flag ?? '').trim() === '1';
+}
+
+/** True when request was raised by the oil outlet (editable for outlet user). */
+export function isScrapRequestOwnedByOutlet(row: ScrapRequestRow): boolean {
+  return !isScrapRequestOwnedByUser(row);
 }
 
 function normalizeLinkedVendors(payload: unknown): LinkedScrapVendor[] {
@@ -526,17 +706,33 @@ export async function updateScrapRequest(
   const categoryIds = input.scrap_category_ids
     .map(id => String(id).trim())
     .filter(Boolean);
-  const body = {
-    scrap_collection_id: String(input.scrap_collection_id),
-    vendor_id: String(input.vendor_id),
-    scrap_category_ids: categoryIds,
-    ...(input.assign_to_user_id != null && String(input.assign_to_user_id) !== ''
-      ? {assign_to_user_id: String(input.assign_to_user_id)}
-      : {}),
-    ...(input.vendorUserId != null
-      ? {vendorUserId: String(input.vendorUserId)}
-      : {}),
-  };
+  const scrapVendorId =
+    input.scrap_vendor_id != null ? String(input.scrap_vendor_id).trim() : '';
+  const vendorId =
+    input.vendor_id != null ? String(input.vendor_id).trim() : '';
+
+  // Oil-outlet edit: scrap_collection_id + scrap_vendor_id + categories.
+  const isOutletUpdate = scrapVendorId !== '' && vendorId === '';
+  const body: Record<string, unknown> = isOutletUpdate
+    ? {
+        scrap_collection_id: String(input.scrap_collection_id),
+        scrap_vendor_id: scrapVendorId,
+        scrap_category_ids: categoryIds,
+      }
+    : {
+        scrap_collection_id: String(input.scrap_collection_id),
+        scrap_category_ids: categoryIds,
+        ...(vendorId ? {vendor_id: vendorId} : {}),
+        ...(scrapVendorId ? {scrap_vendor_id: scrapVendorId} : {}),
+        ...(input.assign_to_user_id != null &&
+        String(input.assign_to_user_id) !== ''
+          ? {assign_to_user_id: String(input.assign_to_user_id)}
+          : {}),
+        ...(input.vendorUserId != null
+          ? {vendorUserId: String(input.vendorUserId)}
+          : {}),
+      };
+
   const url = `${apiBase()}/scrap-requests/update`;
   console.log('[ScrapUpdate] Request URL:', url);
   console.log('[ScrapUpdate] Request body:', body);
@@ -591,16 +787,87 @@ export async function deleteScrapRequest(
   return unwrapKnparises(data);
 }
 
+/** Cancel scrap request — POST /scrap-requests/cancel */
+export async function cancelScrapRequest(
+  input: CancelScrapRequestInput,
+): Promise<unknown> {
+  const body = {
+    scrap_collection_id: String(input.scrap_collection_id),
+    cancel_remark: String(input.cancel_remark).trim(),
+  };
+  const url = `${apiBase()}/scrap-requests/cancel`;
+  console.log('[ScrapCancel] Request URL:', url);
+  console.log('[ScrapCancel] Request body:', body);
+
+  const {data} = await axios.post<KnparisesEnvelope<unknown>>(url, body, {
+    headers: {...bearerHeaders(), 'Content-Type': 'application/json'},
+    timeout: 60_000,
+  });
+  console.log('[ScrapCancel] Response:', data);
+  return unwrapKnparises(data);
+}
+
+export function isScrapRequestCancelled(row: ScrapRequestRow): boolean {
+  const status = String(row.request_status ?? '').trim();
+  const name = scrapRequestStatusName(row).toLowerCase();
+  return status === '5' || name.includes('cancel');
+}
+
+/** True when request is completed (status 3 / Completed). */
+export function isScrapRequestCompleted(row: ScrapRequestRow): boolean {
+  const status = String(row.request_status ?? row.status ?? '').trim();
+  const name = String(row.request_status_name ?? '').trim().toLowerCase();
+  return status === '3' || name.includes('complete');
+}
+
+/** List filters for scrap myRequests / assigned. */
+export type ScrapRequestListFilters = {
+  /** all | assigned | unassigned */
+  assignment?: 'all' | 'assigned' | 'unassigned' | '';
+  /** pending | completed | cancelled | '' (all) */
+  request_status?: string;
+  page?: number;
+  limit?: number;
+  include_completed?: boolean;
+};
+
 /**
- * Assigned scrap requests — same auth style as collections:
- * POST + { vendorUserId } + Bearer token + unwrapKnparises.
- * URL: {API_ORIGIN}/api/scrap-requests/assigned
+ * Scrap requests list — POST /scrap-requests/myRequests
+ * Supports assignment + request_status filters (pagination in data.list).
  */
 export async function fetchAssignedScrapRequests(
   vendorUserId: string | number = 0,
+  filters: ScrapRequestListFilters = {},
 ): Promise<ScrapRequestRow[]> {
-  const url = `${apiBase()}/scrap-requests/assigned`;
-  const body = {vendorUserId};
+  const url = `${apiBase()}/scrap-requests/myRequests`;
+  const assignment =
+    filters.assignment && filters.assignment !== 'all'
+      ? filters.assignment
+      : '';
+  const requestStatusRaw = String(filters.request_status ?? '').trim();
+  const requestStatus = mapScrapRequestStatusFilter(requestStatusRaw);
+  const hasListFilters = Boolean(assignment || requestStatus);
+  // Always include completed when filtering so client-side status filter can
+  // see Completed/Canceled rows if KNP ignores request_status.
+  const includeCompleted =
+    filters.include_completed === true ||
+    hasListFilters ||
+    requestStatusRaw === ''
+      ? 1
+      : 0;
+  const body: Record<string, string | number> = {
+    vendorUserId,
+    page: filters.page ?? 1,
+    // Higher limit when filtering client-side so matches aren't truncated.
+    limit: filters.limit ?? (hasListFilters ? 100 : 50),
+    include_completed: includeCompleted,
+  };
+  if (assignment) {
+    body.assignment = assignment;
+  }
+  if (requestStatus) {
+    body.request_status = requestStatus;
+  }
 
   console.log('[ScrapRequests] Request URL:', url);
   console.log('[ScrapRequests] Request body:', body);
@@ -614,7 +881,12 @@ export async function fetchAssignedScrapRequests(
 
     console.log('[ScrapRequests] Response:', data);
 
-    return normalizeScrapList(unwrapKnparises(data));
+    const rows = normalizeScrapList(unwrapKnparises(data));
+    // Client-side safety net — KNP sometimes ignores combo filters.
+    return applyScrapListFilters(rows, {
+      assignment,
+      request_status: requestStatusRaw || requestStatus,
+    });
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.log('[ScrapRequests] Request failed:', {
@@ -665,6 +937,12 @@ export async function completeScrapRequest(
   if (input.vendorUserId != null && input.vendorUserId !== '') {
     form.append('vendorUserId', String(input.vendorUserId));
   }
+  if (input.latitude != null && String(input.latitude).trim() !== '') {
+    form.append('latitude', String(input.latitude));
+  }
+  if (input.longitude != null && String(input.longitude).trim() !== '') {
+    form.append('longitude', String(input.longitude));
+  }
   form.append('categories_count', String(input.categories.length));
 
   input.categories.forEach((cat, index) => {
@@ -702,6 +980,8 @@ export async function completeScrapRequest(
     scrap_vendor_id: input.scrap_vendor_id,
     vendor_id: input.vendor_id,
     vendorUserId: input.vendorUserId,
+    latitude: input.latitude,
+    longitude: input.longitude,
     categories_count: input.categories.length,
   });
 

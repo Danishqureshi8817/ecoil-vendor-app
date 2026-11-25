@@ -202,6 +202,23 @@ export default function CreateScrapRequestScreen({route}: Props) {
 
   const vendors = vendorsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
+  /** Outlet create/edit: always use first linked scrap vendor from API. */
+  const autoOutletScrapVendorId = useMemo(() => {
+    if (!isOutletMode) {
+      return '';
+    }
+    return vendors[0]?.id ?? '';
+  }, [isOutletMode, vendors]);
+
+  useEffect(() => {
+    if (!isOutletMode || !autoOutletScrapVendorId) {
+      return;
+    }
+    setVendorId(prev =>
+      prev === autoOutletScrapVendorId ? prev : autoOutletScrapVendorId,
+    );
+  }, [autoOutletScrapVendorId, isOutletMode]);
+
   const assignOptions = useMemo<AssignOption[]>(() => {
     return [MYSELF_OPTION, ...assignUsers];
   }, [assignUsers]);
@@ -219,11 +236,8 @@ export default function CreateScrapRequestScreen({route}: Props) {
 
   const selectedVendorLabel = useMemo(() => {
     const match = vendors.find(vendor => vendor.id === vendorId);
-    const placeholder = isOutletMode
-      ? 'Select scrap vendor'
-      : 'Select vendor';
-    return match?.firm_name ?? (vendorId ? vendorId : placeholder);
-  }, [isOutletMode, vendorId, vendors]);
+    return match?.firm_name ?? (vendorId ? vendorId : 'Select outlet');
+  }, [vendorId, vendors]);
 
   const selectedAssignLabel = useMemo(() => {
     const match = assignOptions.find(option => option.id === assignToUserId);
@@ -332,9 +346,15 @@ export default function CreateScrapRequestScreen({route}: Props) {
   async function handleSubmit() {
     setFormError('');
 
-    if (!vendorId) {
+    const resolvedVendorId = isOutletMode
+      ? autoOutletScrapVendorId
+      : vendorId;
+
+    if (!resolvedVendorId) {
       setFormError(
-        isOutletMode ? 'Please select a scrap vendor' : 'Please select a vendor',
+        isOutletMode
+          ? 'No linked scrap vendor found'
+          : 'Please select an outlet',
       );
       return;
     }
@@ -354,31 +374,40 @@ export default function CreateScrapRequestScreen({route}: Props) {
     try {
       if (isEdit && editRequest) {
         const collectionId = scrapCollectionId(editRequest);
-        await updateMutation.mutateAsync({
-          scrap_collection_id: collectionId,
-          vendor_id: vendorId,
-          scrap_category_ids: selectedCategoryIds,
-        });
-        if (
-          canAssignUsers &&
-          assignToUserId !== '' &&
-          assignToUserId !== initialAssignToUserId
-        ) {
-          await assignMutation.mutateAsync({
+        if (isOutletMode) {
+          await updateMutation.mutateAsync({
             scrap_collection_id: collectionId,
-            assign_to_user_id: assignToUserId,
+            scrap_vendor_id: resolvedVendorId,
+            scrap_category_ids: selectedCategoryIds,
           });
+          resetToDrawerScreen(StackNav.ScrapRequests, {mode: 'outlet'});
+        } else {
+          await updateMutation.mutateAsync({
+            scrap_collection_id: collectionId,
+            vendor_id: resolvedVendorId,
+            scrap_category_ids: selectedCategoryIds,
+          });
+          if (
+            canAssignUsers &&
+            assignToUserId !== '' &&
+            assignToUserId !== initialAssignToUserId
+          ) {
+            await assignMutation.mutateAsync({
+              scrap_collection_id: collectionId,
+              assign_to_user_id: assignToUserId,
+            });
+          }
+          resetToDrawerScreen(StackNav.ScrapRequests);
         }
-        resetToDrawerScreen(StackNav.ScrapRequests);
       } else if (isOutletMode) {
         await createMutation.mutateAsync({
-          scrap_vendor_id: vendorId,
+          scrap_vendor_id: resolvedVendorId,
           scrap_category_ids: selectedCategoryIds,
         });
         resetToDrawerScreen(StackNav.ScrapRequests, {mode: 'outlet'});
       } else {
         await createMutation.mutateAsync({
-          vendor_id: vendorId,
+          vendor_id: resolvedVendorId,
           scrap_category_ids: selectedCategoryIds,
           ...assignPayload,
         });
@@ -402,29 +431,40 @@ export default function CreateScrapRequestScreen({route}: Props) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
-          <CustomText
-            variant="h7"
-            fontFamily={Fonts.montserrat.medium}
-            style={styles.fieldLabel}>
-            {isOutletMode ? 'Scrap Vendor' : 'Vendor'}
-          </CustomText>
-          <Pressable
-            style={({pressed}) => [styles.vendorField, pressed && styles.pressed]}
-            onPress={() => setVendorModalOpen(true)}
-            disabled={loadingOptions}>
-            <CustomText
-              variant="h7"
-              fontFamily={Fonts.montserrat.medium}
-              style={vendorId ? styles.vendorValue : [styles.vendorValue, styles.vendorPlaceholder]}
-              numberOfLine={2}>
-              {selectedVendorLabel}
-            </CustomText>
-            <Ionicons
-              name="chevron-down"
-              size={moderateScale(18)}
-              color={Colors.muted}
-            />
-          </Pressable>
+          {!isOutletMode ? (
+            <>
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.montserrat.medium}
+                style={styles.fieldLabel}>
+                Outlet
+              </CustomText>
+              <Pressable
+                style={({pressed}) => [
+                  styles.vendorField,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => setVendorModalOpen(true)}
+                disabled={loadingOptions}>
+                <CustomText
+                  variant="h7"
+                  fontFamily={Fonts.montserrat.medium}
+                  style={
+                    vendorId
+                      ? styles.vendorValue
+                      : [styles.vendorValue, styles.vendorPlaceholder]
+                  }
+                  numberOfLine={2}>
+                  {selectedVendorLabel}
+                </CustomText>
+                <Ionicons
+                  name="chevron-down"
+                  size={moderateScale(18)}
+                  color={Colors.muted}
+                />
+              </Pressable>
+            </>
+          ) : null}
 
           {canAssignUsers ? (
             <>
@@ -556,7 +596,7 @@ export default function CreateScrapRequestScreen({route}: Props) {
               variant="h6"
               fontFamily={Fonts.montserrat.bold}
               style={styles.modalTitle}>
-              {isOutletMode ? 'Select scrap vendor' : 'Select vendor'}
+              {isOutletMode ? 'Select scrap vendor' : 'Select outlet'}
             </CustomText>
             {vendorsQuery.isLoading ? (
               <ActivityIndicator color={Colors.brand} style={styles.modalLoader} />

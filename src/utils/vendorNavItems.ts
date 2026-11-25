@@ -47,6 +47,20 @@ export function buildVendorNavItems(
       },
     },
     {
+      key: StackNav.ScrapRequests,
+      label: 'Scrap Requests',
+      icon: 'cube-outline',
+      onPress: () => navigate(StackNav.ScrapRequests),
+      scrapOnly: true,
+    },
+    {
+      key: StackNav.WasteRequests,
+      label: 'Waste Requests',
+      icon: 'trash-outline',
+      onPress: () => navigate(StackNav.WasteRequests),
+      scrapOnly: true,
+    },
+    {
       key: StackNav.MyServiceRequests,
       label: 'My Service Requests',
       icon: 'document-text-outline',
@@ -72,26 +86,30 @@ export function buildVendorNavItems(
       hideForScrapVendor: true,
     },
     {
-      key: StackNav.ScrapRequests,
-      label: 'Scrap Requests',
-      icon: 'cube-outline',
-      onPress: () => navigate(StackNav.ScrapRequests),
-      scrapOnly: true,
-    },
-    {
-      key: StackNav.WasteRequests,
-      label: 'Waste Requests',
-      icon: 'trash-outline',
-      onPress: () => navigate(StackNav.WasteRequests),
-      scrapOnly: true,
-    },
-    {
       key: StackNav.CollectionRequest,
       label: 'New Collection Request',
       icon: 'list-circle-outline',
       onPress: () => {
         navigate(StackNav.CollectionRequest);
       },
+      hideForParentCounter: true,
+      hideForScrapVendor: true,
+    },
+    {
+      key: StackNav.ScrapRequests,
+      label: 'Scrap Request',
+      icon: 'cube-outline',
+      onPress: () =>
+        navigate(StackNav.ScrapRequests, {mode: 'outlet'}),
+      hideForParentCounter: true,
+      hideForScrapVendor: true,
+    },
+    {
+      key: StackNav.WasteRequests,
+      label: 'Waste Request',
+      icon: 'trash-outline',
+      onPress: () =>
+        navigate(StackNav.WasteRequests, {mode: 'outlet'}),
       hideForParentCounter: true,
       hideForScrapVendor: true,
     },

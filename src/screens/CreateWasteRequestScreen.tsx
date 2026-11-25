@@ -18,6 +18,7 @@ import {
   useCreateWasteRequest,
   useLinkedWasteCategories,
   useLinkedWasteVendors,
+  useOutletLinkedWasteVendors,
   useUpdateWasteRequest,
 } from '@/hooks/vendor/use-waste-requests';
 import {StackNav} from '@/navigations/NavigationKeys';
@@ -48,7 +49,11 @@ import {RFValue} from 'react-native-responsive-fontsize';
 
 type Props = {
   route: RouteProp<
-    {[StackNav.CreateWasteRequest]: {request?: WasteRequestRow} | undefined},
+    {
+      [StackNav.CreateWasteRequest]:
+        | {request?: WasteRequestRow; mode?: 'outlet'}
+        | undefined;
+    },
     typeof StackNav.CreateWasteRequest
   >;
 };
@@ -92,12 +97,15 @@ function assignOptionLabel(option: AssignOption): string {
 export default function CreateWasteRequestScreen({route}: Props) {
   const editRequest = route.params?.request;
   const isEdit = Boolean(editRequest);
+  const isOutletMode = route.params?.mode === 'outlet';
   const queryClient = useQueryClient();
   const user = useAuthStore(s => s.user);
   const scrapVendorUser = isScrapVendorUser(user);
-  const canAssignUsers = !scrapVendorUser;
+  const canAssignUsers = !scrapVendorUser && !isOutletMode;
 
-  const vendorsQuery = useLinkedWasteVendors();
+  const scrapSideVendorsQuery = useLinkedWasteVendors(!isOutletMode);
+  const outletVendorsQuery = useOutletLinkedWasteVendors(isOutletMode);
+  const vendorsQuery = isOutletMode ? outletVendorsQuery : scrapSideVendorsQuery;
   const categoriesQuery = useLinkedWasteCategories();
   const assignUsersQuery = useScrapAssignUsers(canAssignUsers);
   const createMutation = useCreateWasteRequest();
@@ -147,11 +155,19 @@ export default function CreateWasteRequestScreen({route}: Props) {
         });
       }
 
-      void queryClient.fetchQuery({
-        queryKey: [vendorService.queryKeys.linkedScrapVendors, 'waste'],
-        queryFn: () => vendorService.getLinkedWasteVendors(),
-        staleTime: 60_000,
-      });
+      if (isOutletMode) {
+        void queryClient.fetchQuery({
+          queryKey: [vendorService.queryKeys.outletLinkedScrapVendors],
+          queryFn: () => vendorService.getOutletLinkedScrapVendors(),
+          staleTime: 60_000,
+        });
+      } else {
+        void queryClient.fetchQuery({
+          queryKey: [vendorService.queryKeys.linkedScrapVendors, 'waste'],
+          queryFn: () => vendorService.getLinkedWasteVendors(),
+          staleTime: 60_000,
+        });
+      }
       void queryClient.fetchQuery({
         queryKey: [vendorService.queryKeys.linkedWasteCategories],
         queryFn: () => vendorService.getLinkedWasteCategories(),
@@ -168,6 +184,7 @@ export default function CreateWasteRequestScreen({route}: Props) {
       assignUsersQuery.data,
       canAssignUsers,
       editRequestKey,
+      isOutletMode,
       queryClient,
       route.params?.request,
     ]),
@@ -184,6 +201,23 @@ export default function CreateWasteRequestScreen({route}: Props) {
 
   const vendors = vendorsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
+  /** Outlet create/edit: always use first linked scrap vendor from API. */
+  const autoOutletScrapVendorId = useMemo(() => {
+    if (!isOutletMode) {
+      return '';
+    }
+    return vendors[0]?.id ?? '';
+  }, [isOutletMode, vendors]);
+
+  useEffect(() => {
+    if (!isOutletMode || !autoOutletScrapVendorId) {
+      return;
+    }
+    setVendorId(prev =>
+      prev === autoOutletScrapVendorId ? prev : autoOutletScrapVendorId,
+    );
+  }, [autoOutletScrapVendorId, isOutletMode]);
+
   const assignOptions = useMemo<AssignOption[]>(() => {
     return [MYSELF_OPTION, ...assignUsers];
   }, [assignUsers]);
@@ -201,7 +235,7 @@ export default function CreateWasteRequestScreen({route}: Props) {
 
   const selectedVendorLabel = useMemo(() => {
     const match = vendors.find(vendor => vendor.id === vendorId);
-    return match?.firm_name ?? (vendorId ? vendorId : 'Select vendor');
+    return match?.firm_name ?? (vendorId ? vendorId : 'Select outlet');
   }, [vendorId, vendors]);
 
   const selectedAssignLabel = useMemo(() => {
@@ -228,8 +262,12 @@ export default function CreateWasteRequestScreen({route}: Props) {
   }, []);
 
   const handleBack = useCallback(() => {
+    if (isOutletMode) {
+      navigate(StackNav.WasteRequests, {mode: 'outlet'});
+      return;
+    }
     navigate(StackNav.WasteRequests);
-  }, []);
+  }, [isOutletMode]);
 
   useFocusEffect(
     useCallback(() => {
@@ -307,8 +345,16 @@ export default function CreateWasteRequestScreen({route}: Props) {
   async function handleSubmit() {
     setFormError('');
 
-    if (!vendorId) {
-      setFormError('Please select a vendor');
+    const resolvedVendorId = isOutletMode
+      ? autoOutletScrapVendorId
+      : vendorId;
+
+    if (!resolvedVendorId) {
+      setFormError(
+        isOutletMode
+          ? 'No linked scrap vendor found'
+          : 'Please select an outlet',
+      );
       return;
     }
     if (selectedCategoryIds.length === 0) {
@@ -327,29 +373,45 @@ export default function CreateWasteRequestScreen({route}: Props) {
     try {
       if (isEdit && editRequest) {
         const collectionId = wasteCollectionId(editRequest);
-        await updateMutation.mutateAsync({
-          waste_collection_id: collectionId,
-          vendor_id: vendorId,
+        if (isOutletMode) {
+          await updateMutation.mutateAsync({
+            waste_collection_id: collectionId,
+            scrap_vendor_id: resolvedVendorId,
+            waste_category_ids: selectedCategoryIds,
+          });
+          resetToDrawerScreen(StackNav.WasteRequests, {mode: 'outlet'});
+        } else {
+          await updateMutation.mutateAsync({
+            waste_collection_id: collectionId,
+            vendor_id: resolvedVendorId,
+            waste_category_ids: selectedCategoryIds,
+          });
+          if (
+            canAssignUsers &&
+            assignToUserId !== '' &&
+            assignToUserId !== initialAssignToUserId
+          ) {
+            await assignMutation.mutateAsync({
+              waste_collection_id: collectionId,
+              assign_to_user_id: assignToUserId,
+            });
+          }
+          resetToDrawerScreen(StackNav.WasteRequests);
+        }
+      } else if (isOutletMode) {
+        await createMutation.mutateAsync({
+          scrap_vendor_id: resolvedVendorId,
           waste_category_ids: selectedCategoryIds,
         });
-        if (
-          canAssignUsers &&
-          assignToUserId !== '' &&
-          assignToUserId !== initialAssignToUserId
-        ) {
-          await assignMutation.mutateAsync({
-            waste_collection_id: collectionId,
-            assign_to_user_id: assignToUserId,
-          });
-        }
+        resetToDrawerScreen(StackNav.WasteRequests, {mode: 'outlet'});
       } else {
         await createMutation.mutateAsync({
-          vendor_id: vendorId,
+          vendor_id: resolvedVendorId,
           waste_category_ids: selectedCategoryIds,
           ...assignPayload,
         });
+        resetToDrawerScreen(StackNav.WasteRequests);
       }
-      resetToDrawerScreen(StackNav.WasteRequests);
     } catch {
       // Toast handled in mutation hooks.
     }
@@ -368,29 +430,40 @@ export default function CreateWasteRequestScreen({route}: Props) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
-          <CustomText
-            variant="h7"
-            fontFamily={Fonts.montserrat.medium}
-            style={styles.fieldLabel}>
-            Vendor
-          </CustomText>
-          <Pressable
-            style={({pressed}) => [styles.vendorField, pressed && styles.pressed]}
-            onPress={() => setVendorModalOpen(true)}
-            disabled={loadingOptions}>
-            <CustomText
-              variant="h7"
-              fontFamily={Fonts.montserrat.medium}
-              style={vendorId ? styles.vendorValue : [styles.vendorValue, styles.vendorPlaceholder]}
-              numberOfLine={2}>
-              {selectedVendorLabel}
-            </CustomText>
-            <Ionicons
-              name="chevron-down"
-              size={moderateScale(18)}
-              color={Colors.muted}
-            />
-          </Pressable>
+          {!isOutletMode ? (
+            <>
+              <CustomText
+                variant="h7"
+                fontFamily={Fonts.montserrat.medium}
+                style={styles.fieldLabel}>
+                Outlet
+              </CustomText>
+              <Pressable
+                style={({pressed}) => [
+                  styles.vendorField,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => setVendorModalOpen(true)}
+                disabled={loadingOptions}>
+                <CustomText
+                  variant="h7"
+                  fontFamily={Fonts.montserrat.medium}
+                  style={
+                    vendorId
+                      ? styles.vendorValue
+                      : [styles.vendorValue, styles.vendorPlaceholder]
+                  }
+                  numberOfLine={2}>
+                  {selectedVendorLabel}
+                </CustomText>
+                <Ionicons
+                  name="chevron-down"
+                  size={moderateScale(18)}
+                  color={Colors.muted}
+                />
+              </Pressable>
+            </>
+          ) : null}
 
           {canAssignUsers ? (
             <>
@@ -522,7 +595,7 @@ export default function CreateWasteRequestScreen({route}: Props) {
               variant="h6"
               fontFamily={Fonts.montserrat.bold}
               style={styles.modalTitle}>
-              Select vendor
+              {isOutletMode ? 'Select scrap vendor' : 'Select outlet'}
             </CustomText>
             {vendorsQuery.isLoading ? (
               <ActivityIndicator color={Colors.brand} style={styles.modalLoader} />
@@ -531,7 +604,9 @@ export default function CreateWasteRequestScreen({route}: Props) {
                 variant="h7"
                 fontFamily={Fonts.montserrat.regular}
                 style={styles.emptyCategories}>
-                No linked vendors found.
+                {isOutletMode
+                  ? 'No linked scrap vendors found.'
+                  : 'No linked vendors found.'}
               </CustomText>
             ) : (
               <FlatList

@@ -51,8 +51,10 @@ export type RootStackParamList = {
     | {request?: ScrapRequestRow; mode?: 'outlet'}
     | undefined;
   [StackNav.ProcessScrapRequest]: { request: ScrapRequestRow };
-  [StackNav.WasteRequests]: undefined;
-  [StackNav.CreateWasteRequest]: { request?: WasteRequestRow } | undefined;
+  [StackNav.WasteRequests]: {mode?: 'outlet'} | undefined;
+  [StackNav.CreateWasteRequest]:
+    | {request?: WasteRequestRow; mode?: 'outlet'}
+    | undefined;
   [StackNav.ProcessWasteRequest]: { request: WasteRequestRow };
   [StackNav.MyCertificates]: undefined;
   [StackNav.MyRewards]: undefined;

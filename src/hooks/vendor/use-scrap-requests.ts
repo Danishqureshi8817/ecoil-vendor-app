@@ -1,9 +1,11 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import type {
   AssignScrapRequestInput,
+  CancelScrapRequestInput,
   CompleteScrapRequestInput,
   CreateScrapRequestInput,
   DeleteScrapRequestInput,
+  ScrapRequestListFilters,
   UpdateScrapRequestInput,
 } from '@/api/scrapApi';
 import vendorService from '@/services/vendor-service';
@@ -12,15 +14,29 @@ import {getApiErrorMessage} from '@/utils/getApiErrorMessage';
 import {vendorUserId} from '@/utils/vendorUser';
 import {useToastMessage} from '@/utils/useToastMessage';
 
-export default function useScrapRequests(enabled = true) {
+export default function useScrapRequests(
+  enabled = true,
+  filters: ScrapRequestListFilters = {},
+) {
   const user = useAuthStore(s => s.user);
   const uid = vendorUserId(user);
   const {toastError} = useToastMessage();
   const ready = uid != null && uid !== '' && uid !== 0;
+  const assignment = filters.assignment ?? 'all';
+  const requestStatus = filters.request_status ?? '';
 
   return useQuery({
-    queryKey: [vendorService.queryKeys.scrapRequests, uid],
-    queryFn: () => vendorService.getAssignedScrapRequests(uid),
+    queryKey: [
+      vendorService.queryKeys.scrapRequests,
+      uid,
+      assignment,
+      requestStatus,
+    ],
+    queryFn: () =>
+      vendorService.getAssignedScrapRequests(uid, {
+        assignment,
+        request_status: requestStatus,
+      }),
     enabled: enabled && ready,
     staleTime: 0,
     meta: {
@@ -39,7 +55,7 @@ export function useCompleteScrapRequest() {
     mutationFn: (input: CompleteScrapRequestInput) =>
       vendorService.completeScrapRequest(input),
     onSuccess: () => {
-      toastSuccess('Scrap request completed');
+      toastSuccess('Scrap Request completed');
       void queryClient.invalidateQueries({
         queryKey: [vendorService.queryKeys.scrapRequests],
       });
@@ -175,12 +191,13 @@ export function useUpdateScrapRequest() {
 
 export function useAssignScrapRequest() {
   const queryClient = useQueryClient();
-  const {toastError} = useToastMessage();
+  const {toastError, toastSuccess} = useToastMessage();
 
   return useMutation({
     mutationFn: (input: AssignScrapRequestInput) =>
       vendorService.assignScrapRequest(input),
     onSuccess: () => {
+      toastSuccess('Request assigned successfully');
       invalidateScrapLists(queryClient);
     },
     onError: (error: unknown) => {
@@ -209,6 +226,23 @@ export function useDeleteScrapRequest() {
     },
     onError: (error: unknown) => {
       toastError(getApiErrorMessage(error, 'Could not delete scrap request'));
+    },
+  });
+}
+
+export function useCancelScrapRequest() {
+  const queryClient = useQueryClient();
+  const {toastError, toastSuccess} = useToastMessage();
+
+  return useMutation({
+    mutationFn: (input: CancelScrapRequestInput) =>
+      vendorService.cancelScrapRequest(input),
+    onSuccess: () => {
+      toastSuccess('Scrap request cancelled');
+      invalidateScrapLists(queryClient);
+    },
+    onError: (error: unknown) => {
+      toastError(getApiErrorMessage(error, 'Could not cancel scrap request'));
     },
   });
 }

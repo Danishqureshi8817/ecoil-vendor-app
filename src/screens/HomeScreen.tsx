@@ -164,6 +164,7 @@ export default function HomeScreen() {
     staleTime: 60_000,
   });
   const showScrapRequestTile = outletLinkedScrapVendors.length > 0;
+  const showWasteRequestTile = outletLinkedScrapVendors.length > 0;
 
   const { data: homeBanners = [] } = useQuery({
     queryKey: [publicService.queryKeys.homeBanners],
@@ -473,6 +474,28 @@ export default function HomeScreen() {
                     style={styles.serviceLabel}
                     numberOfLine={3}>
                     Scrap Request
+                  </CustomText>
+                </Pressable>
+              ) : null}
+              {showWasteRequestTile ? (
+                <Pressable
+                  style={({ pressed }) => [styles.serviceTile, pressed && styles.pressed]}
+                  onPress={() =>
+                    navigate(StackNav.WasteRequests, {mode: 'outlet'})
+                  }>
+                  <View style={styles.serviceEmptyIcon}>
+                    <Ionicons
+                      name="trash-outline"
+                      size={moderateScale(26)}
+                      color={Colors.brand}
+                    />
+                  </View>
+                  <CustomText
+                    variant="h7"
+                    fontFamily={Fonts.montserrat.semiBold}
+                    style={styles.serviceLabel}
+                    numberOfLine={3}>
+                    Waste Request
                   </CustomText>
                 </Pressable>
               ) : null}

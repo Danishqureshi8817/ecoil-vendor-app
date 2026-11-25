@@ -3,10 +3,12 @@ import {Colors} from '@/constants/colors';
 import {Fonts} from '@/constants/fonts';
 import {
   parseWasteCategories,
+  wasteAssigneeDisplayLabel,
   wasteBranchDisplay,
   wasteFirmName,
+  wasteHasAssignee,
   wasteRequestDateTime,
-  isWasteRequestOwnedByUser,
+  wasteRequestStatusName,
   type WasteRequestRow,
 } from '@/api/wasteApi';
 import {moderateScale, moderateScaleVertical} from '@/utils/responsiveSize';
@@ -18,6 +20,12 @@ import {RFValue} from 'react-native-responsive-fontsize';
 type Props = {
   row: WasteRequestRow;
   onComplete?: () => void;
+  onAssign?: () => void;
+  onCancel?: () => void;
+  /** Scrap vendor list: show Assigned to + Assign/Reassign label. */
+  showAssignee?: boolean;
+  /** Outlet: CancelRequest status displays as Pending. */
+  maskCancelAsPending?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
 };
@@ -42,10 +50,22 @@ function MetaRow({label, value}: {label: string; value: string}) {
   );
 }
 
-export function WasteRequestCard({row, onComplete, onEdit, onDelete}: Props) {
+export function WasteRequestCard({
+  row,
+  onComplete,
+  onAssign,
+  onCancel,
+  showAssignee = false,
+  maskCancelAsPending = false,
+  onEdit,
+  onDelete,
+}: Props) {
   const categories = useMemo(() => parseWasteCategories(row), [row]);
-  const owned = isWasteRequestOwnedByUser(row);
   const branchName = wasteBranchDisplay(row);
+  const statusLabel = wasteRequestStatusName(row, {maskCancelAsPending});
+  const hasAssignee = wasteHasAssignee(row);
+  const assignBtnLabel = hasAssignee ? 'Reassign' : 'Assign';
+  const showAssignedTo = showAssignee || onAssign != null;
 
   return (
     <View style={styles.card}>
@@ -76,8 +96,12 @@ export function WasteRequestCard({row, onComplete, onEdit, onDelete}: Props) {
       )}
 
       <MetaRow label="Request date" value={wasteRequestDateTime(row)} />
+      <MetaRow label="Status" value={statusLabel} />
+      {showAssignedTo ? (
+        <MetaRow label="Assigned to" value={wasteAssigneeDisplayLabel(row)} />
+      ) : null}
 
-      {owned && (onEdit || onDelete) ? (
+      {onEdit || onDelete ? (
         <>
           <View style={styles.divider} />
           <View style={styles.actionRow}>
@@ -124,6 +148,56 @@ export function WasteRequestCard({row, onComplete, onEdit, onDelete}: Props) {
             </Pressable>
           ) : null}
         </View>
+        </>
+      ) : null}
+
+      {onAssign || onCancel ? (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.actionRow}>
+            {onAssign ? (
+              <Pressable
+                style={({pressed}) => [
+                  styles.secondaryBtn,
+                  styles.actionHalf,
+                  pressed && styles.pressed,
+                ]}
+                onPress={onAssign}>
+                <Ionicons
+                  name="person-outline"
+                  size={moderateScale(16)}
+                  color={Colors.brand}
+                />
+                <CustomText
+                  variant="h7"
+                  fontFamily={Fonts.montserrat.semiBold}
+                  style={styles.secondaryBtnText}>
+                  {showAssignedTo ? assignBtnLabel : 'Assign'}
+                </CustomText>
+              </Pressable>
+            ) : null}
+            {onCancel ? (
+              <Pressable
+                style={({pressed}) => [
+                  styles.dangerBtn,
+                  styles.actionHalf,
+                  pressed && styles.pressed,
+                ]}
+                onPress={onCancel}>
+                <Ionicons
+                  name="close-circle-outline"
+                  size={moderateScale(16)}
+                  color={Colors.error}
+                />
+                <CustomText
+                  variant="h7"
+                  fontFamily={Fonts.montserrat.semiBold}
+                  style={styles.dangerBtnText}>
+                  Cancel
+                </CustomText>
+              </Pressable>
+            ) : null}
+          </View>
         </>
       ) : null}
 

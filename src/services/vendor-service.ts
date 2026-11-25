@@ -12,6 +12,7 @@ import {
 } from '@/api/collectionApi';
 import {
   assignScrapRequest,
+  cancelScrapRequest,
   completeScrapRequest,
   createScrapRequest,
   deleteScrapRequest,
@@ -22,13 +23,16 @@ import {
   fetchScrapAssignUsers,
   updateScrapRequest,
   type AssignScrapRequestInput,
+  type CancelScrapRequestInput,
   type CompleteScrapRequestInput,
   type CreateScrapRequestInput,
   type DeleteScrapRequestInput,
+  type ScrapRequestListFilters,
   type UpdateScrapRequestInput,
 } from '@/api/scrapApi';
 import {
   assignWasteRequest,
+  cancelWasteRequest,
   completeWasteRequest,
   createWasteRequest,
   deleteWasteRequest,
@@ -37,10 +41,12 @@ import {
   fetchLinkedWasteVendors,
   updateWasteRequest,
   type AssignWasteRequestInput,
+  type CancelWasteRequestInput,
   type CompleteWasteRequestInput,
   type CreateWasteRequestInput,
   type DeleteWasteRequestInput,
   type UpdateWasteRequestInput,
+  type WasteRequestListFilters,
 } from '@/api/wasteApi';
 import {
   fetchVendorCoins,
@@ -80,8 +86,10 @@ class VendorService {
   getCollectionRequestsByVendor = (vendorUserId: string | number) =>
     fetchCollectionRequestsByVendor(vendorUserId);
 
-  getAssignedScrapRequests = (vendorUserId: string | number = 0) =>
-    fetchAssignedScrapRequests(vendorUserId);
+  getAssignedScrapRequests = (
+    vendorUserId: string | number = 0,
+    filters: ScrapRequestListFilters = {},
+  ) => fetchAssignedScrapRequests(vendorUserId, filters);
 
   completeScrapRequest = (input: CompleteScrapRequestInput) =>
     completeScrapRequest(input);
@@ -106,8 +114,13 @@ class VendorService {
   deleteScrapRequest = (input: DeleteScrapRequestInput) =>
     deleteScrapRequest(input);
 
-  getAssignedWasteRequests = (vendorUserId: string | number = 0) =>
-    fetchAssignedWasteRequests(vendorUserId);
+  cancelScrapRequest = (input: CancelScrapRequestInput) =>
+    cancelScrapRequest(input);
+
+  getAssignedWasteRequests = (
+    vendorUserId: string | number = 0,
+    filters: WasteRequestListFilters = {},
+  ) => fetchAssignedWasteRequests(vendorUserId, filters);
 
   completeWasteRequest = (input: CompleteWasteRequestInput) =>
     completeWasteRequest(input);
@@ -127,6 +140,9 @@ class VendorService {
 
   deleteWasteRequest = (input: DeleteWasteRequestInput) =>
     deleteWasteRequest(input);
+
+  cancelWasteRequest = (input: CancelWasteRequestInput) =>
+    cancelWasteRequest(input);
 
   submitCollection = (input: SubmitCollectionRequestInput) =>
     submitCollectionRequest(input);

@@ -3,6 +3,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Process scrap/waste submit: current latitude / longitude. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- react-native-image-picker: launchCamera only (gallery uses system photo picker). -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature

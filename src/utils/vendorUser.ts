@@ -97,7 +97,9 @@ export function vendorUserType(
     user.user_type ??
     user.usertype ??
     user.UserType ??
-    user.userType;
+    user.userType ??
+    (user as {login_type?: string | number}).login_type ??
+    (user as {login_role?: string | number}).login_role;
   const n = Number(raw);
   return Number.isFinite(n) ? n : 0;
 }
