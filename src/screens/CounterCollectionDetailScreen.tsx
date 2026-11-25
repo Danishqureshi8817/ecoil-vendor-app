@@ -4,13 +4,13 @@ import {VendorBackHeader} from '@/components/layout/VendorBackHeader';
 import {GreenTruckIcon} from '@/components/icon/icon';
 import {ErrorBanner} from '@/components/ui/ErrorBanner';
 import {
-  collectionChallanUrl,
-} from '@/api/collectionApi';
-import {
   counterCollectionAddress,
   counterCollectionBranchLabel,
+  counterCollectionChallanUrl,
+  counterCollectionCollectDateOnly,
   counterCollectionFileUrl,
   counterCollectionId,
+  counterCollectionRequestDateOnly,
   counterCollectionRequestType,
   type CounterCollectionRow,
 } from '@/api/reportsApi';
@@ -49,6 +49,9 @@ const SHOWN_KEYS = new Set([
   'request_id',
   'branch_name',
   'store_code',
+  'collectdate',
+  'collect_date',
+  'collection_date',
   'request_date',
   'created_at',
   'date',
@@ -65,6 +68,7 @@ const SHOWN_KEYS = new Set([
   'transfer_ticket',
   'challan',
   'challan_url',
+  'challan_public_url',
   'gate_pass',
   'address',
   'address_line1',
@@ -201,12 +205,7 @@ export default function CounterCollectionDetailScreen({route}: Props) {
     ? gatePassImageUrl(String(transferTicketRaw)) || counterCollectionFileUrl(transferTicketRaw)
     : '';
 
-  const challanRaw = row.challan ?? row.challan_url ?? null;
-  const challanUrl = challanRaw
-    ? counterCollectionFileUrl(challanRaw)
-    : requestId !== '—'
-      ? collectionChallanUrl(requestId)
-      : '';
+  const challanUrl = counterCollectionChallanUrl(row);
 
   const extraFields = useMemo(
     () =>
@@ -247,8 +246,12 @@ export default function CounterCollectionDetailScreen({route}: Props) {
           title="Request Information">
           <DetailRow label="Request Type" value={counterCollectionRequestType(row)} valueHighlight />
           <DetailRow
+            label="Collection Date"
+            value={formatDetailDate(counterCollectionCollectDateOnly(row))}
+          />
+          <DetailRow
             label="Request Date"
-            value={formatDetailDate(row.request_date ?? row.created_at ?? row.date)}
+            value={formatDetailDate(counterCollectionRequestDateOnly(row))}
           />
           <DetailRow label="Request Status" value={status} valueHighlight />
           <DetailRow

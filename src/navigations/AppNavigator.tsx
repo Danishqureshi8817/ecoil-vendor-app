@@ -6,6 +6,8 @@ import OnboardingScreen from '@/screens/OnboardingScreen';
 import Login from '@/screens/Login';
 import CollectRequestDetailScreen from '@/screens/CollectRequestDetailScreen';
 import CounterCollectionDetailScreen from '@/screens/CounterCollectionDetailScreen';
+import ProcessScrapRequestScreen from '@/screens/ProcessScrapRequestScreen';
+import ProcessWasteRequestScreen from '@/screens/ProcessWasteRequestScreen';
 import {
   getActiveRouteName,
   navigationRef,
@@ -57,6 +59,14 @@ export default function AppNavigator() {
         <Stack.Screen
           name={StackNav.CountersCollectionDetail}
           component={CounterCollectionDetailScreen}
+        />
+        <Stack.Screen
+          name={StackNav.ProcessScrapRequest}
+          component={ProcessScrapRequestScreen}
+        />
+        <Stack.Screen
+          name={StackNav.ProcessWasteRequest}
+          component={ProcessWasteRequestScreen}
         />
       </Stack.Navigator>
       <CheckInternet />

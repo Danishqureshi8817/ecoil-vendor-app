@@ -18,6 +18,9 @@ export type CounterCollectionRow = Record<string, unknown> & {
   request_id?: string | number;
   branch_name?: string;
   store_code?: string;
+  collectdate?: string;
+  collect_date?: string;
+  collection_date?: string;
   request_date?: string;
   request_type?: string;
   request_type_name?: string;
@@ -32,6 +35,7 @@ export type CounterCollectionRow = Record<string, unknown> & {
   transfer_ticket?: string;
   challan?: string;
   challan_url?: string;
+  challan_public_url?: string;
   gate_pass?: string;
   address?: string;
   address_line1?: string;
@@ -188,6 +192,32 @@ export function counterCollectionId(row: CounterCollectionRow): string | null {
   return String(id);
 }
 
+/** Prefer collectdate from API; fall back to request/created date. */
+export function counterCollectionDate(row: CounterCollectionRow): unknown {
+  return (
+    row.collectdate ??
+    row.collect_date ??
+    row.collection_date ??
+    row.request_date ??
+    row.created_at ??
+    row.date
+  );
+}
+
+/** Collection date only (no request-date fallback). */
+export function counterCollectionCollectDateOnly(
+  row: CounterCollectionRow,
+): unknown {
+  return row.collectdate ?? row.collect_date ?? row.collection_date ?? null;
+}
+
+/** Request / created date only (ignores collectdate). */
+export function counterCollectionRequestDateOnly(
+  row: CounterCollectionRow,
+): unknown {
+  return row.request_date ?? row.created_at ?? row.date ?? null;
+}
+
 export function counterCollectionBranchLabel(row: CounterCollectionRow): string {
   const store = row.store_code != null ? String(row.store_code).trim() : '';
   const branch = row.branch_name != null ? String(row.branch_name).trim() : '';
@@ -218,6 +248,8 @@ export function counterCollectionAddress(row: CounterCollectionRow): string {
 }
 
 const KNPARISES_FILE_BASE = 'https://app.knparises.com';
+const COLLECTION_CHALLAN_API_BASE =
+  'https://app.knparises.com/api/VendorPickupRequest/challan';
 
 export function counterCollectionFileUrl(value: unknown): string {
   if (value == null || value === '') {
@@ -231,4 +263,21 @@ export function counterCollectionFileUrl(value: unknown): string {
     return `${KNPARISES_FILE_BASE}${raw}`;
   }
   return `${KNPARISES_FILE_BASE}/${raw}`;
+}
+
+/** Prefer public challan URL from API, then path fields, then API challan endpoint. */
+export function counterCollectionChallanUrl(row: CounterCollectionRow): string {
+  const publicUrl =
+    row.challan_public_url != null ? String(row.challan_public_url).trim() : '';
+  if (publicUrl) {
+    return counterCollectionFileUrl(publicUrl);
+  }
+  const challanRaw = row.challan ?? row.challan_url ?? null;
+  if (challanRaw != null && String(challanRaw).trim() !== '') {
+    return counterCollectionFileUrl(challanRaw);
+  }
+  const requestId = counterCollectionId(row);
+  return requestId
+    ? `${COLLECTION_CHALLAN_API_BASE}/${encodeURIComponent(requestId)}`
+    : '';
 }

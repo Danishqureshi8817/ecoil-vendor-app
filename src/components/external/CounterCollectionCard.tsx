@@ -4,6 +4,7 @@ import {Fonts} from '@/constants/fonts';
 import type {CounterCollectionRow} from '@/api/reportsApi';
 import {
   counterCollectionBranchLabel,
+  counterCollectionDate,
   counterCollectionId,
   counterCollectionRequestType,
 } from '@/api/reportsApi';
@@ -65,7 +66,7 @@ export function CounterCollectionCard({row, onPress}: Props) {
       <View style={styles.topRow}>
         <View style={styles.dateBadge}>
           <CustomText variant="h7" fontFamily={Fonts.montserrat.bold} style={styles.dateText}>
-            {formatCardDate(row.request_date ?? row.created_at ?? row.date)}
+            {formatCardDate(counterCollectionDate(row))}
           </CustomText>
         </View>
         <View style={styles.typeBadge}>

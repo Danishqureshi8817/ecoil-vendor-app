@@ -11,6 +11,44 @@ import {
   type SubmitCollectionRequestInput,
 } from '@/api/collectionApi';
 import {
+  assignScrapRequest,
+  cancelScrapRequest,
+  completeScrapRequest,
+  createScrapRequest,
+  deleteScrapRequest,
+  fetchAssignedScrapRequests,
+  fetchLinkedScrapCategories,
+  fetchLinkedScrapVendors,
+  fetchOutletLinkedScrapVendors,
+  fetchScrapAssignUsers,
+  updateScrapRequest,
+  type AssignScrapRequestInput,
+  type CancelScrapRequestInput,
+  type CompleteScrapRequestInput,
+  type CreateScrapRequestInput,
+  type DeleteScrapRequestInput,
+  type ScrapRequestListFilters,
+  type UpdateScrapRequestInput,
+} from '@/api/scrapApi';
+import {
+  assignWasteRequest,
+  cancelWasteRequest,
+  completeWasteRequest,
+  createWasteRequest,
+  deleteWasteRequest,
+  fetchAssignedWasteRequests,
+  fetchLinkedWasteCategories,
+  fetchLinkedWasteVendors,
+  updateWasteRequest,
+  type AssignWasteRequestInput,
+  type CancelWasteRequestInput,
+  type CompleteWasteRequestInput,
+  type CreateWasteRequestInput,
+  type DeleteWasteRequestInput,
+  type UpdateWasteRequestInput,
+  type WasteRequestListFilters,
+} from '@/api/wasteApi';
+import {
   fetchVendorCoins,
   fetchVendorScratchCards,
   fetchVendorTransactions,
@@ -26,6 +64,13 @@ class VendorService {
   queryKeys = {
     vendorLogin: 'vendorLogin',
     collectionRequests: 'collectionRequests',
+    scrapRequests: 'scrapRequests',
+    linkedScrapVendors: 'linkedScrapVendors',
+    outletLinkedScrapVendors: 'outletLinkedScrapVendors',
+    linkedScrapCategories: 'linkedScrapCategories',
+    scrapAssignUsers: 'scrapAssignUsers',
+    wasteRequests: 'wasteRequests',
+    linkedWasteCategories: 'linkedWasteCategories',
     certificates: 'certificates',
     scratchCards: 'scratchCards',
     vendorCoins: 'vendorCoins',
@@ -40,6 +85,64 @@ class VendorService {
 
   getCollectionRequestsByVendor = (vendorUserId: string | number) =>
     fetchCollectionRequestsByVendor(vendorUserId);
+
+  getAssignedScrapRequests = (
+    vendorUserId: string | number = 0,
+    filters: ScrapRequestListFilters = {},
+  ) => fetchAssignedScrapRequests(vendorUserId, filters);
+
+  completeScrapRequest = (input: CompleteScrapRequestInput) =>
+    completeScrapRequest(input);
+
+  getLinkedScrapVendors = () => fetchLinkedScrapVendors();
+
+  getOutletLinkedScrapVendors = () => fetchOutletLinkedScrapVendors();
+
+  getLinkedScrapCategories = () => fetchLinkedScrapCategories();
+
+  getScrapAssignUsers = () => fetchScrapAssignUsers();
+
+  createScrapRequest = (input: CreateScrapRequestInput) =>
+    createScrapRequest(input);
+
+  updateScrapRequest = (input: UpdateScrapRequestInput) =>
+    updateScrapRequest(input);
+
+  assignScrapRequest = (input: AssignScrapRequestInput) =>
+    assignScrapRequest(input);
+
+  deleteScrapRequest = (input: DeleteScrapRequestInput) =>
+    deleteScrapRequest(input);
+
+  cancelScrapRequest = (input: CancelScrapRequestInput) =>
+    cancelScrapRequest(input);
+
+  getAssignedWasteRequests = (
+    vendorUserId: string | number = 0,
+    filters: WasteRequestListFilters = {},
+  ) => fetchAssignedWasteRequests(vendorUserId, filters);
+
+  completeWasteRequest = (input: CompleteWasteRequestInput) =>
+    completeWasteRequest(input);
+
+  getLinkedWasteVendors = () => fetchLinkedWasteVendors();
+
+  getLinkedWasteCategories = () => fetchLinkedWasteCategories();
+
+  createWasteRequest = (input: CreateWasteRequestInput) =>
+    createWasteRequest(input);
+
+  updateWasteRequest = (input: UpdateWasteRequestInput) =>
+    updateWasteRequest(input);
+
+  assignWasteRequest = (input: AssignWasteRequestInput) =>
+    assignWasteRequest(input);
+
+  deleteWasteRequest = (input: DeleteWasteRequestInput) =>
+    deleteWasteRequest(input);
+
+  cancelWasteRequest = (input: CancelWasteRequestInput) =>
+    cancelWasteRequest(input);
 
   submitCollection = (input: SubmitCollectionRequestInput) =>
     submitCollectionRequest(input);

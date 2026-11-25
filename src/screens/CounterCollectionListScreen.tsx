@@ -211,14 +211,14 @@ export default function CounterCollectionListScreen() {
 
           <View style={styles.dateRow}>
             <KnparisesDatePickerField
-              label="Date From"
+              label="Collection date start"
               variant="outlined"
               value={dateFrom}
               onChange={setDateFrom}
               maximumDate={dateUptoValue ?? undefined}
             />
             <KnparisesDatePickerField
-              label="Date Upto"
+              label="Collection date end"
               variant="outlined"
               value={dateUpto}
               onChange={setDateUpto}

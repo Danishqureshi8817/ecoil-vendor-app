@@ -18,7 +18,7 @@ import { useAuthStore } from '@/states/authStore';
 import { externalUi } from '@/styles/externalUi';
 import { screen } from '@/styles/ui';
 import { getApiErrorMessage } from '@/utils/getApiErrorMessage';
-import { formatRedeemMinimumMessage, isScratchExpired } from '@/utils/scratchHelpers';
+import { getRedeemBlockedMessage, isScratchExpired } from '@/utils/scratchHelpers';
 import { clearSession } from '@/utils/sessionStorage';
 import { buildVendorNavItems } from '@/utils/vendorNavItems';
 import { vendorUserId } from '@/utils/vendorUser';
@@ -183,12 +183,6 @@ export default function MyRewardsScreen() {
   const redeemRows = redeemTxns ?? [];
   const coinTotal = coins?.coinTotal ?? null;
   const minRedeemAmount = coins?.minRedeemAmount ?? 0;
-  const redeemEligible =
-    coins?.redeemEligible ?? (coinTotal != null ? coinTotal >= minRedeemAmount : minRedeemAmount <= 0);
-  const redeemBlockedMessage =
-    coinTotal != null && minRedeemAmount > 0 && !redeemEligible
-      ? formatRedeemMinimumMessage(minRedeemAmount, coinTotal)
-      : null;
   const isScratchTab = tab === 'scratch';
   const isEarnedTab = tab === 'earned';
   const isRedeemTab = tab === 'redeem';
@@ -232,12 +226,9 @@ export default function MyRewardsScreen() {
   );
 
   function handleRedeemPress() {
-    if (redeemBlockedMessage) {
-      Alert.alert('Cannot redeem yet', redeemBlockedMessage);
-      return;
-    }
-    if (coinTotal == null || coinTotal <= 0) {
-      Alert.alert('No coins', 'No coins available to redeem');
+    const blocked = getRedeemBlockedMessage(coinTotal, minRedeemAmount);
+    if (blocked) {
+      Alert.alert('Cannot redeem yet', blocked);
       return;
     }
     setRedeemFormError(null);
@@ -246,12 +237,10 @@ export default function MyRewardsScreen() {
 
   async function submitRedeem() {
     setRedeemFormError(null);
-    if (redeemBlockedMessage) {
-      setRedeemFormError(redeemBlockedMessage);
-      return;
-    }
-    if (coinTotal == null || coinTotal <= 0) {
-      setRedeemFormError('No coins available to redeem');
+    const blocked = getRedeemBlockedMessage(coinTotal, minRedeemAmount);
+    if (blocked) {
+      setRedeemOpen(false);
+      Alert.alert('Cannot redeem yet', blocked);
       return;
     }
     if (!redeemDesc.trim()) {

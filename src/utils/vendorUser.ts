@@ -84,3 +84,50 @@ export function isParentCounter(
   const flag = user.is_parent_counter ?? user.isParentCounter;
   return flag === 1 || flag === '1' || String(flag ?? '').trim() === '1';
 }
+
+/** Login `user.type` — typically 2 (oil), 98 (scrap team user), or 99 (scrap vendor). */
+export function vendorUserType(
+  user: ExternalVendorUser | null | undefined,
+): number {
+  if (!user) {
+    return 0;
+  }
+  const raw =
+    user.type ??
+    user.user_type ??
+    user.usertype ??
+    user.UserType ??
+    user.userType ??
+    (user as {login_type?: string | number}).login_type ??
+    (user as {login_role?: string | number}).login_role;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Oil / existing vendor portal (login type = 2). */
+export function isOilVendor(
+  user: ExternalVendorUser | null | undefined,
+): boolean {
+  return vendorUserType(user) === 2;
+}
+
+/** Scrap team user (login type = 98) — can create scrap/waste only for self. */
+export function isScrapVendorUser(
+  user: ExternalVendorUser | null | undefined,
+): boolean {
+  return vendorUserType(user) === 98;
+}
+
+/** Scrap collection vendor owner (login type = 99). */
+export function isScrapVendor(
+  user: ExternalVendorUser | null | undefined,
+): boolean {
+  return vendorUserType(user) === 99;
+}
+
+/** Scrap portal access — owner (99) or team user (98). */
+export function hasScrapVendorAccess(
+  user: ExternalVendorUser | null | undefined,
+): boolean {
+  return isScrapVendor(user) || isScrapVendorUser(user);
+}

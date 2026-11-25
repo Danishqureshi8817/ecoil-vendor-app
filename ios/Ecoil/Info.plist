@@ -38,6 +38,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ecoil needs your location while processing scrap and waste requests so we can attach latitude and longitude to the submission.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Ecoil needs camera access to capture photos of gate pass, challan, and collection documents for upload.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
